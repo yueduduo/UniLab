@@ -11,6 +11,11 @@ Usage:
     uv run scripts/play_interactive.py task=go2_joystick_flat/mujoco algo.load_run=2024-02-04_12-00-00
     uv run scripts/play_interactive.py task=go2_joystick_rough/mujoco   interactive.action_mode=policy interactive.keyboard=true
 
+    # APPO checkpoint with keyboard teleop
+    uv run scripts/play_interactive.py task=g1_walk_flat/mujoco \
+      algo.load_run=2026-06-01_00-11-17_mujoco \
+      interactive.action_mode=policy interactive.keyboard=true
+
     # Show target bodies / reward debug overlays
     uv run scripts/play_interactive.py task=g1_motion_tracking/mujoco \
       interactive.show_target_bodies=true \
@@ -59,6 +64,7 @@ from unilab.visualization.interactive_playback import (
     PlaybackControls,
     RslRlPlaybackConfig,
     create_rsl_rl_playback_session,
+    infer_actor_input_dim_from_checkpoint_path,
     prepare_motion_overlay_selection,
     select_torch_device,
 )
@@ -123,31 +129,37 @@ class PlayInteractiveArgs:
 
 
 def _infer_checkpoint_actor_input_dim(ckpt_path: str) -> int | None:
-    loaded = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    state_dict = loaded.get("actor_state_dict")
-    if not isinstance(state_dict, dict):
-        return None
-
-    # Common rsl-rl naming: "mlp.0.weight" or nested prefixes ending with ".0.weight".
-    for key in ("mlp.0.weight", "actor.mlp.0.weight"):
-        w = state_dict.get(key)
-        if isinstance(w, torch.Tensor) and w.ndim == 2:
-            return int(w.shape[1])
-
-    for key, w in state_dict.items():
-        if key.endswith(".0.weight") and isinstance(w, torch.Tensor) and w.ndim == 2:
-            return int(w.shape[1])
-    return None
+    return infer_actor_input_dim_from_checkpoint_path(ckpt_path)
 
 
-def _backend_adapter(cfg: DictConfig):
+def _resolve_playback_algo_log_name(cfg: DictConfig | None, checkpoint_path: str | None) -> str:
+    if checkpoint_path is not None:
+        from unilab.visualization.interactive_playback import (
+            is_appo_learner_checkpoint,
+            load_algo_config_from_run_dir,
+            load_checkpoint_payload,
+        )
+
+        loaded = load_checkpoint_payload(checkpoint_path)
+        if is_appo_learner_checkpoint(loaded):
+            run_algo = load_algo_config_from_run_dir(checkpoint_path)
+            if isinstance(run_algo, dict):
+                algo_log_name = run_algo.get("algo_log_name")
+                if isinstance(algo_log_name, str) and algo_log_name:
+                    return algo_log_name
+    if cfg is None:
+        return "rsl_rl_ppo"
+    return str(cfg.algo.algo_log_name)
+
+
+def _backend_adapter(cfg: DictConfig, *, algo_name: str = "ppo"):
     from unilab.base.backend.mujoco.xml import materialize_scene_visual_override
     from unilab.training import BackendAdapter
 
     return BackendAdapter(
         cfg,
         root_dir=ROOT_DIR,
-        algo_name="ppo",
+        algo_name=algo_name,
         scene_materializer=materialize_scene_visual_override,
     )
 
@@ -181,6 +193,8 @@ def resolve_checkpoint(
     checkpoint: str | None = None,
     algo_log_name: str = "rsl_rl_ppo",
     log_root: str | None = None,
+    *,
+    log_failure: bool = True,
 ) -> str | None:
     checkpoint_path, checkpoint_dir = resolve_task_checkpoint_path(
         ROOT_DIR,
@@ -191,19 +205,73 @@ def resolve_checkpoint(
         log_root=log_root,
     )
     if checkpoint_path is None:
-        if checkpoint is not None and checkpoint_dir is not None:
-            checkpoint_name = (
-                f"model_{checkpoint}.pt" if str(checkpoint).isdigit() else str(checkpoint)
-            )
-            print(f"[play_interactive] Checkpoint not found: {checkpoint_dir / checkpoint_name}")
-        elif checkpoint_dir is not None:
-            print(f"[play_interactive] No model_*.pt files in {checkpoint_dir}")
-        else:
-            print(f"[play_interactive] Run not found for load_run={load_run}")
+        if log_failure:
+            if checkpoint is not None and checkpoint_dir is not None:
+                checkpoint_name = (
+                    f"model_{checkpoint}.pt" if str(checkpoint).isdigit() else str(checkpoint)
+                )
+                print(f"[play_interactive] Checkpoint not found: {checkpoint_dir / checkpoint_name}")
+            elif checkpoint_dir is not None:
+                print(f"[play_interactive] No model_*.pt files in {checkpoint_dir}")
+            else:
+                print(f"[play_interactive] Run not found for load_run={load_run}")
         return None
 
     print(f"[play_interactive] Loading checkpoint: {checkpoint_path}")
     return str(checkpoint_path)
+
+
+def _resolve_playback_checkpoint(
+    playback_cfg: RslRlPlaybackConfig,
+    *,
+    cfg: DictConfig | None = None,
+) -> tuple[str | None, RslRlPlaybackConfig]:
+    candidate_log_names: list[str] = [playback_cfg.algo_log_name]
+    for fallback in ("appo", "rsl_rl_ppo"):
+        if fallback not in candidate_log_names:
+            candidate_log_names.append(fallback)
+
+    for index, algo_log_name in enumerate(candidate_log_names):
+        candidate_cfg = playback_cfg
+        if algo_log_name != playback_cfg.algo_log_name:
+            candidate_cfg = RslRlPlaybackConfig(
+                task=playback_cfg.task,
+                load_run=playback_cfg.load_run,
+                checkpoint=playback_cfg.checkpoint,
+                action_mode=playback_cfg.action_mode,
+                policy_obs_mode=playback_cfg.policy_obs_mode,
+                algo_log_name=algo_log_name,
+                log_root=playback_cfg.log_root,
+                num_envs=playback_cfg.num_envs,
+                speed=playback_cfg.speed,
+                start_paused=playback_cfg.start_paused,
+            )
+        checkpoint_path = resolve_checkpoint(
+            candidate_cfg.task,
+            candidate_cfg.load_run,
+            candidate_cfg.checkpoint,
+            candidate_cfg.algo_log_name,
+            candidate_cfg.log_root,
+            log_failure=index == len(candidate_log_names) - 1,
+        )
+        if checkpoint_path is None:
+            continue
+        resolved_algo_log_name = _resolve_playback_algo_log_name(cfg, checkpoint_path)
+        if resolved_algo_log_name != candidate_cfg.algo_log_name:
+            candidate_cfg = RslRlPlaybackConfig(
+                task=candidate_cfg.task,
+                load_run=candidate_cfg.load_run,
+                checkpoint=candidate_cfg.checkpoint,
+                action_mode=candidate_cfg.action_mode,
+                policy_obs_mode=candidate_cfg.policy_obs_mode,
+                algo_log_name=resolved_algo_log_name,
+                log_root=candidate_cfg.log_root,
+                num_envs=candidate_cfg.num_envs,
+                speed=candidate_cfg.speed,
+                start_paused=candidate_cfg.start_paused,
+            )
+        return checkpoint_path, candidate_cfg
+    return None, playback_cfg
 
 
 # ---------------------------------------------------------------------------
@@ -653,6 +721,13 @@ def play_interactive(args, cfg: DictConfig | None = None):
     device = select_torch_device()
     print(f"[play_interactive] Device: {device}")
 
+    playback_cfg = _build_playback_config(args, num_envs=1)
+    checkpoint_path = None
+    if playback_cfg.action_mode == "policy":
+        checkpoint_path, playback_cfg = _resolve_playback_checkpoint(playback_cfg, cfg=cfg)
+
+    playback_algo_name = "appo" if playback_cfg.algo_log_name == "appo" else "ppo"
+
     # Always use a single env for interactive view
     available_backends = _available_backends_for_task(args.task)
     if available_backends and "mujoco" not in available_backends:
@@ -668,7 +743,7 @@ def play_interactive(args, cfg: DictConfig | None = None):
             return registry.make(args.task, num_envs=num_envs, sim_backend="mujoco")
         from unilab.training import create_env
 
-        env_cfg_override = _backend_adapter(cfg).build_task_env_cfg_override()
+        env_cfg_override = _backend_adapter(cfg, algo_name=playback_algo_name).build_task_env_cfg_override()
         try:
             return create_env(
                 cfg,
@@ -689,12 +764,12 @@ def play_interactive(args, cfg: DictConfig | None = None):
 
     try:
         session = create_rsl_rl_playback_session(
-            playback_cfg=_build_playback_config(args, num_envs=1),
+            playback_cfg=playback_cfg,
             env_factory=_create_env,
             algo_config=_algo_config_dict(cfg),
             root_dir=ROOT_DIR,
             device=device,
-            checkpoint_resolver=resolve_checkpoint,
+            checkpoint_resolver=lambda *_args, **_kwargs: checkpoint_path,
             checkpoint_input_dim_reader=_infer_checkpoint_actor_input_dim,
             entrypoint_log_root=get_entrypoint_log_root,
             wrapper_cls=RslRlVecEnvWrapper,

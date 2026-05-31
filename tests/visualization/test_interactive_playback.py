@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from types import SimpleNamespace
 from typing import Any
@@ -7,6 +8,7 @@ from typing import Any
 import numpy as np
 import pytest
 import torch
+from tensordict import TensorDict
 
 from unilab.visualization.interactive_playback import (
     KeyboardCommander,
@@ -14,6 +16,8 @@ from unilab.visualization.interactive_playback import (
     RslRlPlaybackConfig,
     RslRlPlaybackSession,
     create_rsl_rl_playback_session,
+    infer_actor_input_dim_from_checkpoint_payload,
+    is_appo_learner_checkpoint,
     prepare_motion_overlay_selection,
 )
 
@@ -90,7 +94,7 @@ def test_playback_session_advance_respects_pause_and_single_step() -> None:
     assert session.advance(controls) is False
 
 
-def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() -> None:
+def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir(tmp_path: Path) -> None:
     env = SimpleNamespace(
         obs_groups_spec={"obs": 5},
         action_space=SimpleNamespace(
@@ -101,6 +105,8 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
         get_physics_state_snapshot=lambda: np.zeros((1, 4), dtype=np.float32),
     )
     captured: dict[str, Any] = {}
+    checkpoint_path = tmp_path / "model_10.pt"
+    torch.save({"actor_state_dict": {"mlp.0.weight": torch.zeros((4, 5))}}, checkpoint_path)
 
     class Wrapper:
         def __init__(self, wrapped_env, *, device, policy_obs_mode):
@@ -143,7 +149,7 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
         algo_config={"runner": {"logger": "tensorboard"}},
         root_dir=Path("/repo"),
         device="cpu",
-        checkpoint_resolver=lambda *args: "/tmp/model_10.pt",
+        checkpoint_resolver=lambda *args: str(checkpoint_path),
         checkpoint_input_dim_reader=lambda path: 5,
         entrypoint_log_root=lambda root_dir, *, algo_log_name, log_root=None: (
             Path("/tmp") / algo_log_name
@@ -157,9 +163,9 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
 
     assert session.env is env
     assert policy_obs_mode == "actor"
-    assert checkpoint == "/tmp/model_10.pt"
+    assert checkpoint == str(checkpoint_path)
     assert captured["runner_log_dir"] == "/tmp/custom_ppo/MyTask/play_temp"
-    assert captured["checkpoint"] == "/tmp/model_10.pt"
+    assert captured["checkpoint"] == str(checkpoint_path)
     assert captured["train_cfg"]["runner"]["logger"] == "none"
 
 
@@ -236,3 +242,111 @@ def test_prepare_motion_overlay_selection_filters_body_names() -> None:
     assert selection.enabled is True
     assert selection.selected_indices.tolist() == [2]
     assert messages == ["WARNING: body name not found in task body list: missing"]
+
+
+def test_infer_actor_input_dim_supports_appo_checkpoint_payload() -> None:
+    payload = {
+        "actor": {"mlp.0.weight": torch.zeros((128, 98))},
+        "critic": {},
+        "optimizer": {},
+    }
+    assert is_appo_learner_checkpoint(payload) is True
+    assert infer_actor_input_dim_from_checkpoint_payload(payload) == 98
+
+
+def test_create_rsl_rl_playback_session_loads_appo_checkpoint(tmp_path: Path) -> None:
+    env = SimpleNamespace(
+        obs_groups_spec={"obs": 98, "critic": 101},
+        action_space=SimpleNamespace(
+            shape=(29,),
+            low=np.full((29,), -1.0),
+            high=np.full((29,), 1.0),
+        ),
+        get_physics_state_snapshot=lambda: np.zeros((1, 4), dtype=np.float32),
+    )
+    captured: dict[str, Any] = {}
+
+    class Wrapper:
+        def __init__(self, wrapped_env, *, device, policy_obs_mode):
+            captured["policy_obs_mode"] = policy_obs_mode
+
+        def reset(self):
+            return TensorDict({"policy": torch.zeros((1, 98))}, batch_size=1), {}
+
+        def step(self, actions):
+            return TensorDict({"policy": torch.zeros((1, 98))}, batch_size=1), 0.0, False, {}
+
+    class Runner:
+        def __init__(self, *args, **kwargs):
+            raise AssertionError("OnPolicyRunner should not be used for APPO checkpoints")
+
+        def load(self, *args, **kwargs):
+            raise AssertionError("OnPolicyRunner.load should not be called")
+
+        def get_inference_policy(self, *, device):
+            raise AssertionError("OnPolicyRunner policy should not be requested")
+
+    checkpoint_path = tmp_path / "model_0.pt"
+    run_config = {
+        "config": {
+            "algo": {
+                "algo_log_name": "appo",
+                "obs_groups": {"actor": {"policy": 98}},
+                "actor": {
+                    "class_name": "rsl_rl.models.MLPModel",
+                    "hidden_dims": [128],
+                    "activation": "elu",
+                    "obs_normalization": False,
+                    "distribution_cfg": {
+                        "class_name": "rsl_rl.modules.distribution.GaussianDistribution",
+                        "init_std": 1.0,
+                        "std_type": "scalar",
+                    },
+                },
+            }
+        }
+    }
+    (tmp_path / "run_config.json").write_text(json.dumps(run_config), encoding="utf-8")
+    from unilab.visualization.interactive_playback import build_appo_actor
+
+    actor = build_appo_actor(
+        run_config["config"]["algo"],
+        obs_dim=98,
+        critic_dim=101,
+        action_dim=29,
+        num_envs=1,
+        device="cpu",
+    )
+    torch.save({"actor": actor.state_dict(), "critic": {}, "optimizer": {}}, checkpoint_path)
+
+    session, policy_obs_mode, resolved_checkpoint = create_rsl_rl_playback_session(
+        playback_cfg=RslRlPlaybackConfig(
+            task="G1WalkFlat",
+            load_run=str(checkpoint_path),
+            checkpoint=None,
+            action_mode="policy",
+            policy_obs_mode="auto",
+            algo_log_name="appo",
+            log_root=None,
+            num_envs=1,
+        ),
+        env_factory=lambda num_envs: env,
+        algo_config={},
+        root_dir=Path("/repo"),
+        device="cpu",
+        checkpoint_resolver=lambda *args: str(checkpoint_path),
+        checkpoint_input_dim_reader=lambda path: 98,
+        entrypoint_log_root=lambda root_dir, *, algo_log_name, log_root=None: Path("/tmp") / algo_log_name,
+        wrapper_cls=Wrapper,
+        runner_cls=Runner,
+        policy_obs_dims_getter=lambda spec: (98, 98),
+        train_cfg_normalizer=lambda cfg: cfg,
+        log=lambda message: captured.setdefault("logs", []).append(message),
+    )
+
+    assert policy_obs_mode == "actor"
+    assert resolved_checkpoint == str(checkpoint_path)
+    assert session.policy is not None
+    actions = session.policy(TensorDict({"policy": torch.zeros((1, 98))}, batch_size=1))
+    assert actions.shape == (1, 29)
+    assert any("APPO learner checkpoint" in message for message in captured["logs"])

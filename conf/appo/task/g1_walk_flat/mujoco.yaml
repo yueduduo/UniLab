@@ -3,8 +3,9 @@ training:
   task_name: G1WalkFlat
   sim_backend: mujoco
 algo:
-  max_iterations: 500
-  save_interval: 100
+  num_envs: 4096        # 3hours
+  max_iterations: 5000
+  save_interval: 1000
 env:
   control_config:
     action_scale: 0.25
