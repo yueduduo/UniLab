@@ -224,8 +224,10 @@ def play_appo(
             rl_cfg_dict["obs_groups"]["critic"] = {
                 "policy": critic_dim if critic_dim > 0 else obs_dim
             }
-        elif isinstance(critic_group, dict) and "policy" in critic_group:
-            critic_group["policy"] = critic_dim if critic_dim > 0 else obs_dim
+        elif isinstance(critic_group, dict):
+            critic_value = critic_dim if critic_dim > 0 else obs_dim
+            for key in critic_group:
+                critic_group[key] = critic_value
 
     from copy import deepcopy
 

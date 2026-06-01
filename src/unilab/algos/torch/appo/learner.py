@@ -236,6 +236,19 @@ class APPOLearner:
         mean = self.actor.mlp(self.actor.obs_normalizer(obs))
         return mean, _distribution_std(distribution, mean)
 
+    def _critic_obs_key(self) -> str:
+        groups = self.critic.obs_groups
+        if isinstance(groups, dict):
+            return str(next(iter(groups)))
+        return str(groups[0])
+
+    def _critic_obs_td(self, obs: torch.Tensor, batch_size: int | torch.Size) -> TensorDict:
+        return TensorDict(
+            {self._critic_obs_key(): obs},
+            batch_size=batch_size,
+            device=self.device,
+        )
+
     def _critic_value(self, obs: torch.Tensor) -> torch.Tensor:
         return self.critic.mlp(self.critic.obs_normalizer(obs)).squeeze(-1)
 
@@ -396,12 +409,8 @@ class APPOLearner:
         critic_obs = critic_base
         critic_last_obs = last_critic
         critic_obs_flat = critic_obs.flatten(0, 1)  # [T*N, D+P]
-        critic_obs_td = TensorDict(
-            {"policy": critic_obs_flat}, batch_size=critic_obs_flat.shape[0], device=self.device
-        )
-        critic_last_obs_td = TensorDict(
-            {"policy": critic_last_obs}, batch_size=N, device=self.device
-        )
+        critic_obs_td = self._critic_obs_td(critic_obs_flat, critic_obs_flat.shape[0])
+        critic_last_obs_td = self._critic_obs_td(critic_last_obs, N)
 
         # Update Observation Normalization
         if hasattr(self.actor, "update_normalization"):

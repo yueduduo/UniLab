@@ -314,11 +314,19 @@ def load_checkpoint_payload(checkpoint_path: str | Path) -> dict[str, Any]:
 
 
 def is_appo_learner_checkpoint(loaded: dict[str, Any]) -> bool:
-    return "actor" in loaded and "actor_state_dict" not in loaded
+    return (
+        "actor" in loaded
+        and "actor_state_dict" not in loaded
+        and not is_flashsac_checkpoint(loaded)
+    )
+
+
+def is_flashsac_checkpoint(loaded: dict[str, Any]) -> bool:
+    return "actor" in loaded and "temperature" in loaded and "target_critic" in loaded
 
 
 def infer_actor_input_dim_from_state_dict(state_dict: dict[str, Any]) -> int | None:
-    for key in ("mlp.0.weight", "actor.mlp.0.weight"):
+    for key in ("mlp.0.weight", "actor.mlp.0.weight", "embedder.w.w.weight"):
         weight = state_dict.get(key)
         if isinstance(weight, torch.Tensor) and weight.ndim == 2:
             return int(weight.shape[1])
@@ -435,6 +443,66 @@ def build_appo_inference_policy(actor: Any, *, device: str) -> Callable[[Any], t
     return policy
 
 
+def build_flashsac_actor(
+    rl_cfg: dict[str, Any],
+    *,
+    obs_dim: int,
+    action_dim: int,
+    device: str,
+) -> tuple[Any, Any | None]:
+    from unilab.algos.torch.common.actor_factory import build_actor
+    from unilab.algos.torch.common.normalization import EmpiricalNormalization
+
+    cfg = copy.deepcopy(rl_cfg)
+    algo_params = cfg.get("algo_params", {})
+    if not isinstance(algo_params, dict):
+        algo_params = {}
+
+    actor = build_actor(
+        "flashsac",
+        obs_dim,
+        action_dim,
+        int(cfg.get("actor_hidden_dim", 128)),
+        bool(cfg.get("use_layer_norm", False)),
+        device,
+        actor_num_blocks=int(algo_params.get("actor_num_blocks", 2)),
+        actor_noise_zeta_mu=float(algo_params.get("actor_noise_zeta_mu", 2.0)),
+        actor_noise_zeta_max=int(algo_params.get("actor_noise_zeta_max", 16)),
+    ).to(device)
+
+    normalizer = None
+    if bool(cfg.get("obs_normalization", False)):
+        normalizer = EmpiricalNormalization(shape=obs_dim, device=device)
+    return actor, normalizer
+
+
+def build_flashsac_inference_policy(
+    actor: Any,
+    *,
+    device: str,
+    obs_normalizer: Any | None = None,
+) -> Callable[[Any], torch.Tensor]:
+    actor.eval()
+    if obs_normalizer is not None:
+        obs_normalizer.eval()
+
+    def policy(obs: Any) -> torch.Tensor:
+        with torch.inference_mode():
+            if isinstance(obs, TensorDict):
+                policy_obs: Any = obs["policy"]
+            else:
+                policy_obs = obs
+            if isinstance(policy_obs, torch.Tensor):
+                policy_obs_t = policy_obs.to(device=device, dtype=torch.float32)
+            else:
+                policy_obs_t = torch.as_tensor(policy_obs, device=device, dtype=torch.float32)
+            if obs_normalizer is not None:
+                policy_obs_t = obs_normalizer(policy_obs_t, update=False)
+            return actor.explore(policy_obs_t, deterministic=True)
+
+    return policy
+
+
 def create_rsl_rl_playback_session(
     *,
     playback_cfg: RslRlPlaybackConfig,
@@ -498,7 +566,33 @@ def create_rsl_rl_playback_session(
             log("WARNING: no checkpoint found - falling back to zero actions.")
         else:
             loaded = load_checkpoint_payload(checkpoint_path)
-            if is_appo_learner_checkpoint(loaded):
+            if is_flashsac_checkpoint(loaded):
+                rl_cfg = load_algo_config_from_run_dir(checkpoint_path) or algo_config
+                action_shape = env.action_space.shape
+                if action_shape is None:
+                    raise ValueError("env.action_space.shape must be defined")
+                action_dim = int(action_shape[0])
+                actor, obs_normalizer = build_flashsac_actor(
+                    rl_cfg,
+                    obs_dim=actor_obs_dim,
+                    action_dim=action_dim,
+                    device=device_name,
+                )
+                actor_state = loaded.get("actor")
+                if not isinstance(actor_state, dict):
+                    raise TypeError("FlashSAC checkpoint missing actor state dict")
+                actor.load_state_dict(actor_state)
+                if obs_normalizer is not None:
+                    normalizer_state = loaded.get("obs_normalizer")
+                    if isinstance(normalizer_state, dict):
+                        obs_normalizer.load_state_dict(normalizer_state)
+                policy = build_flashsac_inference_policy(
+                    actor,
+                    device=device_name,
+                    obs_normalizer=obs_normalizer,
+                )
+                log("Loaded FlashSAC actor for interactive playback.")
+            elif is_appo_learner_checkpoint(loaded):
                 rl_cfg = load_algo_config_from_run_dir(checkpoint_path) or algo_config
                 critic_dim = int(env.obs_groups_spec.get("critic", 0))
                 action_shape = env.action_space.shape
@@ -615,9 +709,12 @@ __all__ = [
     "RslRlPlaybackSession",
     "build_appo_actor",
     "build_appo_inference_policy",
+    "build_flashsac_actor",
+    "build_flashsac_inference_policy",
     "create_rsl_rl_playback_session",
     "infer_actor_input_dim_from_checkpoint_path",
     "infer_actor_input_dim_from_checkpoint_payload",
+    "is_flashsac_checkpoint",
     "is_appo_learner_checkpoint",
     "load_algo_config_from_run_dir",
     "load_checkpoint_payload",

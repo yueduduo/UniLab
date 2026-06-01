@@ -35,3 +35,11 @@ def get_critic_base_dim(obs_groups_spec: dict[str, int]) -> int:
     """Get critic observation dim, falling back to actor obs when absent."""
     critic_dim = obs_groups_spec.get("critic", 0)
     return critic_dim if critic_dim > 0 else obs_groups_spec.get("obs", 0)
+
+
+def get_critic_obs_group_key(obs_groups_cfg: dict) -> str:
+    """Primary TensorDict key for critic inputs in RSL-RL APPO/PPO configs."""
+    critic_group = obs_groups_cfg.get("critic")
+    if isinstance(critic_group, dict) and critic_group:
+        return str(next(iter(critic_group.keys())))
+    return "policy"

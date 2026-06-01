@@ -79,6 +79,7 @@ from unilab.visualization.interactive_playback import (
     select_torch_device,
     sync_play_velocity_command,
 )
+from unilab.visualization.soccer_dribble_playback import is_soccer_dribble_task
 
 _KEY_ENTER, _KEY_KP_ENTER = 257, 335
 _KEY_BACKSPACE = 259
@@ -873,6 +874,15 @@ def play_interactive(args: PlayInteractiveArgs, cfg: DictConfig | None = None) -
         raise ValueError(f"Unsupported sim_backend {sim_backend!r}")
 
 
+def _soccer_dribble_debug_enabled(cfg: DictConfig | None, task_name: str) -> bool:
+    if cfg is None:
+        return task_name == "K1SoccerDribble"
+    override = OmegaConf.select(cfg, "interactive.soccer_dribble_debug", default=None)
+    if override is not None:
+        return bool(override)
+    return str(task_name) == "K1SoccerDribble"
+
+
 def play_interactive_motrix(args: PlayInteractiveArgs, cfg: DictConfig | None = None) -> None:
     device = select_torch_device()
     print(f"[play_interactive] Device: {device}, backend: motrix")
@@ -895,11 +905,47 @@ def play_interactive_motrix(args: PlayInteractiveArgs, cfg: DictConfig | None = 
     if env.state is None:
         env.init_state()
 
+    if cfg is not None and is_soccer_dribble_task(args.task) and _motrix_uses_raw_env_obs(
+        playback_cfg, checkpoint_path
+    ):
+        from unilab.visualization.soccer_dribble_playback import (
+            run_motrix_soccer_dribble_playback,
+            soccer_debug_from_cfg,
+        )
+
+        soccer_debug = soccer_debug_from_cfg(env, cfg)
+        if soccer_debug is not None:
+            print("[play_interactive] K1 soccer dribble debug logging enabled (see [soccer-debug]).")
+        run_motrix_soccer_dribble_playback(
+            env,
+            policy,
+            cfg,
+            device=device,
+            debug=soccer_debug,
+            keyboard=bool(args.keyboard),
+            keyboard_step_lin=float(args.keyboard_step_lin),
+            keyboard_step_ang=float(args.keyboard_step_ang),
+            play_steps=getattr(cfg.training, "play_steps", None),
+            log_prefix="[play_interactive]",
+            num_envs=play_env_num,
+        )
+        print("[play_interactive] Done.")
+        return
+
     before_step = _build_motrix_keyboard_hook(env, args)
     if before_step is not None:
         env.set_autoreset(False)
 
     use_raw_env_obs = _motrix_uses_raw_env_obs(playback_cfg, checkpoint_path)
+
+    from unilab.visualization.soccer_dribble_playback_debug import SoccerDribblePlaybackDiagnostics
+
+    soccer_debug = SoccerDribblePlaybackDiagnostics.maybe_create(
+        env,
+        enabled=_soccer_dribble_debug_enabled(cfg, args.task),
+    )
+    if soccer_debug is not None:
+        print("[play_interactive] K1 soccer dribble debug logging enabled (see [soccer-debug]).")
 
     def _initialize_play_obs():
         env.reset(np.arange(play_env_num, dtype=np.int32))
@@ -909,6 +955,9 @@ def play_interactive_motrix(args: PlayInteractiveArgs, cfg: DictConfig | None = 
                 np.zeros(3, dtype=np.float32),
                 flush_obs_history=True,
             )
+        if soccer_debug is not None:
+            soccer_debug.print_setup_once()
+            soccer_debug.sync_ball_velocity_baseline()
         if use_raw_env_obs:
             if env.state is None:
                 raise RuntimeError("play initialize requires env.state after reset")
@@ -919,16 +968,24 @@ def play_interactive_motrix(args: PlayInteractiveArgs, cfg: DictConfig | None = 
     def _step_play_obs(obs):
         with torch.inference_mode():
             if use_raw_env_obs:
-                actions = policy(
-                    TensorDict(
-                        {"policy": torch.from_numpy(np.asarray(obs)).to(device)},
-                        batch_size=play_env_num,
-                    )
+                from unilab.visualization.soccer_dribble_playback import step_soccer_dribble
+
+                action_dim = int(env.action_space.shape[0])
+                next_obs, info = step_soccer_dribble(
+                    env,
+                    policy,
+                    np.asarray(obs, dtype=np.float32),
+                    device=device,
+                    action_dim=action_dim,
+                    num_envs=play_env_num,
                 )
-                next_state = env.step(actions.cpu().numpy().astype(np.float32))
-                return np.asarray(next_state.obs["obs"], dtype=np.float32)
+                if soccer_debug is not None:
+                    soccer_debug.after_step(info)
+                return next_obs
             actions = policy(obs)
             next_obs, _reward, _done, _info = playback_session.wrapped_env.step(actions)
+            if soccer_debug is not None:
+                soccer_debug.after_step(_info)
             return next_obs
 
     print("[play_interactive] Opening Motrix render window — close to quit.")
