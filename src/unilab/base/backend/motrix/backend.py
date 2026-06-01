@@ -2,7 +2,7 @@ import os
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast
 
 import numpy as np
 
@@ -726,6 +726,7 @@ class MotrixBackend(SimBackend):
         frame_state_getter=None,
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter=None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
         del frame_state_getter, extra_data_getter
         should_record_video = (
@@ -745,6 +746,7 @@ class MotrixBackend(SimBackend):
                 headless=should_run_headless,
                 record_video=should_record_video,
                 camera_kwargs=camera_kwargs,
+                before_step=before_step,
             )
         except Exception as e:
             if (
@@ -1254,6 +1256,12 @@ class MotrixBackend(SimBackend):
         assert self._render_app is not None
         self._update_tracking_camera_view()
         self._render_app.sync(data=self._data)
+
+    def get_render_input(self) -> Any | None:
+        """Return Motrix render input when the native window is active."""
+        if self._render_app is None or self._render_headless:
+            return None
+        return getattr(self._render_app, "input", None)
 
     def capture_video_frame(self) -> np.ndarray:
         """Capture one RGB frame from Motrix's system camera."""

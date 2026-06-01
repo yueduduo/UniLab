@@ -93,6 +93,7 @@ class ABEnv(abc.ABC):
         frame_state_getter: Callable[[], np.ndarray] | None = None,
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter: Callable[[], np.ndarray | None] | None = None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
         """Execute playback through the backend contract."""
         raise NotImplementedError(f"{self.__class__.__name__} does not support playback execution")
@@ -111,6 +112,7 @@ class ABEnv(abc.ABC):
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter: Callable[[], np.ndarray | None] | None = None,
         on_plan: Callable[[BackendPlayRenderPlan], None] | None = None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
         """Resolve configured playback mode and execute it through the backend contract."""
         plan = self.resolve_play_render_plan(
@@ -122,10 +124,11 @@ class ABEnv(abc.ABC):
             on_plan(plan)
         if plan.mode == "none":
             return None
+        playback_steps = None if before_step is not None else plan.num_steps
         return self.run_playback(
             initialize=initialize,
             step=step,
-            num_steps=plan.num_steps,
+            num_steps=playback_steps,
             output_video=plan.output_video,
             render_spacing=render_spacing,
             render_offset_mode=render_offset_mode,
@@ -134,6 +137,7 @@ class ABEnv(abc.ABC):
             frame_state_getter=frame_state_getter,
             camera_kwargs=camera_kwargs,
             extra_data_getter=extra_data_getter,
+            before_step=before_step,
         )
 
     @property

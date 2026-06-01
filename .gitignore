@@ -86,5 +86,8 @@ src/unilab/assets/checkpoints/**/*.onnx
 **/._*
 **/MUJOCO_LOG.TXT
 
+# Local reference repo (not part of UniLab)
+sim_soccer2/
+
 # Backend temp XML emitted next to robot.xml (motrix/mujoco scene materialization)
 src/unilab/assets/robots/**/tmp*.xml

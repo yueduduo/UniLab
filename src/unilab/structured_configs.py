@@ -212,6 +212,8 @@ class APPOConfig(BaseConfig):
     steps_per_env: int = 24
     max_iterations: int = 150
     save_interval: int = 50
+    load_run: str = "-1"
+    checkpoint: int = -1
     obs_groups: dict = field(default_factory=lambda: {"actor": {"policy": 0}})
     actor: APPOActorConfig = field(default_factory=APPOActorConfig)
     critic: APPOCriticConfig = field(default_factory=APPOCriticConfig)

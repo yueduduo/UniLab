@@ -117,6 +117,9 @@ interactive:
   keyboard: false
   keyboard_step_lin: 0.1
   keyboard_step_ang: 0.2
+  motrix_vx_speed: 0.25
+  motrix_vy_speed: 0.25
+  motrix_yaw_speed: 0.8
 
 viser:
   port: 8080

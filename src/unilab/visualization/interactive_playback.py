@@ -117,6 +117,114 @@ class KeyboardCommander:
         )
 
 
+_MOTRIX_KEY_UP = ("up",)
+_MOTRIX_KEY_DOWN = ("down",)
+_MOTRIX_KEY_LEFT = ("left",)
+_MOTRIX_KEY_RIGHT = ("right",)
+_MOTRIX_KEY_ENTER = ("enter",)
+
+
+def _motrix_key_just_pressed(render_input: Any, keys: tuple[str, ...]) -> bool:
+    return any(render_input.is_key_just_pressed(key) for key in keys)
+
+
+def poll_motrix_nudge_keyboard(commander: KeyboardCommander, render_input: Any) -> bool:
+    """Apply one MuJoCo-style nudge from Motrix ``RenderApp.input`` edge events."""
+    handled = False
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_UP):
+        commander.nudge(commander.AXIS_VX, +1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_DOWN):
+        commander.nudge(commander.AXIS_VX, -1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_LEFT):
+        commander.nudge(commander.AXIS_VYAW, +1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_RIGHT):
+        commander.nudge(commander.AXIS_VYAW, -1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_ENTER):
+        commander.zero()
+        handled = True
+    return handled
+
+
+def sync_play_velocity_command(
+    env: Any,
+    command: np.ndarray,
+    *,
+    flush_obs_history: bool = False,
+) -> None:
+    """Write teleop velocity commands into env state for interactive play.
+
+    When ``flush_obs_history`` is true, stacked-observation envs rebuild all
+    history frames from the current physics state and command. Use this after
+    reset so play mode does not inherit random training-time commands.
+    """
+    state = env.state
+    if state is None:
+        return
+
+    cmd = np.asarray(command, dtype=state.info["commands"].dtype)
+    if cmd.ndim == 1:
+        state.info["commands"][:] = cmd.reshape(1, -1)
+    else:
+        state.info["commands"][:] = cmd
+
+    if not flush_obs_history or not hasattr(env, "_obs_history"):
+        return
+
+    linvel = env.get_local_linvel()
+    gyro = env.get_gyro()
+    gravity = env._backend.get_sensor_data(env._cfg.sensor.upvector)
+    dof_pos = env.get_dof_pos()
+    dof_vel = env.get_dof_vel()
+    obs = env._compute_obs(
+        state.info,
+        linvel,
+        gyro,
+        gravity,
+        dof_pos,
+        dof_vel,
+        env_ids=None,
+        is_reset=True,
+    )
+    env._state = state.replace(obs=obs)
+
+
+def build_motrix_keyboard_before_step(
+    env: Any,
+    backend: Any,
+    commander: KeyboardCommander,
+    *,
+    log_command: LogFn | None = print,
+) -> Callable[[], None]:
+    """Return a playback hook that writes nudged keyboard commands into env state."""
+
+    def before_step() -> None:
+        state = env.state
+        if state is None:
+            return
+        render_input = backend.get_render_input()
+        if render_input is None:
+            sync_play_velocity_command(env, np.zeros(3, dtype=state.info["commands"].dtype))
+            return
+        if poll_motrix_nudge_keyboard(commander, render_input) and log_command is not None:
+            log_command(f"[play_interactive] {commander.describe()}")
+        sync_play_velocity_command(env, commander.command)
+
+    return before_step
+
+
+def print_play_keyboard_legend(*, action_mode: str = "policy") -> None:
+    print("[play_interactive] Keyboard teleop ENABLED (focus render window):")
+    print("  Up / Down    : forward / backward (vx)")
+    print("  Left / Right : turn left / right  (vyaw)")
+    print("  Enter        : full stop")
+    if action_mode != "policy":
+        print("  NOTE: action_mode is not 'policy'; commands will not drive the robot.")
+
+
 @dataclass(frozen=True)
 class MotionOverlaySelection:
     """Cold-path selection of task bodies used by playback overlays."""
@@ -498,6 +606,9 @@ def prepare_motion_overlay_selection(
 
 __all__ = [
     "KeyboardCommander",
+    "build_motrix_keyboard_before_step",
+    "poll_motrix_nudge_keyboard",
+    "sync_play_velocity_command",
     "MotionOverlaySelection",
     "PlaybackControls",
     "RslRlPlaybackConfig",
@@ -511,5 +622,6 @@ __all__ = [
     "load_algo_config_from_run_dir",
     "load_checkpoint_payload",
     "prepare_motion_overlay_selection",
+    "print_play_keyboard_legend",
     "select_torch_device",
 ]

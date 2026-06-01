@@ -27,6 +27,7 @@ def run_motrix_playback(
     record_video: bool,
     camera_kwargs: dict[str, Any] | None,
     extra_data_getter: Callable[[], np.ndarray | None] | None = None,
+    before_step: Callable[[], None] | None = None,
 ) -> str | None:
     del extra_data_getter
     if record_video and not headless:
@@ -56,6 +57,8 @@ def run_motrix_playback(
         obs = initialize()
         frames: list[np.ndarray] | None = [] if record_video else None
         for _ in range(num_steps):
+            if before_step is not None:
+                before_step()
             obs = step(obs)
             frame = np.asarray(backend.capture_video_frame(), dtype=np.uint8)
             if frames is not None:
@@ -82,11 +85,17 @@ def run_motrix_playback(
         offset_mode=str(render_offset_mode) if render_offset_mode is not None else "grid",
     )
     obs = initialize()
+    if before_step is not None:
+        backend.render()
+        before_step()
+        obs = step(obs)
     last_render_time = time.perf_counter()
     render_dt = 1.0 / 60.0
     steps_run = 0
 
     while num_steps is None or steps_run < num_steps:
+        if before_step is not None:
+            before_step()
         obs = step(obs)
         current_time = time.perf_counter()
         elapsed = current_time - last_render_time

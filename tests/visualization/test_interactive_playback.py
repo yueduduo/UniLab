@@ -222,6 +222,37 @@ def test_keyboard_commander_rejects_bad_vel_limit_shape() -> None:
         KeyboardCommander.from_vel_limit([[0.0, 0.0], [1.0, 1.0]])
 
 
+def test_poll_motrix_nudge_keyboard_applies_arrow_and_enter() -> None:
+    from unilab.visualization.interactive_playback import poll_motrix_nudge_keyboard
+
+    class _Input:
+        def __init__(self, just_pressed: set[str]):
+            self._just_pressed = just_pressed
+
+        def is_key_just_pressed(self, key: str) -> bool:
+            return key in self._just_pressed
+
+    commander = KeyboardCommander.from_vel_limit(_VEL_LIMIT, step_lin=0.1, step_ang=0.2)
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"up"})) is True
+    assert commander.command.tolist() == pytest.approx([0.1, 0.0, 0.0])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"down"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.0])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"left"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.2])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"right"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.0])
+
+    commander.nudge(KeyboardCommander.AXIS_VX, +1.0)
+    assert poll_motrix_nudge_keyboard(commander, _Input({"enter"})) is True
+    assert commander.command.tolist() == [0.0, 0.0, 0.0]
+
+    assert poll_motrix_nudge_keyboard(commander, _Input(set())) is False
+
+
 def test_prepare_motion_overlay_selection_filters_body_names() -> None:
     env = SimpleNamespace(
         motion_loader=object(),

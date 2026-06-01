@@ -1007,8 +1007,9 @@ class MuJoCoBackend(SimBackend):
         frame_state_getter=None,
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter=None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
-        del render_offset_mode
+        del render_offset_mode, before_step
         should_record_video = (
             bool(record_video) if record_video is not None else output_video is not None
         )
