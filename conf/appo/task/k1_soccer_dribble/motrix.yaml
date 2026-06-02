@@ -6,7 +6,7 @@ algo:
   num_envs: 2048
   steps_per_env: 24
   max_iterations: 20000
-  save_interval: 1000
+  save_interval: 500
   empirical_normalization: true
   obs_groups:
     actor:
