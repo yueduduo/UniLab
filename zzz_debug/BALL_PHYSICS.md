@@ -8,6 +8,7 @@
 | `push_ball.py` | 滚轮施力交互主脚本 |
 | `load_ball_field.py` | 场景加载与渲染入口 |
 | `ground_pick.py` | 鼠标 → 地面拾取 |
+| `benchmark_sim_dt.py` | headless 对比 `sim_dt` / `ctrl_dt` 组合 |
 
 运行方式：
 
@@ -63,10 +64,17 @@ Headless 复现（无渲染、无 Python 干预）同样成立：给 `dof_vel[:3
 | joint | `ball-root` + `damping="0.15"` | `ball-root` free，**无 damping** |
 | 质量 | sphere 显式 `mass="0.43"` | mesh 体积推算，约 **1.23 kg** |
 
-### 3.3 仿真步长
+### 3.3 仿真步长（XML 与代码路径不一致）
 
-- sim_soccer2：`timestep="0.005"`
-- 旧 debug：`timestep="0.02"`
+| 来源 | timestep | 说明 |
+|------|----------|------|
+| `world.xml` | `0.005` | 球场资源里的 `<option>` |
+| `K1_22dof.xml` | `0.001` | 机器人 MJCF 里的 `<option>` |
+| sim_soccer2 **运行时** | **`0.001`** | `MultiRobotMotrixSim` 读 `model.options.timestep`；场景合并以 **robot XML 为根**，**不会**并入 `world.xml` 的 `<option>` |
+| `runtime_config.py` 常量 | `SIM_DT=0.005`, `control_decimation=4` | **未写回** `model.options.timestep`，主路径不生效 |
+| 旧 debug | `0.02` | 已废弃 |
+
+按说明文档启动（`sim2sim_runner.py` / Sim Manager）时，K1 默认 **策略周期** `ctrl_dt = sim_dt × control_decimation = 0.001 × 4 = **0.004 s**`（decider `config.yaml` 默认 `sim_hz=200` 只限制墙钟 ZMQ 步频，不改变每步仿真时间增量）。
 
 ---
 
@@ -163,17 +171,15 @@ Headless 验证：双 mesh 仍保持正常减速（4 s 内 vx 从 ~1.17 降至 ~
 
 ---
 
-## 5.8 关键突破：timestep=0.002 让 box+mesh 在 Motrix 稳定
+## 5.8 物理步长：0.005 不稳，0.002 为 UniLab 当前默认
 
-完全贴合 sim_soccer2（box `COL_Collider` + mesh 球 + 硬接触 default `solref="0.001 1"` + 无 joint damping）后，**唯一**需要适配的是 **物理步长**：
+完全贴合 sim_soccer2（box `COL_Collider` + mesh 球 + 硬接触 default + 无 joint damping）后，Motrix **impulse solver** 与 MuJoCo Newton 对步长敏感度不同：
 
-| `sim_dt` | box+mesh 稳定性（headless settle z 波动） |
-|----------|------------------------------------------|
-| 0.005 | 不稳，z_rng 0.07~1.07 抖动、易发散 |
-| **0.002** | **极稳，z_std ~0.0001**，减速正常 |
-| 0.001 | 反而发散（z_rng 100+） |
-
-原因：sim_soccer2 在 **MuJoCo 原生** 用 `solver="Newton" impratio="10" timestep="0.001"` 消化硬接触；Motrix 是 **impulse-method** 求解器，特性不同，实测 **0.002** 是 box+mesh 的稳定甜点。
+| `sim_dt` | box+mesh（早期 headless settle） | 说明 |
+|----------|--------------------------------|------|
+| 0.005 | 不稳，z 抖动、易发散 | 不宜作 Motrix 默认 |
+| **0.002** | **极稳**，减速正常；UniLab 正式任务当前采用 | `scene_soccer_dribble_minimal.xml` + `K1SoccerDribbleCfg` |
+| 0.001 | 见 **§10**（与 sim_soccer2 运行时一致）；正常速度下与 0.002 相当 | 早期在其它条件下曾测到 z 发散，后验需区分「正常推球」与「vx≥3 穿地」 |
 
 初始穿透修正：box 顶面必须对齐 `z=0`（`pos="0 0 -0.1" size="6 4.5 0.1"`），否则球/脚初始嵌入 box 触发 `NotPositiveDefinite` panic。
 
@@ -187,9 +193,10 @@ Headless 验证：双 mesh 仍保持正常减速（4 s 内 vx 从 ~1.17 降至 ~
 - **球**：`ball_visual`（group 1 贴图，`mass="0"`）+ `ball`/`ball_geom` **mesh 碰撞**（group 3，`mass="0.43"`）
 - **接触**：**硬接触 default `solref="0.001 1"`**（不 override），贴合 sim_soccer2
 - **joint**：`ball-root` free，**无 damping**，贴合 sim_soccer2
-- **步长**：`timestep=0.002` / `cfg.sim_dt=0.002`，`ctrl_dt=0.02` → **decimation=10**
+- **步长（UniLab 当前）**：`timestep=0.002` / `cfg.sim_dt=0.002`，`ctrl_dt=0.02` → **decimation=10**
+- **步长（sim_soccer2 运行时）**：`sim_dt=0.001`，`control_decimation=4` → **ctrl_dt=0.004**（见 §10）
 
-实测（headless，正式场景）：踢出后 vx **0.86 → 0.30**（持续减速）；机器人走动时 ball z 波动 **p95-p5 ≈ 1.3 mm**（几乎不跳）。
+实测（headless，正式场景 @ 0.002/0.02）：踢出后 vx **0.86 → 0.30**（持续减速）；机器人走动时 ball z 波动 **p95-p5 ≈ 1.3 mm**（几乎不跳）。
 
 `push_ball.py` 仅通过 `data.set_dof_vel()` 施加冲量，**不再**每步修改力/力矩。
 
@@ -248,3 +255,49 @@ uv run zzz_debug/push_ball.py
 ```
 
 施力后观察左上角 HUD 中 `|v|` 与 `|v_xy|` 应持续减小。
+
+---
+
+## 10. `sim_dt` / `ctrl_dt` benchmark：`0.001 / 0.004` vs `0.002 / 0.020`
+
+复现脚本：`zzz_debug/benchmark_sim_dt.py`（场景 `scene_ball_pitch.xml`：box `COL_Collider` + mesh 球，与正式带球一致）。
+
+```bash
+uv run zzz_debug/benchmark_sim_dt.py
+uv run zzz_debug/benchmark_sim_dt.py --env-standing   # 附带 K1SoccerDribble 站立 5s
+```
+
+### 10.1 纯球滚动（初始 vx=1.5 m/s，仿真 4s）
+
+| 配置 | decimation | 4s 末 vx | z 抖动 (p95-p5) |
+|------|------------|----------|-----------------|
+| **0.001 / 0.004**（对齐 sim_soccer2 仿真时间尺度） | 4 | 0.350 m/s | **0.45 mm** |
+| **0.002 / 0.020**（UniLab 当前） | 10 | 0.332 m/s | **0.42 mm** |
+
+中间时刻 vx 几乎重合（例：t=1s 约 0.86 m/s，t=2s 约 0.66–0.69 m/s）。**正常推球速度下，0.001 并不差于 0.002**，mesh 滚动减速行为一致。
+
+### 10.2 高速穿地压力（初始 vx=3.0 m/s）
+
+| 配置 | 4s 末 vx | z min | 结论 |
+|------|----------|-------|------|
+| 0.001 | ~1.44 m/s（冻住） | **-7.27 m** | 穿地发散 |
+| 0.002 | ~1.46 m/s（冻住） | **-7.63 m** | 同样穿地 |
+
+高速下 **两种步长都会穿地**；这是 box+mesh 在 Motrix 下的共同弱点，不是 0.001 独有。
+
+### 10.3 完整带球环境（K1 站立 + zero action，仿真 5s）
+
+| 配置 | ctrl_dt | ball z (p95-p5) | ball \|vx\| max |
+|------|---------|-----------------|----------------|
+| 0.001 / 0.004 | 0.004 | **1.86 mm** | 0.025 m/s |
+| 0.002 / 0.020 | 0.020 | **2.89 mm** | 0.052 m/s |
+
+站立扰动下 0.001/0.004 **无 solver panic**，球 z 略稳于当前默认。
+
+### 10.4 结论（2026-06 实测）
+
+1. **Motrix + box+mesh + 硬接触** 在 **vx ≈ 0.3–1.5 m/s** 时，`sim_dt=0.001` 与 `0.002` **物理效果相当**（减速、z 稳定均正常）。
+2. **sim_soccer2 按文档启动** 的真实仿真步长是 **`sim_dt=0.001`、`ctrl_dt=0.004`**（来自加载后 `model.options.timestep` + `control_decimation=4`），不是 `world.xml` 里的 0.005，也不是 `runtime_config.SIM_DT=0.005`。
+3. UniLab 当前 **`sim_dt=0.002`、`ctrl_dt=0.02`** 是 Motrix 上经验选的稳定默认；若要对齐 sim_soccer2 **策略时间尺度**，可改为 `0.001 / 0.004`，但 **已有 APPO checkpoint 在 0.002/0.02 下训练**，切换后回放手感会变，需重训或接受差异。
+4. **不建议** 为对齐 sim_soccer2 单独改 XML `timestep=0.001` 而不改 `cfg.sim_dt`：Motrix backend 以 `cfg.sim_dt` 覆盖 `model.options.timestep`。
+5. **vx ≥ 3 m/s** 的极端冲量下两种步长都不稳；带球任务应依赖 mesh 减速 + 合理步长，而非更高初速砸向地面。
