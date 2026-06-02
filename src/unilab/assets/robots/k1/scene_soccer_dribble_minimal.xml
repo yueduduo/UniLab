@@ -1,7 +1,17 @@
 <mujoco model="k1 soccer dribble minimal">
   <include file="k1.xml"/>
 
-  <option density="1.2" viscosity="0.00002"/>
+  <!--
+    贴合 sim_soccer2 (assets/environments/soccer/world.xml):
+      - 地面碰撞用 box COL_Collider（非 plane），球用 mesh 碰撞 + 硬接触 default solref（不 override）。
+      - mesh 球在 Motrix 下才有滚动减速；sphere 几乎无阻力。
+    针对 Motrix + 本场景 qpos 的几何适配（见 zzz_debug/BALL_PHYSICS.md）:
+      - box 顶面对齐 z=0（pos z=-0.1, half=0.1），避免球/脚初始嵌入 box 导致 solver NotPositiveDefinite panic。
+      - 加厚 box 同时提升接触稳定性并防止高速球穿透。
+      - timestep=0.002：Motrix 的 impulse solver 在 0.005 下 box+mesh 会发散，0.002 极稳
+        （sim_soccer2 用 MuJoCo Newton+impratio=10+timestep=0.001，Motrix 求解器不同）。
+  -->
+  <option density="1.2" viscosity="0.00002" timestep="0.002"/>
 
   <asset>
     <texture type="2d" name="soccer_ball_tex" file="soccer_ball/Robot_Football.png"/>
@@ -18,18 +28,18 @@
 
   <worldbody>
     <light pos="0 0 4" dir="0 0 -1" directional="true"/>
-    <geom name="pitch" pos="0 0 0" size="0 0 1" type="plane" contype="0" conaffinity="0" rgba="0.18 0.45 0.18 1"/>
+    <geom name="pitch" pos="0 0 0" size="6 4.5 1" type="plane" contype="0" conaffinity="0" rgba="0.18 0.45 0.18 1"/>
     <geom
       name="COL_Collider"
-      pos="0 0 0"
-      type="plane"
-      size="0 0 1"
+      pos="0 0 -0.1"
+      type="box"
+      size="6 4.5 0.1"
       friction="1.0 0.005 0.02"
       group="3"
     />
 
     <body name="ball" pos="1.0 0 0.09167862683534622">
-      <joint name="ball-root" type="free" damping="0.15"/>
+      <joint name="ball-root" type="free"/>
       <geom
         name="ball_visual"
         type="mesh"
@@ -38,15 +48,14 @@
         contype="0"
         conaffinity="0"
         group="1"
+        mass="0"
       />
       <geom
         name="ball_geom"
-        type="sphere"
-        size="0.09167862683534622"
+        type="mesh"
+        mesh="soccer_ball_mesh"
         mass="0.43"
         friction="1.0 0.02 0.05"
-        solref="0.04 1"
-        solimp="0.95 0.99 0.001"
         group="3"
       />
     </body>

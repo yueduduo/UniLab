@@ -95,6 +95,11 @@ class SoccerDribblePlaybackDiagnostics:
         print("[soccer-debug] === playback physics snapshot ===")
         print(f"[soccer-debug] model_file={model_file}")
         print(f"[soccer-debug] ctrl_dt={self._ctrl_dt:.4f}s log_every={self._log_every_steps} steps")
+        print(
+            f"[soccer-debug] sim_dt={float(self._env.cfg.sim_dt):.4f}s "
+            f"ctrl_dt={self._ctrl_dt:.4f}s decimation="
+            f"{int(round(self._ctrl_dt / float(self._env.cfg.sim_dt)))}"
+        )
         print("[soccer-debug] geom friction (slide, spin, roll):")
         for name in _KEY_GEOMS:
             coeffs = friction.get(name)

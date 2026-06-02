@@ -1,0 +1,74 @@
+<mujoco model="ball pitch debug">
+  <!-- 贴合 sim_soccer2：box COL_Collider + mesh 球 + 硬接触；Motrix 下 timestep=0.002 才稳定。 -->
+  <option density="1.2" viscosity="0.00002" timestep="0.002"/>
+
+  <asset>
+    <texture
+      type="2d"
+      name="soccer_ball_tex"
+      file="../src/unilab/assets/robots/k1/soccer_ball/Robot_Football.png"
+    />
+    <material name="soccer_ball_mat" texture="soccer_ball_tex" rgba="1 1 1 1"/>
+    <mesh
+      name="soccer_ball_mesh"
+      file="../src/unilab/assets/robots/k1/soccer_ball/Robot_Football.obj"
+    />
+  </asset>
+
+  <statistic center="0 0 0.09" extent="3.0"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.15 0.15 0.15" specular="0.3 0.3 0.3"/>
+    <global azimuth="120" elevation="-18"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 0 4" dir="0 0 -1" directional="true"/>
+    <geom
+      name="pitch"
+      pos="0 0 0"
+      size="0 0 1"
+      type="plane"
+      contype="0"
+      conaffinity="0"
+      rgba="0.18 0.45 0.18 1"
+    />
+    <geom
+      name="COL_Collider"
+      pos="0 0 -0.1"
+      type="box"
+      size="6 4.5 0.1"
+      friction="1.0 0.005 0.02"
+      group="3"
+    />
+
+    <body name="ball" pos="1.0 0 0.09167862683534622">
+      <joint name="ball-root" type="free"/>
+      <geom
+        name="ball_visual"
+        type="mesh"
+        mesh="soccer_ball_mesh"
+        material="soccer_ball_mat"
+        contype="0"
+        conaffinity="0"
+        group="1"
+        mass="0"
+      />
+      <geom
+        name="ball"
+        type="mesh"
+        mesh="soccer_ball_mesh"
+        mass="0.43"
+        friction="1.0 0.02 0.05"
+        group="3"
+      />
+    </body>
+  </worldbody>
+
+  <keyframe>
+    <key
+      name="init"
+      qpos="1.0 0 0.09167862683534622 1 0 0 0"
+    />
+  </keyframe>
+</mujoco>

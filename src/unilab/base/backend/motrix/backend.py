@@ -257,6 +257,7 @@ class MotrixBackend(SimBackend):
         self._render_capture_enabled = False
         self._render_offsets_np: np.ndarray | None = None
         self._render_tracking_camera: MotrixTrackingCamera | None = None
+        self._before_sync_hook: Callable[[], None] | None = None
         self.backend_type = "motrix"
         self._link_velocity_cache: np.ndarray | None = None
 
@@ -1248,6 +1249,12 @@ class MotrixBackend(SimBackend):
         self._render_capture_enabled = capture
         self._render_tracking_camera = tracking_camera
 
+    def get_render_app(self) -> "RenderApp | None":
+        return self._render_app
+
+    def set_before_sync_hook(self, hook: Callable[[], None] | None) -> None:
+        self._before_sync_hook = hook
+
     def render(self):
         """Render current state (interactive visualization)"""
         if self._render_app is None:
@@ -1255,6 +1262,8 @@ class MotrixBackend(SimBackend):
         self._assert_render_context_available(headless=False, capture=False)
         assert self._render_app is not None
         self._update_tracking_camera_view()
+        if self._before_sync_hook is not None:
+            self._before_sync_hook()
         self._render_app.sync(data=self._data)
 
     def get_render_input(self) -> Any | None:

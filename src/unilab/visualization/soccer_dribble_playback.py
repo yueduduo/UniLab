@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 import torch
@@ -21,6 +21,7 @@ from unilab.visualization.interactive_playback import (
     print_play_keyboard_legend,
     sync_play_velocity_command,
 )
+from unilab.visualization.ball_velocity_hud import BallVelocityHud
 from unilab.visualization.soccer_dribble_playback_debug import SoccerDribblePlaybackDiagnostics
 
 SOCCER_DRIBBLE_TASK_NAME = "K1SoccerDribble"
@@ -124,6 +125,35 @@ def step_soccer_dribble(
     state = env.step(action_np)
     next_obs = np.asarray(state.obs["obs"], dtype=np.float32)
     return next_obs, state.info
+
+
+def build_soccer_ball_velocity_hud_hook(env: Any) -> Callable[[], None]:
+    """Update Motrix ImageWidget overlay before each ``render().sync()``."""
+    state: dict[str, BallVelocityHud | None] = {"hud": None}
+
+    def _before_sync() -> None:
+        backend = env._backend
+        render_app = backend.get_render_app()
+        if render_app is None:
+            return
+        ball_vel_w = backend.get_body_lin_vel_w(env._ball_body_ids)[:, 0, :]
+        vel = np.asarray(ball_vel_w[0], dtype=np.float64)
+        if state["hud"] is None:
+            state["hud"] = BallVelocityHud(render_app)
+        state["hud"].update(vel)
+
+    return _before_sync
+
+
+def print_soccer_playback_timing(env: Any, *, log_prefix: str = "[play]") -> None:
+    sim_dt = float(env.cfg.sim_dt)
+    ctrl_dt = float(env.cfg.ctrl_dt)
+    decimation = int(round(ctrl_dt / sim_dt))
+    print(
+        f"{log_prefix} sim_dt={sim_dt:.4f}s ctrl_dt={ctrl_dt:.4f}s "
+        f"decimation={decimation} "
+        f"(box+mesh ball needs sim_dt=0.002 for Motrix solver stability)"
+    )
 
 
 def motrix_camera_kwargs(cfg: DictConfig) -> dict[str, Any]:
@@ -283,8 +313,16 @@ def run_motrix_soccer_dribble_playback(
     play_render_mode = getattr(cfg.training, "play_render_mode", "auto")
 
     print(f"{log_prefix} Opening Motrix render window — close to quit.")
+    print_soccer_playback_timing(env, log_prefix=log_prefix)
     if keyboard:
         print_play_keyboard_legend(action_mode="policy")
+
+    ball_hud_enabled = bool(
+        OmegaConf.select(cfg, "interactive.ball_velocity_hud", default=True)
+    )
+    backend = env._backend
+    if ball_hud_enabled and hasattr(backend, "set_before_sync_hook"):
+        backend.set_before_sync_hook(build_soccer_ball_velocity_hud_hook(env))
 
     try:
         env.run_playback_mode(
@@ -302,3 +340,6 @@ def run_motrix_soccer_dribble_playback(
             print(f"{log_prefix} Render window closed.")
         else:
             raise
+    finally:
+        if hasattr(backend, "set_before_sync_hook"):
+            backend.set_before_sync_hook(None)

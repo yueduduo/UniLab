@@ -122,6 +122,9 @@ class K1SoccerDribbleCfg(K1WalkEnvCfg):
     noise_config: K1SoccerNoiseConfig = field(default_factory=K1SoccerNoiseConfig)  # type: ignore[assignment]
     domain_rand: DomainRandConfig = field(default_factory=DomainRandConfig)
     reset_base_qvel_limit: float = 0.0
+    # Motrix impulse solver 在 box(COL_Collider)+mesh(ball) 下需 0.002 才稳定（0.005 发散）。
+    # ctrl_dt 保持 0.02 → decimation=10。见 scene_soccer_dribble_minimal.xml / zzz_debug/BALL_PHYSICS.md。
+    sim_dt: float = 0.002
     reward_config: K1SoccerDribbleRewardConfig | None = None
 
 
