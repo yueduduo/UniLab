@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Unitree Go2 机器人资产与关节说明 · UniLab RL Tasks</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body class="page-robot">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <aside class="sidebar">
+    <a class="brand" href="../../index.html">
+      <span class="brand-mark">RL</span>
+      <span><strong>UniLab</strong><small>Task Atlas</small></span>
+    </a>
+    <div class="sidebar-card">
+      <span>Contract driven</span>
+      <strong>Robot Learning Docs</strong>
+      <p>任务、资产、源码和配置的一站式索引。</p>
+    </div>
+    <label class="search-label" for="search">快速搜索</label>
+    <input id="search" type="search" placeholder="例如 G1、reward、action..." autocomplete="off">
+    <div id="search-results" class="search-results"></div>
+    <nav><section><h3>总览</h3><ul>
+<li><a href="../../index.html">UniLab 强化学习任务与机器人资产文档</a></li>
+</ul></section>
+<section><h3>机器人</h3><ul>
+<li><a href="../../robots/allegro_hand/index.html">Allegro Hand 机器人资产与关节说明</a></li>
+<li><a href="../../robots/g1/index.html">Unitree G1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go1/index.html">Unitree Go1 机器人资产与关节说明</a></li>
+<li class="active">Unitree Go2 机器人资产与关节说明</li>
+<li><a href="../../robots/go2_arm/index.html">Go2 + Airbot Arm 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2w/index.html">Unitree Go2W 机器人资产与关节说明</a></li>
+<li><a href="../../robots/k1/index.html">Booster K1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/sharpa_wave/index.html">Sharpa Wave Hand 机器人资产与关节说明</a></li>
+</ul></section>
+<section><h3>运动控制</h3><ul>
+<li><a href="../../tasks/locomotion/index.html">运动控制任务</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_flat.html">G1 Walk Flat</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_rough.html">G1 Walk Rough</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_flat.html">Go1 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_rough.html">Go1 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2_footstand.html">Go2 FootStand</a></li>
+<li><a href="../../tasks/locomotion/go2_handstand.html">Go2 HandStand</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_flat.html">Go2 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_rough.html">Go2 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_flat.html">Go2W Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_rough.html">Go2W Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/k1_soccer_dribble.html">K1 Soccer Dribble</a></li>
+<li><a href="../../tasks/locomotion/k1_walk_flat.html">K1 Walk Flat</a></li>
+</ul></section>
+<section><h3>移动操作</h3><ul>
+<li><a href="../../tasks/manip_loco/index.html">移动操作任务</a></li>
+<li><a href="../../tasks/manip_loco/go2_arm_manip_loco.html">Go2 Arm Manip-Loco</a></li>
+</ul></section>
+<section><h3>灵巧操作</h3><ul>
+<li><a href="../../tasks/manipulation/index.html">灵巧操作任务</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand.html">Allegro In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand_grasp.html">Allegro In-Hand Grasp</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand.html">Sharpa In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand_grasp.html">Sharpa In-Hand Grasp</a></li>
+</ul></section>
+<section><h3>动作追踪</h3><ul>
+<li><a href="../../tasks/motion_tracking/index.html">动作追踪任务</a></li>
+<li><a href="../../tasks/motion_tracking/g1_box_tracking.html">G1 Box Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_climb_tracking.html">G1 Climb Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_flip_tracking.html">G1 Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking.html">G1 Motion Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking_deploy.html">G1 Motion Tracking Deploy</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wall_flip_tracking.html">G1 Wall Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wbt_obs.html">G1 WBT Obs</a></li>
+</ul></section></nav>
+  </aside>
+  <main class="main-stage">
+    
+    <header class="hero hero-robot">
+      <div class="hero-copy">
+        <div class="eyebrow">机器人 · UniLab RL Tasks</div>
+        <h1>Unitree Go2 机器人资产与关节说明</h1>
+        <p>机器人资产、MJCF 场景、关节中文含义、执行器顺序和传感器信息的结构化说明。</p>
+        
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </header>
+
+    
+    <aside class="page-toc" aria-label="本页目录">
+      <div class="page-toc-title">本页目录</div>
+      <nav>
+        <a class="toc-level-2" href="#机器人定位">机器人定位</a><a class="toc-level-2" href="#编译模型概览">编译模型概览</a><a class="toc-level-2" href="#资产结构">资产结构</a><a class="toc-level-2" href="#关节说明">关节说明</a><a class="toc-level-2" href="#执行器说明">执行器说明</a><a class="toc-level-2" href="#传感器说明">传感器说明</a>
+      </nav>
+    </aside>
+
+    <article class="doc-article">
+      <h1 id="unitree-go2-机器人资产与关节说明">Unitree Go2 机器人资产与关节说明</h1>
+<p><img src="../../images/robots/go2.png" alt="Unitree Go2 默认姿态" loading="lazy"></p>
+<p>Go2 覆盖 UniLab 中最完整的四足运动任务族：平地速度跟踪、崎岖地形、handstand 与 footstand。它的 12 个可控关节与足端接触传感器构成了 locomotion reward 和终止条件的主要观测对象。</p>
+<h2 id="机器人定位">机器人定位</h2>
+<ul>
+<li>用途：四足运动控制、倒立与前足站立任务机器人</li>
+<li>主场景：<code>src/unilab/assets/robots/go2/scene_flat.xml</code></li>
+<li>默认 keyframe：<code>home</code></li>
+<li>资产快照：<code>robots/go2/assets/</code></li>
+</ul>
+<p>这份文档只把 <code>src/unilab/assets/robots/go2/</code> 下的机器人、场景、mesh、texture 等素材复制到博客目录。motion、checkpoint、cache 不属于机器人结构说明，未复制进文档资产目录。</p>
+<h2 id="编译模型概览">编译模型概览</h2>
+<div class="table-wrap"><table><thead><tr><th>字段</th><th>数值</th><th>说明</th></tr></thead><tbody><tr><td>nq</td><td>19</td><td>广义坐标维度，free joint 的四元数会占 4 维</td></tr><tr><td>nv</td><td>18</td><td>广义速度维度</td></tr><tr><td>nu</td><td>12</td><td>执行器数量，也就是默认 action 维度</td></tr><tr><td>njnt</td><td>13</td><td>MuJoCo 编译后的 joint 数，包含 free/object joint</td></tr><tr><td>nsensor</td><td>38</td><td>传感器数量</td></tr><tr><td>keyframes</td><td>home</td><td>scene/task 层 keyframe</td></tr></tbody></table></div>
+<h2 id="资产结构">资产结构</h2>
+<details>
+<summary>已复制文件（默认折叠，点击展开）</summary>
+<div class="table-wrap"><table><thead><tr><th>已复制文件</th></tr></thead><tbody><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/base_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/base_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/base_2.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/base_3.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/base_4.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf.stl</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf_mirror.stl</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf_mirror_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/calf_mirror_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/foot.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/hip_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/hip_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/thigh_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/thigh_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/thigh_mirror_0.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/thigh_mirror_1.obj</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/wheel.stl</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/assets/wheel_convex.stl</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/go2.xml</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/go2_mujoco.xml</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/locomotion_task.xml</td></tr><tr><td>docs/blog/zh_CN/rl_tasks/robots/go2/assets/scene_flat.xml</td></tr></tbody></table></div>
+</details>
+<p>关键 XML 片段如下。<code>&lt;include&gt;</code> 把纯机器人 XML 放入 scene，<code>&lt;keyframe&gt;</code> 留在 scene 或 task fragment 中，符合 UniLab 的资产分层约束。</p>
+<pre class="code-block language-xml"><code><span class="tok-comment">&lt;!-- src/unilab/assets/robots/go2/scene_flat.xml --&gt;</span>
+&lt;<span class="tok-tag">mujoco</span> <span class="tok-attr">model</span>=<span class="tok-str">&quot;go2 scene&quot;</span>&gt;
+  &lt;<span class="tok-tag">include</span> <span class="tok-attr">file</span>=<span class="tok-str">&quot;go2.xml&quot;</span>/&gt;
+
+  &lt;<span class="tok-tag">statistic</span> <span class="tok-attr">center</span>=<span class="tok-str">&quot;0 0 0.1&quot;</span> <span class="tok-attr">extent</span>=<span class="tok-str">&quot;0.8&quot;</span>/&gt;
+</code></pre>
+<h2 id="关节说明">关节说明</h2>
+<p><code>free</code> joint 表示浮动基座或任务物体自由度，不直接对应 policy action；<code>controlled=是</code> 表示该 joint 被 actuator 直接驱动，是 action 空间的一部分。“中文含义”按机器人运动学命名拆解，用于快速理解每个关节控制的身体部位和运动方向。</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>关节名称</th><th>中文含义</th><th>类型</th><th>有限位</th><th>关节限制</th><th>受控</th></tr></thead><tbody><tr><td>0</td><td>&lt;unnamed:0&gt;</td><td>机器人浮动基座自由关节</td><td>free</td><td>否</td><td>无</td><td>否</td></tr><tr><td>1</td><td>FL_hip_joint</td><td>左前腿髋外展/内收关节</td><td>hinge</td><td>是</td><td>-1.047 ~ 1.047</td><td>是</td></tr><tr><td>2</td><td>FL_thigh_joint</td><td>左前腿髋俯仰（大腿）关节</td><td>hinge</td><td>是</td><td>-1.571 ~ 3.491</td><td>是</td></tr><tr><td>3</td><td>FL_calf_joint</td><td>左前腿膝关节（小腿摆动）</td><td>hinge</td><td>是</td><td>-2.723 ~ -0.8378</td><td>是</td></tr><tr><td>4</td><td>FR_hip_joint</td><td>右前腿髋外展/内收关节</td><td>hinge</td><td>是</td><td>-1.047 ~ 1.047</td><td>是</td></tr><tr><td>5</td><td>FR_thigh_joint</td><td>右前腿髋俯仰（大腿）关节</td><td>hinge</td><td>是</td><td>-1.571 ~ 3.491</td><td>是</td></tr><tr><td>6</td><td>FR_calf_joint</td><td>右前腿膝关节（小腿摆动）</td><td>hinge</td><td>是</td><td>-2.723 ~ -0.8378</td><td>是</td></tr><tr><td>7</td><td>RL_hip_joint</td><td>左后腿髋外展/内收关节</td><td>hinge</td><td>是</td><td>-1.047 ~ 1.047</td><td>是</td></tr><tr><td>8</td><td>RL_thigh_joint</td><td>左后腿髋俯仰（大腿）关节</td><td>hinge</td><td>是</td><td>-0.5236 ~ 4.538</td><td>是</td></tr><tr><td>9</td><td>RL_calf_joint</td><td>左后腿膝关节（小腿摆动）</td><td>hinge</td><td>是</td><td>-2.723 ~ -0.8378</td><td>是</td></tr><tr><td>10</td><td>RR_hip_joint</td><td>右后腿髋外展/内收关节</td><td>hinge</td><td>是</td><td>-1.047 ~ 1.047</td><td>是</td></tr><tr><td>11</td><td>RR_thigh_joint</td><td>右后腿髋俯仰（大腿）关节</td><td>hinge</td><td>是</td><td>-0.5236 ~ 4.538</td><td>是</td></tr><tr><td>12</td><td>RR_calf_joint</td><td>右后腿膝关节（小腿摆动）</td><td>hinge</td><td>是</td><td>-2.723 ~ -0.8378</td><td>是</td></tr></tbody></table></div>
+<h2 id="执行器说明">执行器说明</h2>
+<p>执行器表来自 MuJoCo 编译模型的 <code>actuator</code> 段。RL action 的每一维最终会映射到这些执行器的控制目标或控制范围。</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>执行器名称</th><th>驱动关节</th><th>中文含义</th><th>控制范围</th></tr></thead><tbody><tr><td>0</td><td>FR_hip</td><td>FR_hip_joint</td><td>右前腿髋外展/内收关节</td><td>未显式限制</td></tr><tr><td>1</td><td>FR_thigh</td><td>FR_thigh_joint</td><td>右前腿髋俯仰（大腿）关节</td><td>未显式限制</td></tr><tr><td>2</td><td>FR_calf</td><td>FR_calf_joint</td><td>右前腿膝关节（小腿摆动）</td><td>未显式限制</td></tr><tr><td>3</td><td>FL_hip</td><td>FL_hip_joint</td><td>左前腿髋外展/内收关节</td><td>未显式限制</td></tr><tr><td>4</td><td>FL_thigh</td><td>FL_thigh_joint</td><td>左前腿髋俯仰（大腿）关节</td><td>未显式限制</td></tr><tr><td>5</td><td>FL_calf</td><td>FL_calf_joint</td><td>左前腿膝关节（小腿摆动）</td><td>未显式限制</td></tr><tr><td>6</td><td>RR_hip</td><td>RR_hip_joint</td><td>右后腿髋外展/内收关节</td><td>未显式限制</td></tr><tr><td>7</td><td>RR_thigh</td><td>RR_thigh_joint</td><td>右后腿髋俯仰（大腿）关节</td><td>未显式限制</td></tr><tr><td>8</td><td>RR_calf</td><td>RR_calf_joint</td><td>右后腿膝关节（小腿摆动）</td><td>未显式限制</td></tr><tr><td>9</td><td>RL_hip</td><td>RL_hip_joint</td><td>左后腿髋外展/内收关节</td><td>未显式限制</td></tr><tr><td>10</td><td>RL_thigh</td><td>RL_thigh_joint</td><td>左后腿髋俯仰（大腿）关节</td><td>未显式限制</td></tr><tr><td>11</td><td>RL_calf</td><td>RL_calf_joint</td><td>左后腿膝关节（小腿摆动）</td><td>未显式限制</td></tr></tbody></table></div>
+<h2 id="传感器说明">传感器说明</h2>
+<p>传感器既包括机器人本体 IMU/速度传感器，也可能包括 scene/task fragment 增加的接触传感器。任务文档会说明哪些传感器进入 obs 或 reward。</p>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>传感器名称</th><th>维度</th></tr></thead><tbody><tr><td>0</td><td>gyro</td><td>3</td></tr><tr><td>1</td><td>accelerometer</td><td>3</td></tr><tr><td>2</td><td>local_linvel</td><td>3</td></tr><tr><td>3</td><td>upvector</td><td>3</td></tr><tr><td>4</td><td>global_position</td><td>3</td></tr><tr><td>5</td><td>global_linvel</td><td>3</td></tr><tr><td>6</td><td>global_angvel</td><td>3</td></tr><tr><td>7</td><td>FR_pos</td><td>3</td></tr><tr><td>8</td><td>FL_pos</td><td>3</td></tr><tr><td>9</td><td>RR_pos</td><td>3</td></tr><tr><td>10</td><td>RL_pos</td><td>3</td></tr><tr><td>11</td><td>FR_vel</td><td>3</td></tr><tr><td>12</td><td>FL_vel</td><td>3</td></tr><tr><td>13</td><td>RR_vel</td><td>3</td></tr><tr><td>14</td><td>RL_vel</td><td>3</td></tr><tr><td>15</td><td>FL_foot_contact</td><td>1</td></tr><tr><td>16</td><td>FR_foot_contact</td><td>1</td></tr><tr><td>17</td><td>RL_foot_contact</td><td>1</td></tr><tr><td>18</td><td>RR_foot_contact</td><td>1</td></tr><tr><td>19</td><td>base1_contact</td><td>1</td></tr><tr><td>20</td><td>base2_contact</td><td>1</td></tr><tr><td>21</td><td>base3_contact</td><td>1</td></tr><tr><td>22</td><td>FL_hip_contact</td><td>1</td></tr><tr><td>23</td><td>FR_hip_contact</td><td>1</td></tr><tr><td>24</td><td>RL_hip_contact</td><td>1</td></tr><tr><td>25</td><td>RR_hip_contact</td><td>1</td></tr><tr><td>26</td><td>FL_thigh_contact</td><td>1</td></tr><tr><td>27</td><td>FR_thigh_contact</td><td>1</td></tr><tr><td>28</td><td>RL_thigh_contact</td><td>1</td></tr><tr><td>29</td><td>RR_thigh_contact</td><td>1</td></tr><tr><td>30</td><td>FL_calf_contact1</td><td>1</td></tr><tr><td>31</td><td>FR_calf_contact1</td><td>1</td></tr><tr><td>32</td><td>RL_calf_contact1</td><td>1</td></tr><tr><td>33</td><td>RR_calf_contact1</td><td>1</td></tr><tr><td>34</td><td>FL_calf_contact2</td><td>1</td></tr><tr><td>35</td><td>FR_calf_contact2</td><td>1</td></tr><tr><td>36</td><td>RL_calf_contact2</td><td>1</td></tr><tr><td>37</td><td>RR_calf_contact2</td><td>1</td></tr></tbody></table></div>
+    </article>
+  </main>
+  <script>window.SEARCH_INDEX_URL = "../../search-index.json";</script>
+  <script>window.SITE_ROOT_PREFIX = "../../";</script>
+  <script src="../../site.js"></script>
+</body>
+</html>

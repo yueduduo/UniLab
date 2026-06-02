@@ -1,0 +1,165 @@
+{
+  "rendered": [
+    {
+      "slug": "go1",
+      "xml": "src/unilab/assets/robots/go1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/go1.png"
+    },
+    {
+      "slug": "go2",
+      "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/go2.png"
+    },
+    {
+      "slug": "go2w",
+      "xml": "src/unilab/assets/robots/go2w/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/go2w.png"
+    },
+    {
+      "slug": "g1",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/g1.png"
+    },
+    {
+      "slug": "k1",
+      "xml": "src/unilab/assets/robots/k1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/k1.png"
+    },
+    {
+      "slug": "go2_arm",
+      "xml": "src/unilab/assets/robots/go2_arm/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/go2_arm.png"
+    },
+    {
+      "slug": "allegro_hand",
+      "xml": "src/unilab/assets/robots/allegro_hand/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/allegro_hand.png"
+    },
+    {
+      "slug": "sharpa_wave",
+      "xml": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/robots/sharpa_wave.png"
+    },
+    {
+      "slug": "allegro_inhand",
+      "xml": "src/unilab/assets/robots/allegro_hand/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/allegro_inhand.png"
+    },
+    {
+      "slug": "allegro_inhand_grasp",
+      "xml": "src/unilab/assets/robots/allegro_hand/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/allegro_inhand_grasp.png"
+    },
+    {
+      "slug": "g1_box_tracking",
+      "xml": "src/unilab/assets/robots/g1/scene_flat_with_largebox.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_box_tracking.png"
+    },
+    {
+      "slug": "g1_climb_tracking",
+      "xml": "src/unilab/assets/robots/g1/scene_climb_20_z_scale_1.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_climb_tracking.png"
+    },
+    {
+      "slug": "g1_flip_tracking",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_flip_tracking.png"
+    },
+    {
+      "slug": "g1_motion_tracking",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_motion_tracking.png"
+    },
+    {
+      "slug": "g1_motion_tracking_deploy",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_motion_tracking_deploy.png"
+    },
+    {
+      "slug": "g1_walk_flat",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_walk_flat.png"
+    },
+    {
+      "slug": "g1_walk_rough",
+      "xml": "src/unilab/assets/robots/g1/scene_rough.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_walk_rough.png"
+    },
+    {
+      "slug": "g1_wall_flip_tracking",
+      "xml": "src/unilab/assets/robots/g1/scene_flat_with_wall.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_wall_flip_tracking.png"
+    },
+    {
+      "slug": "g1_wbt_obs",
+      "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/g1_wbt_obs.png"
+    },
+    {
+      "slug": "go1_joystick_flat",
+      "xml": "src/unilab/assets/robots/go1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go1_joystick_flat.png"
+    },
+    {
+      "slug": "go1_joystick_rough",
+      "xml": "src/unilab/assets/robots/go1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go1_joystick_rough.png"
+    },
+    {
+      "slug": "go2_arm_manip_loco",
+      "xml": "src/unilab/assets/robots/go2_arm/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2_arm_manip_loco.png"
+    },
+    {
+      "slug": "go2_footstand",
+      "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2_footstand.png"
+    },
+    {
+      "slug": "go2_handstand",
+      "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2_handstand.png"
+    },
+    {
+      "slug": "go2_joystick_flat",
+      "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2_joystick_flat.png"
+    },
+    {
+      "slug": "go2_joystick_rough",
+      "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2_joystick_rough.png"
+    },
+    {
+      "slug": "go2w_joystick_flat",
+      "xml": "src/unilab/assets/robots/go2w/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2w_joystick_flat.png"
+    },
+    {
+      "slug": "go2w_joystick_rough",
+      "xml": "src/unilab/assets/robots/go2w/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/go2w_joystick_rough.png"
+    },
+    {
+      "slug": "k1_soccer_dribble",
+      "xml": "src/unilab/assets/robots/k1/scene_soccer_dribble_minimal.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/k1_soccer_dribble.png"
+    },
+    {
+      "slug": "k1_walk_flat",
+      "xml": "src/unilab/assets/robots/k1/scene_flat.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/k1_walk_flat.png"
+    },
+    {
+      "slug": "sharpa_inhand",
+      "xml": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/sharpa_inhand.png"
+    },
+    {
+      "slug": "sharpa_inhand_grasp",
+      "xml": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+      "output": "docs/blog/zh_CN/rl_tasks/images/tasks/sharpa_inhand_grasp.png"
+    }
+  ],
+  "failed": []
+}

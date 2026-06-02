@@ -1,0 +1,6208 @@
+{
+  "tasks": {
+    "go1_joystick_flat": {
+      "slug": "go1_joystick_flat",
+      "title": "Go1 Joystick Flat",
+      "category": "locomotion",
+      "robot": "go1",
+      "registry_names": [
+        "Go1JoystickFlat"
+      ],
+      "goal": "让 Go1 在平地上跟随 joystick 线速度与角速度命令，同时保持身体姿态、足端接触节律和动作平滑。",
+      "agent": "Agent 输出 12 维动作，动作经 `action_scale` 缩放后叠加到 keyframe 默认关节角，作为 PD 位置目标。",
+      "env": "Env 由 `Go1WalkTask` 承载，遵守 `NpEnv` dict obs contract，并通过 registry 暴露 MuJoCo/Motrix 后端。",
+      "obs": "观测围绕本体局部速度、角速度、重力方向、命令、关节位置/速度和上一帧动作构造；critic 额外读取特权速度信息。",
+      "action": "动作对应四条腿的 hip/thigh/calf actuator；XML 编译得到 `nu=12`。",
+      "reward": "奖励由 locomotion 公共 reward dispatcher 和 owner YAML 的 `reward.scales` 组合，强调速度跟踪、姿态、足端节律与能耗惩罚。",
+      "init": "reset 读取 `home` keyframe，并可叠加 base 速度、关节和物理参数随机化。",
+      "termination": "主要终止来自身体高度过低、倾斜过大和 episode horizon。",
+      "domain_rand": "域随机化集中在质量/COM/重力/摩擦/推力/PD gain 等 locomotion 冷路径配置。",
+      "scene_hint": "src/unilab/assets/robots/go1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go1/joystick.py"
+    },
+    "go1_joystick_rough": {
+      "slug": "go1_joystick_rough",
+      "title": "Go1 Joystick Rough",
+      "category": "locomotion",
+      "robot": "go1",
+      "registry_names": [
+        "Go1JoystickRough"
+      ],
+      "goal": "让 Go1 在崎岖地形上保持 joystick 跟踪能力，并适应高度扫描、地形 spawn 与足端接触扰动。",
+      "agent": "Agent 与平地任务一致输出 12 维关节目标，但训练信号加入崎岖地形下的稳定性约束。",
+      "env": "Env 使用 rough 配置和 scene fragment，把地形/接触传感器留在任务层而不是机器人 XML。",
+      "obs": "观测在基础 locomotion 观测外引入地形高度扫描或地形相关特权信息，critic 维度随扫描网格变化。",
+      "action": "动作仍对应 Go1 12 个腿部执行器，控制语义不因地形变化而改变。",
+      "reward": "reward 在速度跟踪之外提高姿态、足端拖拽、接触稳定性和高度约束的权重。",
+      "init": "reset 通过地形 spawn manager 放置机器人，并从 `home` 姿态开始。",
+      "termination": "终止条件除倾倒外，还关注崎岖地形相对高度导致的跌落。",
+      "domain_rand": "域随机化包含地形、摩擦、质量、COM、推力和控制延迟等鲁棒训练项。",
+      "scene_hint": "src/unilab/assets/robots/go1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go1/rough.py"
+    },
+    "go2_joystick_flat": {
+      "slug": "go2_joystick_flat",
+      "title": "Go2 Joystick Flat",
+      "category": "locomotion",
+      "robot": "go2",
+      "registry_names": [
+        "Go2JoystickFlat"
+      ],
+      "goal": "训练 Go2 在平地上跟踪 x/y/yaw 速度命令，形成可迁移到更复杂 Go2 任务的基础步态。",
+      "agent": "Agent 输出 12 维腿部目标，通常由 PPO/APPO/FlashSAC/TD3 等算法消费 actor obs。",
+      "env": "Env 使用 `Go2WalkTask`，其 reset、action space 和 obs 由 locomotion base 与 Go2 专用配置组合。",
+      "obs": "actor obs 包含命令、本体姿态、关节误差、关节速度和动作历史；critic 读取额外 base linvel。",
+      "action": "动作对应 FR/FL/RR/RL 的 hip、thigh、calf 三个关节。",
+      "reward": "reward 以 tracking_lin_vel/tracking_ang_vel 为核心，辅以姿态、动作变化、足端接触和能耗项。",
+      "init": "初始状态来自 Go2 scene 的 `home` keyframe，默认关节角也由该 keyframe 派生。",
+      "termination": "身体高度、倾斜角和 episode timeout 构成主要终止面。",
+      "domain_rand": "domain_rand 可随机摩擦、质量、COM、重力、推力、kp/kd 与初始关节扰动。",
+      "scene_hint": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2/joystick.py"
+    },
+    "go2_joystick_rough": {
+      "slug": "go2_joystick_rough",
+      "title": "Go2 Joystick Rough",
+      "category": "locomotion",
+      "robot": "go2",
+      "registry_names": [
+        "Go2JoystickRough"
+      ],
+      "goal": "在崎岖地形上训练 Go2 保持速度命令跟踪，并学习利用足端接触和地形高度信息稳定前进。",
+      "agent": "Agent 仍输出 12 维腿部目标；算法层不直接感知 backend 私有能力，而是通过 env obs 接收地形信息。",
+      "env": "Env 使用 rough 任务配置、terrain spawn 和 locomotion task fragment。",
+      "obs": "观测在基础 Go2 观测外加入高度扫描；critic 通常保留更多特权地形/速度信息。",
+      "action": "动作空间不变，rough 任务只改变观测、场景和奖励约束。",
+      "reward": "reward 增加 foot_drag、接触与粗糙地形下的姿态稳定惩罚。",
+      "init": "reset 在地形上采样 spawn 点，并应用 `home` keyframe 的默认姿态。",
+      "termination": "终止关注地形相对 base 高度、过大倾斜和异常接触。",
+      "domain_rand": "域随机化覆盖 terrain、摩擦、质量、COM、推力与控制参数。",
+      "scene_hint": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2/rough.py"
+    },
+    "go2_handstand": {
+      "slug": "go2_handstand",
+      "title": "Go2 HandStand",
+      "category": "locomotion",
+      "robot": "go2",
+      "registry_names": [
+        "Go2HandStand"
+      ],
+      "goal": "训练 Go2 从常规四足姿态进入并维持倒立/手倒立式站立，使身体高度、姿态和接触模式满足 handstand 目标。",
+      "agent": "Agent 输出 Go2 12 维关节目标，策略重点学习非典型支撑相下的姿态调节。",
+      "env": "Env 复用 Go2 locomotion backend，但任务类提供 handstand 专用 obs/reward/termination。",
+      "obs": "观测更强调姿态、重力投影、关节状态和动作历史，弱化 joystick 命令。",
+      "action": "动作仍是 12 个腿部 actuator 的位置目标。",
+      "reward": "reward 包含高度、姿态、支撑接触、动作平滑和能耗等专用项。",
+      "init": "初始状态从 `home` keyframe 开始，训练中通过动作序列学习转入目标姿态。",
+      "termination": "终止由高度、倾斜、接触失败或超时触发。",
+      "domain_rand": "domain_rand 使用 Go2 物理参数扰动提升非典型姿态下的鲁棒性。",
+      "scene_hint": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2/handstand.py"
+    },
+    "go2_footstand": {
+      "slug": "go2_footstand",
+      "title": "Go2 FootStand",
+      "category": "locomotion",
+      "robot": "go2",
+      "registry_names": [
+        "Go2FootStand"
+      ],
+      "goal": "训练 Go2 以前足支撑姿态站立，保持指定身体高度、姿态稳定和后腿接触/离地模式。",
+      "agent": "Agent 输出 12 维关节目标；owner YAML 使用较长 obs history 强化姿态控制记忆。",
+      "env": "Env 使用 `Go2FootStandTask`，是 MuJoCo-only 的足式站立专用任务。",
+      "obs": "观测堆叠历史帧，包含姿态、角速度、关节误差、关节速度、动作历史和特权信息。",
+      "action": "动作经 `action_scale` 叠加到默认角度，控制 Go2 全部 12 个腿部 actuator。",
+      "reward": "reward 明确包含 height/orientation/contact/tar/rear_feet_contact/energy 等项，约束站立高度、稳定性和能耗。",
+      "init": "初始状态来自 Go2 `home` keyframe，reset 时可随机关节 qpos、质量和地面摩擦。",
+      "termination": "终止包括姿态失败、接触失败、能量阈值和超时。",
+      "domain_rand": "domain_rand 在 owner YAML 中启用 floor friction、link mass、torso COM、armature 和 reset joint qpos 随机化。",
+      "scene_hint": "src/unilab/assets/robots/go2/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2/footstand.py"
+    },
+    "go2w_joystick_flat": {
+      "slug": "go2w_joystick_flat",
+      "title": "Go2W Joystick Flat",
+      "category": "locomotion",
+      "robot": "go2w",
+      "registry_names": [
+        "Go2WJoystickFlat"
+      ],
+      "goal": "训练轮足 Go2W 在平地上利用腿部和轮部共同跟踪 joystick 速度命令。",
+      "agent": "Agent 输出 16 维动作，对应 12 个腿关节和 4 个轮关节。",
+      "env": "Env 使用 Go2W 专用 motor control helper，把轮足控制封装在 env 层而不是训练脚本。",
+      "obs": "观测在 Go2 基础上加入轮关节状态和轮足特定动作历史。",
+      "action": "动作空间包含腿部位置目标与轮部目标，XML 编译 `nu=16`。",
+      "reward": "reward 以速度跟踪为核心，同时惩罚轮足不稳定、动作变化和姿态偏差。",
+      "init": "初始姿态来自 Go2W `home` keyframe。",
+      "termination": "终止关注 base 高度、倾斜和轮足异常状态。",
+      "domain_rand": "domain_rand 与四足任务类似，但作用到轮足模型的质量、摩擦、推力和控制参数。",
+      "scene_hint": "src/unilab/assets/robots/go2w/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2w/joystick.py"
+    },
+    "go2w_joystick_rough": {
+      "slug": "go2w_joystick_rough",
+      "title": "Go2W Joystick Rough",
+      "category": "locomotion",
+      "robot": "go2w",
+      "registry_names": [
+        "Go2WJoystickRough"
+      ],
+      "goal": "让 Go2W 在崎岖地形上融合轮部推进与腿部支撑，保持速度命令跟踪和通过性。",
+      "agent": "Agent 输出 16 维轮足动作，策略需要在地形扰动下协调轮和腿。",
+      "env": "Env 使用 rough 场景/fragment 与 Go2W 专用控制逻辑。",
+      "obs": "观测包含轮足状态、命令、IMU、关节误差、动作历史和地形相关信息。",
+      "action": "动作空间保持 16 维，rough 任务主要改变地形观测和奖励。",
+      "reward": "reward 加强地形稳定、接触、拖拽和姿态项。",
+      "init": "reset 在地形 spawn 点应用 `home` keyframe。",
+      "termination": "终止由跌倒、倾斜、地形相对高度异常和超时触发。",
+      "domain_rand": "domain_rand 覆盖地形、摩擦、质量、COM、推力和控制参数。",
+      "scene_hint": "src/unilab/assets/robots/go2w/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2w/rough.py"
+    },
+    "g1_walk_flat": {
+      "slug": "g1_walk_flat",
+      "title": "G1 Walk Flat",
+      "category": "locomotion",
+      "robot": "g1",
+      "registry_names": [
+        "G1WalkFlat"
+      ],
+      "goal": "训练 G1 人形机器人在平地上跟踪前进/横移/转向命令，并保持躯干高度、脚步相位和上肢姿态。",
+      "agent": "Agent 输出 29 维关节目标，覆盖双腿、腰和双臂。",
+      "env": "Env 使用 `G1WalkEnv`，在 `G1BaseEnv` 上增加 gait phase、命令采样和 locomotion reward。",
+      "obs": "观测包含命令、本体速度/角速度、重力、关节误差/速度、动作历史和 gait phase；critic 额外使用 base linvel。",
+      "action": "动作维度由 G1 XML actuator 数决定，scene 编译得到 `nu=29`。",
+      "reward": "reward 使用 `G1RewardConfig`，包括速度跟踪、base height、feet phase、pose、动作变化和限位惩罚。",
+      "init": "初始状态来自 `stand` keyframe，并可采样 gait phase 与 base qvel。",
+      "termination": "终止通过最小 base 高度和最大倾斜角控制。",
+      "domain_rand": "domain_rand 可随机 kp/kd、质量、COM、重力、摩擦、推力和 reset joint。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/g1/joystick.py"
+    },
+    "g1_walk_rough": {
+      "slug": "g1_walk_rough",
+      "title": "G1 Walk Rough",
+      "category": "locomotion",
+      "robot": "g1",
+      "registry_names": [
+        "G1WalkRough"
+      ],
+      "goal": "训练 G1 在崎岖地形上保持人形行走命令跟踪，重点处理地形相对高度与跌倒风险。",
+      "agent": "Agent 仍输出 29 维全身关节目标，算法配置主要来自 offpolicy SAC owner。",
+      "env": "Env 使用 G1 rough cfg，在平地行走 env 上切换地形场景和终止高度口径。",
+      "obs": "观测保留 gait phase 与本体状态，并根据 rough 配置提供地形或特权信息。",
+      "action": "动作空间与 G1 平地一致。",
+      "reward": "reward 沿用 G1 locomotion 项，同时在 rough owner YAML 中调整权重。",
+      "init": "reset 使用 `stand` keyframe 并在地形上采样初始位置。",
+      "termination": "终止使用 terrain-relative base height 与倾斜阈值。",
+      "domain_rand": "domain_rand 覆盖地形、物理参数、推力和控制参数。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_rough.xml",
+      "source_hint": "src/unilab/envs/locomotion/g1/joystick.py"
+    },
+    "k1_walk_flat": {
+      "slug": "k1_walk_flat",
+      "title": "K1 Walk Flat",
+      "category": "locomotion",
+      "robot": "k1",
+      "registry_names": [
+        "K1WalkFlat"
+      ],
+      "goal": "训练 K1 人形机器人在平地上跟踪速度命令，同时保持稳定步态和上身姿态。",
+      "agent": "Agent 输出 22 维关节目标，覆盖头、双臂和双腿可控关节。",
+      "env": "Env 使用 `K1WalkEnv` 与 K1 专用 observation constants，采用多帧 history。",
+      "obs": "观测单帧由命令、IMU、关节状态、动作历史和 gait phase 等组成，再按 history 堆叠。",
+      "action": "动作维度由 K1 actuator 数给出，scene 编译得到 `nu=22`。",
+      "reward": "reward 包含速度跟踪、base height、feet phase、pose、close feet、动作平滑和终止惩罚。",
+      "init": "初始状态来自 `stand` keyframe，reset 可扰动 base qvel 和 gait phase。",
+      "termination": "终止关注 base 高度、倾斜角和超时。",
+      "domain_rand": "domain_rand 可随机质量、COM、摩擦、重力、推力和控制参数。",
+      "scene_hint": "src/unilab/assets/robots/k1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/k1/joystick.py"
+    },
+    "k1_soccer_dribble": {
+      "slug": "k1_soccer_dribble",
+      "title": "K1 Soccer Dribble",
+      "category": "locomotion",
+      "robot": "k1",
+      "registry_names": [
+        "K1SoccerDribble"
+      ],
+      "goal": "训练 K1 接近足球、保持球在前方并按照目标方向盘带前进。",
+      "agent": "Agent 输出 K1 22 维关节目标，策略需要同时兼顾自身稳定和球相对位姿。",
+      "env": "Env 在 K1 locomotion 基础上加入 ball body/free joint 和球相关 reset/reward。",
+      "obs": "观测在 K1 行走观测基础上增加球相对位置/速度等信息。",
+      "action": "动作仍只控制机器人 22 个 actuator；球由物理接触自然演化。",
+      "reward": "reward 包含 ball_progress、ball_keep、ball_front、ball_speed_match、ball_lost 等足球专用项。",
+      "init": "reset 将机器人放到 `stand` keyframe，并随机/设置球位置和朝球命令。",
+      "termination": "终止包括机器人跌倒、球丢失距离过大和超时。",
+      "domain_rand": "domain_rand 可控制机器人物理随机化、球相关初始化扰动和噪声。",
+      "scene_hint": "src/unilab/assets/robots/k1/scene_soccer_dribble_minimal.xml",
+      "source_hint": "src/unilab/envs/locomotion/k1/soccer_dribble.py"
+    },
+    "go2_arm_manip_loco": {
+      "slug": "go2_arm_manip_loco",
+      "title": "Go2 Arm Manip-Loco",
+      "category": "manip_loco",
+      "robot": "go2_arm",
+      "registry_names": [
+        "Go2ArmManipLoco"
+      ],
+      "goal": "训练带机械臂的 Go2 在移动中接近/操作目标，同时保持底盘稳定和机械臂安全。",
+      "agent": "Agent 输出 18 维动作，包括 12 个腿部 actuator 与 6 个机械臂关节 actuator。",
+      "env": "Env 由 `Go2ArmManipLocoEnv` 管理底盘 locomotion 和 arm/object reward，不把任务规则放到训练脚本。",
+      "obs": "观测包含底盘状态、命令、机械臂关节状态、目标/物体相对信息和动作历史。",
+      "action": "动作空间覆盖底盘与机械臂，scene 编译得到 `nu=18`。",
+      "reward": "reward 结合 locomotion 跟踪项、object distance、arm collision、动作平滑和姿态稳定项。",
+      "init": "初始状态来自 `home` keyframe，机械臂和底盘默认姿态一起复位。",
+      "termination": "终止关注底盘跌倒、机械臂碰撞/异常和 episode horizon。",
+      "domain_rand": "domain_rand 覆盖底盘物理参数、摩擦、推力以及移动操作相关扰动。",
+      "scene_hint": "src/unilab/assets/robots/go2_arm/scene_flat.xml",
+      "source_hint": "src/unilab/envs/locomotion/go2_arm/manip_loco.py"
+    },
+    "g1_motion_tracking": {
+      "slug": "g1_motion_tracking",
+      "title": "G1 Motion Tracking",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1MotionTracking",
+        "G1MotionTrackingSAC"
+      ],
+      "goal": "让 G1 全身跟踪参考 motion clip，在 root、body、末端和关节层面逼近离线动作数据。",
+      "agent": "Agent 输出 G1 29 维动作；PPO/APPO/SAC 变体共享 motion tracking 目标，但 critic/算法配置不同。",
+      "env": "Env 使用 `MotionLoader` 读取 npz motion，并在 reset 时采样 clip 时间。",
+      "obs": "观测围绕当前机器人状态、参考 motion 相位/目标和动作历史构造；SAC 变体会额外给 critic base linvel。",
+      "action": "动作控制 G1 29 个 actuator，通过 action_scale 映射到关节目标。",
+      "reward": "reward 包含 root pos/ori、body pos/ori、body velocity、joint pos/vel、action_rate 和 joint_limit 等 tracking 项。",
+      "init": "初始状态从 motion reference 构造，并叠加 pose/velocity/joint 随机化。",
+      "termination": "终止由 anchor z/ori 误差、末端 z 误差、undesired contact 和 clip 截断策略决定。",
+      "domain_rand": "domain_rand 支持 base mass、COM、gravity、push、kp/kd、friction 和 joint default pos 扰动。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/tracking.py"
+    },
+    "g1_motion_tracking_deploy": {
+      "slug": "g1_motion_tracking_deploy",
+      "title": "G1 Motion Tracking Deploy",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1MotionTrackingDeploy"
+      ],
+      "goal": "为部署/评估口径整理 G1 motion tracking 观测，使策略输入更接近实际部署所需信息。",
+      "agent": "Agent 输出 29 维动作，但 deploy env 使用更收敛的 actor 观测组织。",
+      "env": "Env 继承 motion tracking 流程，重点调整 obs 组合和部署相关接口。",
+      "obs": "观测减少训练期特权信息，保留部署可获得的本体状态、参考信号和动作历史。",
+      "action": "动作空间与 G1 motion tracking 一致。",
+      "reward": "reward 和终止逻辑沿用 motion tracking 主任务。",
+      "init": "reset 仍从 motion reference 初始化，并应用同类随机化。",
+      "termination": "终止遵循 anchor/末端/接触误差阈值。",
+      "domain_rand": "domain_rand 与 motion tracking cfg 一致，实际启用项由 owner YAML 控制。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/tracking.py"
+    },
+    "g1_flip_tracking": {
+      "slug": "g1_flip_tracking",
+      "title": "G1 Flip Tracking",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1FlipTracking",
+        "G1FlipTrackingSAC"
+      ],
+      "goal": "训练 G1 跟踪空翻 motion clip，在大姿态变化中保持 root/body/关节轨迹同步。",
+      "agent": "Agent 输出 29 维动作，策略要在翻转期间处理高速姿态变化。",
+      "env": "Env 是 motion tracking 的 flip 专用配置，默认 motion file 指向 flip 轨迹。",
+      "obs": "观测结构继承 tracking，但参考 motion 的相位和目标姿态更剧烈。",
+      "action": "动作空间与 G1 29 DoF tracking 一致。",
+      "reward": "reward 沿用 tracking 项，并通过 flip owner YAML 调整各误差项权重。",
+      "init": "reset 从 flip clip 采样参考状态，支持 adaptive/mixed sampling。",
+      "termination": "终止阈值相对普通 tracking 放宽以容纳翻转姿态。",
+      "domain_rand": "domain_rand 仍来自 tracking cfg，具体启用项由 PPO/APPO/SAC owner 决定。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+    },
+    "g1_wall_flip_tracking": {
+      "slug": "g1_wall_flip_tracking",
+      "title": "G1 Wall Flip Tracking",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1WallFlipTracking",
+        "G1WallFlipTrackingSAC"
+      ],
+      "goal": "训练 G1 跟踪靠墙翻转动作，在场景中利用 wall 几何与参考轨迹完成翻转。",
+      "agent": "Agent 输出 29 维动作，需协调与墙体交互时的全身姿态。",
+      "env": "Env 继承 flip tracking，并切换到带墙场景和 wall flip motion。",
+      "obs": "观测沿用 motion tracking 结构，参考 motion 提供靠墙动作目标。",
+      "action": "动作空间不变。",
+      "reward": "reward 仍以 tracking 误差为主，并根据 owner YAML 调整 undesired contact 等项。",
+      "init": "reset 从 wall flip clip 初始化，场景包含墙体几何。",
+      "termination": "终止由 anchor/末端误差、接触和超时控制。",
+      "domain_rand": "domain_rand 与 tracking 系列一致。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat_with_wall.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+    },
+    "g1_climb_tracking": {
+      "slug": "g1_climb_tracking",
+      "title": "G1 Climb Tracking",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1ClimbTracking"
+      ],
+      "goal": "训练 G1 跟踪爬箱/攀爬 motion，在包含台阶/箱体的 scene 中完成参考动作。",
+      "agent": "Agent 输出 29 维动作，策略目标是跟踪爬升阶段的全身轨迹。",
+      "env": "Env 使用 climb scene 和 climb motion file，仍复用 motion tracking 框架。",
+      "obs": "观测为机器人状态、参考 motion 与动作历史的组合。",
+      "action": "动作空间与 G1 tracking 一致。",
+      "reward": "reward 以 root/body/joint tracking 误差为核心。",
+      "init": "reset 从 climb motion 采样初始帧，episode 秒数通常更长。",
+      "termination": "终止由 tracking 误差、接触约束和超时触发。",
+      "domain_rand": "domain_rand 使用 tracking cfg 中的物理扰动开关。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_climb_20_z_scale_1.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+    },
+    "g1_box_tracking": {
+      "slug": "g1_box_tracking",
+      "title": "G1 Box Tracking",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1BoxTracking"
+      ],
+      "goal": "训练 G1 在全身 motion tracking 中同时处理大箱体物体状态，使人体动作和物体轨迹共同满足参考。",
+      "agent": "Agent 输出 29 维动作；物体状态进入 obs/reward，但不由 action 直接控制。",
+      "env": "Env 使用 `G1BoxTrackingEnv` 和 `BoxMotionLoader`，场景包含 largebox。",
+      "obs": "观测在 tracking 基础上加入物体位置/姿态/速度相关信息。",
+      "action": "动作空间仍为 G1 关节 actuator。",
+      "reward": "reward 除 tracking 项外增加 object pos/ori 等物体误差项。",
+      "init": "reset 从 box motion 初始化机器人与物体状态。",
+      "termination": "终止增加物体位置/姿态误差阈值。",
+      "domain_rand": "domain_rand 与 tracking 系列一致，物体相关扰动由 box env/config 控制。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat_with_largebox.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/box_tracking.py"
+    },
+    "g1_wbt_obs": {
+      "slug": "g1_wbt_obs",
+      "title": "G1 WBT Obs",
+      "category": "motion_tracking",
+      "robot": "g1",
+      "registry_names": [
+        "G1WBTObs"
+      ],
+      "goal": "提供 Whole-Body Tracking 观测口径的 SAC 任务，用于对齐全身跟踪训练所需的严格 obs 结构。",
+      "agent": "Agent 输出 G1 29 维动作，算法侧通常使用 offpolicy SAC owner。",
+      "env": "Env 是 tracking SAC 的观测专用子类，强调 obs contract 稳定性。",
+      "obs": "观测字段更严格地组织为 WBT 所需输入，critic 仍可包含特权项。",
+      "action": "动作空间与 G1 tracking 一致。",
+      "reward": "reward 沿用 motion tracking SAC 配置。",
+      "init": "reset 使用 motion reference 和同类随机化。",
+      "termination": "终止沿用 tracking 阈值。",
+      "domain_rand": "domain_rand 由 SAC owner YAML 控制。",
+      "scene_hint": "src/unilab/assets/robots/g1/scene_flat.xml",
+      "source_hint": "src/unilab/envs/motion_tracking/g1/tracking_obs.py"
+    },
+    "allegro_inhand": {
+      "slug": "allegro_inhand",
+      "title": "Allegro In-Hand Rotation",
+      "category": "manipulation",
+      "robot": "allegro_hand",
+      "registry_names": [
+        "AllegroInhandRotation"
+      ],
+      "goal": "训练 Allegro Hand 在手内旋转球体，使球沿指定轴获得目标角速度，同时维持稳定抓持。",
+      "agent": "Agent 输出 16 维手指关节目标，直接对应 Allegro 16 个 actuator。",
+      "env": "Env 使用 `AllegroRotationPPO`，场景 include 手本体和球体。",
+      "obs": "观测包含归一化手指关节、目标控制、球位置/姿态/角速度和 lag history。",
+      "action": "动作经 PD torque/position 逻辑作用到 16 个手指关节。",
+      "reward": "reward 包含 rotate、obj_linvel、pose_diff、torque、work 等项，权重来自 owner YAML。",
+      "init": "reset 可从 grasp cache 采样，也可 procedural 初始化手指和球体。",
+      "termination": "终止关注球体高度/掉落阈值和 episode horizon。",
+      "domain_rand": "domain_rand 支持手指噪声、球速度噪声、球 z offset、质量/COM/重力和 push。",
+      "scene_hint": "src/unilab/assets/robots/allegro_hand/scene.xml",
+      "source_hint": "src/unilab/envs/manipulation/allegro_inhand/rotation.py"
+    },
+    "allegro_inhand_grasp": {
+      "slug": "allegro_inhand_grasp",
+      "title": "Allegro In-Hand Grasp",
+      "category": "manipulation",
+      "robot": "allegro_hand",
+      "registry_names": [
+        "AllegroInhandRotationGrasp"
+      ],
+      "goal": "生成或训练 Allegro Hand 的抓取初始化姿态，为后续手内旋转提供稳定初态。",
+      "agent": "Agent 控制 16 个手指关节，使球体保持在可旋转抓持区域。",
+      "env": "Env 继承 Allegro rotation 基础设施，但使用 grasp generation 任务逻辑。",
+      "obs": "观测沿用手指状态、球状态和历史帧结构。",
+      "action": "动作空间与 Allegro rotation 一致。",
+      "reward": "reward 侧重抓持稳定、球体保持和动作/力矩约束。",
+      "init": "reset 用 grasp cache 或 procedural reset 构造初始抓取。",
+      "termination": "终止关注球体丢失、高度阈值和超时。",
+      "domain_rand": "domain_rand 与 Allegro rotation 共享，具体开关由 owner YAML 控制。",
+      "scene_hint": "src/unilab/assets/robots/allegro_hand/scene.xml",
+      "source_hint": "src/unilab/envs/manipulation/allegro_inhand/grasp_gen.py"
+    },
+    "sharpa_inhand": {
+      "slug": "sharpa_inhand",
+      "title": "Sharpa In-Hand Rotation",
+      "category": "manipulation",
+      "robot": "sharpa_wave",
+      "registry_names": [
+        "SharpaInhandRotation"
+      ],
+      "goal": "训练 Sharpa Wave 灵巧手旋转圆柱物体，并利用接触/触觉相关观测保持稳定操作。",
+      "agent": "Agent 输出 22 维手部 actuator 目标。",
+      "env": "Env 使用 `SharpaInhandRotationEnv`，场景内包含手本体和圆柱物体。",
+      "obs": "观测由手指关节、动作历史、物体状态和可选触觉/接触信息组成。",
+      "action": "动作控制 22 个 `*_ctrl` actuator，物体自由关节由接触动力学驱动。",
+      "reward": "reward 包含旋转进度、物体稳定、动作/力矩惩罚和接触相关项。",
+      "init": "reset 从默认 keyframe 或 grasp cache/初始化范围采样手和物体状态。",
+      "termination": "终止关注物体掉落、姿态异常和超时。",
+      "domain_rand": "domain_rand 通过 common reset randomization 与 Sharpa 专用参数作用于初态和物理属性。",
+      "scene_hint": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+      "source_hint": "src/unilab/envs/manipulation/sharpa_inhand/rotation.py"
+    },
+    "sharpa_inhand_grasp": {
+      "slug": "sharpa_inhand_grasp",
+      "title": "Sharpa In-Hand Grasp",
+      "category": "manipulation",
+      "robot": "sharpa_wave",
+      "registry_names": [
+        "SharpaInhandRotationGrasp"
+      ],
+      "goal": "为 Sharpa Wave 生成稳定抓取状态，使后续旋转任务能从可控接触构型开始。",
+      "agent": "Agent 输出 22 维手部关节目标，优化稳定接触而非高速旋转。",
+      "env": "Env 使用 Sharpa grasp generation 逻辑，复用 Sharpa base 与 scene。",
+      "obs": "观测沿用 Sharpa 手部/物体状态，并强调抓取质量相关信息。",
+      "action": "动作空间与 Sharpa rotation 一致。",
+      "reward": "reward 聚焦物体保持、接触稳定和动作平滑。",
+      "init": "reset 采样手指和物体初态，必要时写入/读取 grasp cache。",
+      "termination": "终止关注物体掉落、过大姿态误差和超时。",
+      "domain_rand": "domain_rand 与 Sharpa rotation 共享。",
+      "scene_hint": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+      "source_hint": "src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py"
+    }
+  },
+  "owners": {
+    "allegro_inhand": [
+      {
+        "path": "conf/appo/task/allegro_inhand/motrix.yaml",
+        "task_name": "AllegroInhandRotation",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/allegro_inhand/mujoco.yaml",
+        "task_name": "AllegroInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/ppo/task/allegro_inhand/motrix.yaml",
+        "task_name": "AllegroInhandRotation",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/allegro_inhand/mujoco.yaml",
+        "task_name": "AllegroInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "allegro_inhand_grasp": [
+      {
+        "path": "conf/ppo/task/allegro_inhand_grasp/motrix.yaml",
+        "task_name": "AllegroInhandRotationGrasp",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/allegro_inhand_grasp/mujoco.yaml",
+        "task_name": "AllegroInhandRotationGrasp",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_box_tracking": [
+      {
+        "path": "conf/ppo/task/g1_box_tracking/motrix.yaml",
+        "task_name": "G1BoxTracking",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_box_tracking/mujoco.yaml",
+        "task_name": "G1BoxTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_climb_tracking": [
+      {
+        "path": "conf/appo/task/g1_climb_tracking/motrix.yaml",
+        "task_name": "G1ClimbTracking",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/g1_climb_tracking/mujoco.yaml",
+        "task_name": "G1ClimbTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/ppo/task/g1_climb_tracking/motrix.yaml",
+        "task_name": "G1ClimbTracking",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_climb_tracking/mujoco.yaml",
+        "task_name": "G1ClimbTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_flip_tracking": [
+      {
+        "path": "conf/appo/task/g1_flip_tracking/motrix.yaml",
+        "task_name": "G1FlipTracking",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/g1_flip_tracking/mujoco.yaml",
+        "task_name": "G1FlipTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_flip_tracking/mujoco.yaml",
+        "task_name": "G1FlipTrackingSAC",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/ppo/task/g1_flip_tracking/motrix.yaml",
+        "task_name": "G1FlipTracking",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_flip_tracking/mujoco.yaml",
+        "task_name": "G1FlipTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_motion_tracking": [
+      {
+        "path": "conf/appo/task/g1_motion_tracking/motrix.yaml",
+        "task_name": "G1MotionTracking",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/g1_motion_tracking/mujoco.yaml",
+        "task_name": "G1MotionTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_motion_tracking/motrix.yaml",
+        "task_name": "G1MotionTrackingSAC",
+        "sim_backend": "motrix",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_motion_tracking/mujoco.yaml",
+        "task_name": "G1MotionTrackingSAC",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/ppo/task/g1_motion_tracking/motrix.yaml",
+        "task_name": "G1MotionTracking",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_motion_tracking/mujoco.yaml",
+        "task_name": "G1MotionTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_motion_tracking_deploy": [
+      {
+        "path": "conf/ppo/task/g1_motion_tracking_deploy/motrix.yaml",
+        "task_name": "G1MotionTrackingDeploy",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_motion_tracking_deploy/mujoco.yaml",
+        "task_name": "G1MotionTrackingDeploy",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_walk_flat": [
+      {
+        "path": "conf/appo/task/g1_walk_flat/motrix.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/g1_walk_flat/mujoco.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/flashsac/g1_walk_flat/mujoco.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "flashsac"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_walk_flat/motrix.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_walk_flat/mujoco.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/offpolicy/task/td3/g1_walk_flat/mujoco.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "td3"
+      },
+      {
+        "path": "conf/ppo/task/g1_walk_flat/motrix.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_walk_flat/mujoco.yaml",
+        "task_name": "G1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_walk_rough": [
+      {
+        "path": "conf/offpolicy/task/sac/g1_walk_rough/motrix.yaml",
+        "task_name": "G1WalkRough",
+        "sim_backend": "motrix",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_walk_rough/mujoco.yaml",
+        "task_name": "G1WalkRough",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      }
+    ],
+    "g1_wall_flip_tracking": [
+      {
+        "path": "conf/appo/task/g1_wall_flip_tracking/motrix.yaml",
+        "task_name": "G1WallFlipTracking",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/g1_wall_flip_tracking/mujoco.yaml",
+        "task_name": "G1WallFlipTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/g1_wall_flip_tracking/mujoco.yaml",
+        "task_name": "G1WallFlipTrackingSAC",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/ppo/task/g1_wall_flip_tracking/motrix.yaml",
+        "task_name": "G1WallFlipTracking",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/g1_wall_flip_tracking/mujoco.yaml",
+        "task_name": "G1WallFlipTracking",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "g1_wbt_obs": [
+      {
+        "path": "conf/offpolicy/task/sac/g1_wbt_obs/mujoco.yaml",
+        "task_name": "G1WBTObs",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      }
+    ],
+    "go1_joystick_flat": [
+      {
+        "path": "conf/appo/task/go1_joystick_flat/mujoco.yaml",
+        "task_name": "Go1JoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/td3/go1_joystick_flat/motrix.yaml",
+        "task_name": "Go1JoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "td3"
+      },
+      {
+        "path": "conf/ppo/task/go1_joystick_flat/motrix.yaml",
+        "task_name": "Go1JoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go1_joystick_flat/mujoco.yaml",
+        "task_name": "Go1JoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go1_joystick_rough": [
+      {
+        "path": "conf/ppo/task/go1_joystick_rough/motrix.yaml",
+        "task_name": "Go1JoystickRough",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go1_joystick_rough/mujoco.yaml",
+        "task_name": "Go1JoystickRough",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2_arm_manip_loco": [
+      {
+        "path": "conf/ppo/task/go2_arm_manip_loco/motrix.yaml",
+        "task_name": "Go2ArmManipLoco",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2_arm_manip_loco/mujoco.yaml",
+        "task_name": "Go2ArmManipLoco",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo_him/task/go2_arm_manip_loco/mujoco.yaml",
+        "task_name": "Go2ArmManipLoco",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo_him"
+      }
+    ],
+    "go2_footstand": [
+      {
+        "path": "conf/ppo/task/go2_footstand/mujoco.yaml",
+        "task_name": "Go2FootStand",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2_handstand": [
+      {
+        "path": "conf/ppo/task/go2_handstand/motrix.yaml",
+        "task_name": "Go2HandStand",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2_handstand/mujoco.yaml",
+        "task_name": "Go2HandStand",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2_joystick_flat": [
+      {
+        "path": "conf/appo/task/go2_joystick_flat/motrix.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/go2_joystick_flat/mujoco.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/flashsac/go2_joystick_flat/mujoco.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "flashsac"
+      },
+      {
+        "path": "conf/offpolicy/task/td3/go2_joystick_flat/motrix.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "td3"
+      },
+      {
+        "path": "conf/ppo/task/go2_joystick_flat/motrix.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2_joystick_flat/mujoco.yaml",
+        "task_name": "Go2JoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2_joystick_rough": [
+      {
+        "path": "conf/ppo/task/go2_joystick_rough/motrix.yaml",
+        "task_name": "Go2JoystickRough",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2_joystick_rough/mujoco.yaml",
+        "task_name": "Go2JoystickRough",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2w_joystick_flat": [
+      {
+        "path": "conf/ppo/task/go2w_joystick_flat/motrix.yaml",
+        "task_name": "Go2WJoystickFlat",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2w_joystick_flat/mujoco.yaml",
+        "task_name": "Go2WJoystickFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "go2w_joystick_rough": [
+      {
+        "path": "conf/ppo/task/go2w_joystick_rough/motrix.yaml",
+        "task_name": "Go2WJoystickRough",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/go2w_joystick_rough/mujoco.yaml",
+        "task_name": "Go2WJoystickRough",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "k1_soccer_dribble": [
+      {
+        "path": "conf/appo/task/k1_soccer_dribble/motrix.yaml",
+        "task_name": "K1SoccerDribble",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/flashsac/k1_soccer_dribble/motrix.yaml",
+        "task_name": "K1SoccerDribble",
+        "sim_backend": "motrix",
+        "algo_group": "flashsac"
+      }
+    ],
+    "k1_walk_flat": [
+      {
+        "path": "conf/appo/task/k1_walk_flat/motrix.yaml",
+        "task_name": "K1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/k1_walk_flat/mujoco.yaml",
+        "task_name": "K1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/offpolicy/task/flashsac/k1_walk_flat/motrix.yaml",
+        "task_name": "K1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "flashsac"
+      },
+      {
+        "path": "conf/ppo/task/k1_walk_flat/motrix.yaml",
+        "task_name": "K1WalkFlat",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/k1_walk_flat/mujoco.yaml",
+        "task_name": "K1WalkFlat",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "sharpa_inhand": [
+      {
+        "path": "conf/appo/task/sharpa_inhand/motrix.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "motrix",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/appo/task/sharpa_inhand/mujoco.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "appo"
+      },
+      {
+        "path": "conf/hora_distill/task/sharpa_inhand/mujoco.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "hora_distill"
+      },
+      {
+        "path": "conf/offpolicy/task/sac/sharpa_inhand/mujoco_hora.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "sac"
+      },
+      {
+        "path": "conf/ppo/task/sharpa_inhand/motrix.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/sharpa_inhand/mujoco.yaml",
+        "task_name": "SharpaInhandRotation",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ],
+    "sharpa_inhand_grasp": [
+      {
+        "path": "conf/ppo/task/sharpa_inhand_grasp/motrix.yaml",
+        "task_name": "SharpaInhandRotationGrasp",
+        "sim_backend": "motrix",
+        "algo_group": "ppo"
+      },
+      {
+        "path": "conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml",
+        "task_name": "SharpaInhandRotationGrasp",
+        "sim_backend": "mujoco",
+        "algo_group": "ppo"
+      }
+    ]
+  },
+  "registry": {
+    "AllegroInhandRotation": {
+      "config_class": "AllegroRotationPPOCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/manipulation/allegro_inhand/rotation.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/manipulation/allegro_inhand/rotation.py",
+        "mujoco": "src/unilab/envs/manipulation/allegro_inhand/rotation.py"
+      }
+    },
+    "AllegroInhandRotationGrasp": {
+      "config_class": "AllegroRotationGraspCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/manipulation/allegro_inhand/grasp_gen.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/manipulation/allegro_inhand/grasp_gen.py",
+        "mujoco": "src/unilab/envs/manipulation/allegro_inhand/grasp_gen.py"
+      }
+    },
+    "G1BoxTracking": {
+      "config_class": "G1BoxTrackingEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/box_tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/box_tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/box_tracking.py"
+      }
+    },
+    "G1ClimbTracking": {
+      "config_class": "G1ClimbTrackingEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+      }
+    },
+    "G1FlipTracking": {
+      "config_class": "G1FlipTrackingEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+      }
+    },
+    "G1FlipTrackingSAC": {
+      "config_class": "G1FlipTrackingSACCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py"
+      }
+    },
+    "G1MotionTracking": {
+      "config_class": "G1MotionTrackingEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/tracking.py"
+      }
+    },
+    "G1MotionTrackingDeploy": {
+      "config_class": "G1MotionTrackingDeployEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/tracking.py"
+      }
+    },
+    "G1MotionTrackingSAC": {
+      "config_class": "G1MotionTrackingSACCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/tracking_sac.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/tracking_sac.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/tracking_sac.py"
+      }
+    },
+    "G1WBTObs": {
+      "config_class": "G1WBTObsCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/tracking_obs.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/tracking_obs.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/tracking_obs.py"
+      }
+    },
+    "G1WalkFlat": {
+      "config_class": "G1WalkFlatCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/g1/joystick.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/g1/joystick.py",
+        "motrix": "src/unilab/envs/locomotion/g1/joystick.py"
+      }
+    },
+    "G1WalkRough": {
+      "config_class": "G1WalkRoughCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/g1/joystick.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/g1/joystick.py",
+        "motrix": "src/unilab/envs/locomotion/g1/joystick.py"
+      }
+    },
+    "G1WallFlipTracking": {
+      "config_class": "G1WallFlipTrackingEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/flip_tracking.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/flip_tracking.py"
+      }
+    },
+    "G1WallFlipTrackingSAC": {
+      "config_class": "G1WallFlipTrackingSACCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py",
+        "mujoco": "src/unilab/envs/motion_tracking/g1/flip_tracking_sac.py"
+      }
+    },
+    "Go1JoystickFlat": {
+      "config_class": "Go1JoystickCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go1/joystick.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/locomotion/go1/joystick.py",
+        "mujoco": "src/unilab/envs/locomotion/go1/joystick.py"
+      }
+    },
+    "Go1JoystickRough": {
+      "config_class": "Go1JoystickRoughCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go1/rough.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go1/rough.py",
+        "motrix": "src/unilab/envs/locomotion/go1/rough.py"
+      }
+    },
+    "Go2ArmManipLoco": {
+      "config_class": "Go2ArmManipLocoCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2_arm/manip_loco.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go2_arm/manip_loco.py",
+        "motrix": "src/unilab/envs/locomotion/go2_arm/manip_loco.py"
+      }
+    },
+    "Go2FootStand": {
+      "config_class": "Go2FootStandCfg",
+      "available_backends": [
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2/footstand.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go2/footstand.py"
+      }
+    },
+    "Go2HandStand": {
+      "config_class": "Go2HandStandCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2/handstand.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/locomotion/go2/handstand.py",
+        "mujoco": "src/unilab/envs/locomotion/go2/handstand.py"
+      }
+    },
+    "Go2JoystickFlat": {
+      "config_class": "Go2JoystickCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2/joystick.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/locomotion/go2/joystick.py",
+        "mujoco": "src/unilab/envs/locomotion/go2/joystick.py"
+      }
+    },
+    "Go2JoystickRough": {
+      "config_class": "Go2JoystickRoughCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2/rough.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go2/rough.py",
+        "motrix": "src/unilab/envs/locomotion/go2/rough.py"
+      }
+    },
+    "Go2WJoystickFlat": {
+      "config_class": "Go2WJoystickCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2w/joystick.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go2w/joystick.py",
+        "motrix": "src/unilab/envs/locomotion/go2w/joystick.py"
+      }
+    },
+    "Go2WJoystickRough": {
+      "config_class": "Go2WJoystickRoughCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/go2w/rough.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/go2w/rough.py",
+        "motrix": "src/unilab/envs/locomotion/go2w/rough.py"
+      }
+    },
+    "K1SoccerDribble": {
+      "config_class": "K1SoccerDribbleFlatCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/k1/soccer_dribble.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/k1/soccer_dribble.py",
+        "motrix": "src/unilab/envs/locomotion/k1/soccer_dribble.py"
+      }
+    },
+    "K1WalkFlat": {
+      "config_class": "K1WalkFlatCfg",
+      "available_backends": [
+        "mujoco",
+        "motrix"
+      ],
+      "config_source": "src/unilab/envs/locomotion/k1/joystick.py",
+      "env_sources": {
+        "mujoco": "src/unilab/envs/locomotion/k1/joystick.py",
+        "motrix": "src/unilab/envs/locomotion/k1/joystick.py"
+      }
+    },
+    "SharpaInhandRotation": {
+      "config_class": "SharpaInhandRotationCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/manipulation/sharpa_inhand/rotation.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/manipulation/sharpa_inhand/rotation.py",
+        "mujoco": "src/unilab/envs/manipulation/sharpa_inhand/rotation.py"
+      }
+    },
+    "SharpaInhandRotationGrasp": {
+      "config_class": "SharpaInhandGraspEnvCfg",
+      "available_backends": [
+        "motrix",
+        "mujoco"
+      ],
+      "config_source": "src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py",
+      "env_sources": {
+        "motrix": "src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py",
+        "mujoco": "src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py"
+      }
+    }
+  },
+  "robots": {
+    "go1": {
+      "doc": {
+        "slug": "go1",
+        "title": "Unitree Go1",
+        "role": "四足速度跟踪与崎岖地形基线机器人",
+        "primary_scene": "src/unilab/assets/robots/go1/scene_flat.xml",
+        "keyframe": "home",
+        "intro": "Go1 是 UniLab 中较轻量的四足运动控制基线，主要用于平地/崎岖地形 joystick 指令跟踪。资产目录同时保留纯机器人 XML、MuJoCo 扩展 XML 和 locomotion fragment，用来展示 robot/scene/task 三层边界。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/go1/scene_flat.xml",
+        "nq": 19,
+        "nv": 18,
+        "nu": 12,
+        "njnt": 13,
+        "nsensor": 14,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "<unnamed:0>",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "FR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.863,
+              0.863
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "FR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.686,
+              4.501
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "FR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.818,
+              -0.888
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "FL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.863,
+              0.863
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "FL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.686,
+              4.501
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "FL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.818,
+              -0.888
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "RR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.863,
+              0.863
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "RR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.686,
+              4.501
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "RR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.818,
+              -0.888
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "RL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.863,
+              0.863
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "RL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.686,
+              4.501
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "RL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.818,
+              -0.888
+            ],
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "FR_hip",
+            "joint": "FR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.863,
+              0.863
+            ]
+          },
+          {
+            "id": 1,
+            "name": "FR_thigh",
+            "joint": "FR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.686,
+              4.501
+            ]
+          },
+          {
+            "id": 2,
+            "name": "FR_calf",
+            "joint": "FR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.818,
+              -0.888
+            ]
+          },
+          {
+            "id": 3,
+            "name": "FL_hip",
+            "joint": "FL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.863,
+              0.863
+            ]
+          },
+          {
+            "id": 4,
+            "name": "FL_thigh",
+            "joint": "FL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.686,
+              4.501
+            ]
+          },
+          {
+            "id": 5,
+            "name": "FL_calf",
+            "joint": "FL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.818,
+              -0.888
+            ]
+          },
+          {
+            "id": 6,
+            "name": "RR_hip",
+            "joint": "RR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.863,
+              0.863
+            ]
+          },
+          {
+            "id": 7,
+            "name": "RR_thigh",
+            "joint": "RR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.686,
+              4.501
+            ]
+          },
+          {
+            "id": 8,
+            "name": "RR_calf",
+            "joint": "RR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.818,
+              -0.888
+            ]
+          },
+          {
+            "id": 9,
+            "name": "RL_hip",
+            "joint": "RL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.863,
+              0.863
+            ]
+          },
+          {
+            "id": 10,
+            "name": "RL_thigh",
+            "joint": "RL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.686,
+              4.501
+            ]
+          },
+          {
+            "id": 11,
+            "name": "RL_calf",
+            "joint": "RL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.818,
+              -0.888
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "gyro",
+            "dim": 3
+          },
+          {
+            "id": 1,
+            "name": "local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 2,
+            "name": "position",
+            "dim": 3
+          },
+          {
+            "id": 3,
+            "name": "upvector",
+            "dim": 3
+          },
+          {
+            "id": 4,
+            "name": "global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 5,
+            "name": "global_angvel",
+            "dim": 3
+          },
+          {
+            "id": 6,
+            "name": "FR_pos",
+            "dim": 3
+          },
+          {
+            "id": 7,
+            "name": "FL_pos",
+            "dim": 3
+          },
+          {
+            "id": 8,
+            "name": "RR_pos",
+            "dim": 3
+          },
+          {
+            "id": 9,
+            "name": "RL_pos",
+            "dim": 3
+          },
+          {
+            "id": 10,
+            "name": "FL_foot_contact",
+            "dim": 3
+          },
+          {
+            "id": 11,
+            "name": "FR_foot_contact",
+            "dim": 3
+          },
+          {
+            "id": 12,
+            "name": "RL_foot_contact",
+            "dim": 3
+          },
+          {
+            "id": 13,
+            "name": "RR_foot_contact",
+            "dim": 3
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/go1/assets/calf.stl",
+        "src/unilab/assets/robots/go1/assets/hip.stl",
+        "src/unilab/assets/robots/go1/assets/thigh.stl",
+        "src/unilab/assets/robots/go1/assets/thigh_mirror.stl",
+        "src/unilab/assets/robots/go1/assets/trunk.stl",
+        "src/unilab/assets/robots/go1/go1.xml",
+        "src/unilab/assets/robots/go1/go1_mujoco.xml",
+        "src/unilab/assets/robots/go1/locomotion_task.xml",
+        "src/unilab/assets/robots/go1/scene_flat.xml"
+      ]
+    },
+    "go2": {
+      "doc": {
+        "slug": "go2",
+        "title": "Unitree Go2",
+        "role": "四足运动控制、倒立与前足站立任务机器人",
+        "primary_scene": "src/unilab/assets/robots/go2/scene_flat.xml",
+        "keyframe": "home",
+        "intro": "Go2 覆盖 UniLab 中最完整的四足运动任务族：平地速度跟踪、崎岖地形、handstand 与 footstand。它的 12 个可控关节与足端接触传感器构成了 locomotion reward 和终止条件的主要观测对象。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/go2/scene_flat.xml",
+        "nq": 19,
+        "nv": 18,
+        "nu": 12,
+        "njnt": 13,
+        "nsensor": 38,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "<unnamed:0>",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "FL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "FL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "FL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "FR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "FR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "FR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "RL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "RL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              4.5379
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "RL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "RR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "RR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              4.5379
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "RR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "FR_hip",
+            "joint": "FR_hip_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "FR_thigh",
+            "joint": "FR_thigh_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "FR_calf",
+            "joint": "FR_calf_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "FL_hip",
+            "joint": "FL_hip_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 4,
+            "name": "FL_thigh",
+            "joint": "FL_thigh_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 5,
+            "name": "FL_calf",
+            "joint": "FL_calf_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 6,
+            "name": "RR_hip",
+            "joint": "RR_hip_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 7,
+            "name": "RR_thigh",
+            "joint": "RR_thigh_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 8,
+            "name": "RR_calf",
+            "joint": "RR_calf_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 9,
+            "name": "RL_hip",
+            "joint": "RL_hip_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 10,
+            "name": "RL_thigh",
+            "joint": "RL_thigh_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 11,
+            "name": "RL_calf",
+            "joint": "RL_calf_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "gyro",
+            "dim": 3
+          },
+          {
+            "id": 1,
+            "name": "accelerometer",
+            "dim": 3
+          },
+          {
+            "id": 2,
+            "name": "local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 3,
+            "name": "upvector",
+            "dim": 3
+          },
+          {
+            "id": 4,
+            "name": "global_position",
+            "dim": 3
+          },
+          {
+            "id": 5,
+            "name": "global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 6,
+            "name": "global_angvel",
+            "dim": 3
+          },
+          {
+            "id": 7,
+            "name": "FR_pos",
+            "dim": 3
+          },
+          {
+            "id": 8,
+            "name": "FL_pos",
+            "dim": 3
+          },
+          {
+            "id": 9,
+            "name": "RR_pos",
+            "dim": 3
+          },
+          {
+            "id": 10,
+            "name": "RL_pos",
+            "dim": 3
+          },
+          {
+            "id": 11,
+            "name": "FR_vel",
+            "dim": 3
+          },
+          {
+            "id": 12,
+            "name": "FL_vel",
+            "dim": 3
+          },
+          {
+            "id": 13,
+            "name": "RR_vel",
+            "dim": 3
+          },
+          {
+            "id": 14,
+            "name": "RL_vel",
+            "dim": 3
+          },
+          {
+            "id": 15,
+            "name": "FL_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 16,
+            "name": "FR_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 17,
+            "name": "RL_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 18,
+            "name": "RR_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 19,
+            "name": "base1_contact",
+            "dim": 1
+          },
+          {
+            "id": 20,
+            "name": "base2_contact",
+            "dim": 1
+          },
+          {
+            "id": 21,
+            "name": "base3_contact",
+            "dim": 1
+          },
+          {
+            "id": 22,
+            "name": "FL_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 23,
+            "name": "FR_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 24,
+            "name": "RL_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 25,
+            "name": "RR_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 26,
+            "name": "FL_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 27,
+            "name": "FR_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 28,
+            "name": "RL_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 29,
+            "name": "RR_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 30,
+            "name": "FL_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 31,
+            "name": "FR_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 32,
+            "name": "RL_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 33,
+            "name": "RR_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 34,
+            "name": "FL_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 35,
+            "name": "FR_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 36,
+            "name": "RL_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 37,
+            "name": "RR_calf_contact2",
+            "dim": 1
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/go2/assets/base_0.obj",
+        "src/unilab/assets/robots/go2/assets/base_1.obj",
+        "src/unilab/assets/robots/go2/assets/base_2.obj",
+        "src/unilab/assets/robots/go2/assets/base_3.obj",
+        "src/unilab/assets/robots/go2/assets/base_4.obj",
+        "src/unilab/assets/robots/go2/assets/calf.stl",
+        "src/unilab/assets/robots/go2/assets/calf_0.obj",
+        "src/unilab/assets/robots/go2/assets/calf_1.obj",
+        "src/unilab/assets/robots/go2/assets/calf_mirror.stl",
+        "src/unilab/assets/robots/go2/assets/calf_mirror_0.obj",
+        "src/unilab/assets/robots/go2/assets/calf_mirror_1.obj",
+        "src/unilab/assets/robots/go2/assets/foot.obj",
+        "src/unilab/assets/robots/go2/assets/hip_0.obj",
+        "src/unilab/assets/robots/go2/assets/hip_1.obj",
+        "src/unilab/assets/robots/go2/assets/thigh_0.obj",
+        "src/unilab/assets/robots/go2/assets/thigh_1.obj",
+        "src/unilab/assets/robots/go2/assets/thigh_mirror_0.obj",
+        "src/unilab/assets/robots/go2/assets/thigh_mirror_1.obj",
+        "src/unilab/assets/robots/go2/assets/wheel.stl",
+        "src/unilab/assets/robots/go2/assets/wheel_convex.stl",
+        "src/unilab/assets/robots/go2/go2.xml",
+        "src/unilab/assets/robots/go2/go2_mujoco.xml",
+        "src/unilab/assets/robots/go2/locomotion_task.xml",
+        "src/unilab/assets/robots/go2/scene_flat.xml"
+      ]
+    },
+    "go2w": {
+      "doc": {
+        "slug": "go2w",
+        "title": "Unitree Go2W",
+        "role": "轮足式 joystick 运动控制机器人",
+        "primary_scene": "src/unilab/assets/robots/go2w/scene_flat.xml",
+        "keyframe": "home",
+        "intro": "Go2W 在 Go2 四足结构上加入四个轮关节，因此 action 维度和速度跟踪约束不同于纯足式四足。文档中单独列出轮关节和轮执行器，便于区分腿部 PD 控制与轮部目标。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/go2w/scene_flat.xml",
+        "nq": 23,
+        "nv": 22,
+        "nu": 16,
+        "njnt": 17,
+        "nsensor": 55,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "<unnamed:0>",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "FL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "FL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "FL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "FL_wheel_joint",
+            "type": "hinge",
+            "limited": false,
+            "range": null,
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "FR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "FR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "FR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "FR_wheel_joint",
+            "type": "hinge",
+            "limited": false,
+            "range": null,
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "RL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "RL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              4.5379
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "RL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "RL_wheel_joint",
+            "type": "hinge",
+            "limited": false,
+            "range": null,
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "RR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "RR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              4.5379
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "RR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "RR_wheel_joint",
+            "type": "hinge",
+            "limited": false,
+            "range": null,
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "FR_hip",
+            "joint": "FR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 1,
+            "name": "FR_thigh",
+            "joint": "FR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 2,
+            "name": "FR_calf",
+            "joint": "FR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -45.43,
+              45.43
+            ]
+          },
+          {
+            "id": 3,
+            "name": "FL_hip",
+            "joint": "FL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 4,
+            "name": "FL_thigh",
+            "joint": "FL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 5,
+            "name": "FL_calf",
+            "joint": "FL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -45.43,
+              45.43
+            ]
+          },
+          {
+            "id": 6,
+            "name": "RR_hip",
+            "joint": "RR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 7,
+            "name": "RR_thigh",
+            "joint": "RR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 8,
+            "name": "RR_calf",
+            "joint": "RR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -45.43,
+              45.43
+            ]
+          },
+          {
+            "id": 9,
+            "name": "RL_hip",
+            "joint": "RL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 10,
+            "name": "RL_thigh",
+            "joint": "RL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -23.7,
+              23.7
+            ]
+          },
+          {
+            "id": 11,
+            "name": "RL_calf",
+            "joint": "RL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -45.43,
+              45.43
+            ]
+          },
+          {
+            "id": 12,
+            "name": "FR_wheel",
+            "joint": "FR_wheel_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -15.0,
+              15.0
+            ]
+          },
+          {
+            "id": 13,
+            "name": "FL_wheel",
+            "joint": "FL_wheel_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -15.0,
+              15.0
+            ]
+          },
+          {
+            "id": 14,
+            "name": "RR_wheel",
+            "joint": "RR_wheel_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -15.0,
+              15.0
+            ]
+          },
+          {
+            "id": 15,
+            "name": "RL_wheel",
+            "joint": "RL_wheel_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -15.0,
+              15.0
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "FR_hip_pos",
+            "dim": 1
+          },
+          {
+            "id": 1,
+            "name": "FR_thigh_pos",
+            "dim": 1
+          },
+          {
+            "id": 2,
+            "name": "FR_calf_pos",
+            "dim": 1
+          },
+          {
+            "id": 3,
+            "name": "FL_hip_pos",
+            "dim": 1
+          },
+          {
+            "id": 4,
+            "name": "FL_thigh_pos",
+            "dim": 1
+          },
+          {
+            "id": 5,
+            "name": "FL_calf_pos",
+            "dim": 1
+          },
+          {
+            "id": 6,
+            "name": "RR_hip_pos",
+            "dim": 1
+          },
+          {
+            "id": 7,
+            "name": "RR_thigh_pos",
+            "dim": 1
+          },
+          {
+            "id": 8,
+            "name": "RR_calf_pos",
+            "dim": 1
+          },
+          {
+            "id": 9,
+            "name": "RL_hip_pos",
+            "dim": 1
+          },
+          {
+            "id": 10,
+            "name": "RL_thigh_pos",
+            "dim": 1
+          },
+          {
+            "id": 11,
+            "name": "RL_calf_pos",
+            "dim": 1
+          },
+          {
+            "id": 12,
+            "name": "FR_wheel_pos",
+            "dim": 1
+          },
+          {
+            "id": 13,
+            "name": "FL_wheel_pos",
+            "dim": 1
+          },
+          {
+            "id": 14,
+            "name": "RR_wheel_pos",
+            "dim": 1
+          },
+          {
+            "id": 15,
+            "name": "RL_wheel_pos",
+            "dim": 1
+          },
+          {
+            "id": 16,
+            "name": "FR_hip_vel",
+            "dim": 1
+          },
+          {
+            "id": 17,
+            "name": "FR_thigh_vel",
+            "dim": 1
+          },
+          {
+            "id": 18,
+            "name": "FR_calf_vel",
+            "dim": 1
+          },
+          {
+            "id": 19,
+            "name": "FL_hip_vel",
+            "dim": 1
+          },
+          {
+            "id": 20,
+            "name": "FL_thigh_vel",
+            "dim": 1
+          },
+          {
+            "id": 21,
+            "name": "FL_calf_vel",
+            "dim": 1
+          },
+          {
+            "id": 22,
+            "name": "RR_hip_vel",
+            "dim": 1
+          },
+          {
+            "id": 23,
+            "name": "RR_thigh_vel",
+            "dim": 1
+          },
+          {
+            "id": 24,
+            "name": "RR_calf_vel",
+            "dim": 1
+          },
+          {
+            "id": 25,
+            "name": "RL_hip_vel",
+            "dim": 1
+          },
+          {
+            "id": 26,
+            "name": "RL_thigh_vel",
+            "dim": 1
+          },
+          {
+            "id": 27,
+            "name": "RL_calf_vel",
+            "dim": 1
+          },
+          {
+            "id": 28,
+            "name": "FR_wheel_vel",
+            "dim": 1
+          },
+          {
+            "id": 29,
+            "name": "FL_wheel_vel",
+            "dim": 1
+          },
+          {
+            "id": 30,
+            "name": "RR_wheel_vel",
+            "dim": 1
+          },
+          {
+            "id": 31,
+            "name": "RL_wheel_vel",
+            "dim": 1
+          },
+          {
+            "id": 32,
+            "name": "FR_hip_torque",
+            "dim": 1
+          },
+          {
+            "id": 33,
+            "name": "FR_thigh_torque",
+            "dim": 1
+          },
+          {
+            "id": 34,
+            "name": "FR_calf_torque",
+            "dim": 1
+          },
+          {
+            "id": 35,
+            "name": "FL_hip_torque",
+            "dim": 1
+          },
+          {
+            "id": 36,
+            "name": "FL_thigh_torque",
+            "dim": 1
+          },
+          {
+            "id": 37,
+            "name": "FL_calf_torque",
+            "dim": 1
+          },
+          {
+            "id": 38,
+            "name": "RR_hip_torque",
+            "dim": 1
+          },
+          {
+            "id": 39,
+            "name": "RR_thigh_torque",
+            "dim": 1
+          },
+          {
+            "id": 40,
+            "name": "RR_calf_torque",
+            "dim": 1
+          },
+          {
+            "id": 41,
+            "name": "RL_hip_torque",
+            "dim": 1
+          },
+          {
+            "id": 42,
+            "name": "RL_thigh_torque",
+            "dim": 1
+          },
+          {
+            "id": 43,
+            "name": "RL_calf_torque",
+            "dim": 1
+          },
+          {
+            "id": 44,
+            "name": "FR_wheel_torque",
+            "dim": 1
+          },
+          {
+            "id": 45,
+            "name": "FL_wheel_torque",
+            "dim": 1
+          },
+          {
+            "id": 46,
+            "name": "RR_wheel_torque",
+            "dim": 1
+          },
+          {
+            "id": 47,
+            "name": "RL_wheel_torque",
+            "dim": 1
+          },
+          {
+            "id": 48,
+            "name": "imu_quat",
+            "dim": 4
+          },
+          {
+            "id": 49,
+            "name": "gyro",
+            "dim": 3
+          },
+          {
+            "id": 50,
+            "name": "imu_acc",
+            "dim": 3
+          },
+          {
+            "id": 51,
+            "name": "local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 52,
+            "name": "upvector",
+            "dim": 3
+          },
+          {
+            "id": 53,
+            "name": "frame_pos",
+            "dim": 3
+          },
+          {
+            "id": 54,
+            "name": "frame_vel",
+            "dim": 3
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/go2w/go2w.xml",
+        "src/unilab/assets/robots/go2w/go2w_mujoco.xml",
+        "src/unilab/assets/robots/go2w/locomotion_task.xml",
+        "src/unilab/assets/robots/go2w/scene_flat.xml"
+      ]
+    },
+    "g1": {
+      "doc": {
+        "slug": "g1",
+        "title": "Unitree G1",
+        "role": "人形行走与全身动作追踪机器人",
+        "primary_scene": "src/unilab/assets/robots/g1/scene_flat.xml",
+        "keyframe": "stand",
+        "intro": "G1 是 UniLab 中人形 locomotion 与 motion tracking 的核心机器人。其 29 个可控关节覆盖腿、腰和双臂，任务从速度命令行走扩展到翻转、爬箱、靠墙翻转和全身轨迹模仿。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/g1/scene_flat.xml",
+        "nq": 36,
+        "nv": 35,
+        "nu": 29,
+        "njnt": 30,
+        "nsensor": 21,
+        "keyframes": [
+          "stand"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "floating_base_joint",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "left_hip_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.5307,
+              2.8798
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "left_hip_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              2.9671
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "left_hip_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7576,
+              2.7576
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "left_knee_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.087267,
+              2.8798
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "left_ankle_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.87267,
+              0.5236
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "left_ankle_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.2618,
+              0.2618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "right_hip_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.5307,
+              2.8798
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "right_hip_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.9671,
+              0.5236
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "right_hip_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7576,
+              2.7576
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "right_knee_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.087267,
+              2.8798
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "right_ankle_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.87267,
+              0.5236
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "right_ankle_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.2618,
+              0.2618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "waist_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.618,
+              2.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "waist_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.52,
+              0.52
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "waist_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.52,
+              0.52
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "left_shoulder_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0892,
+              2.6704
+            ],
+            "controlled": true
+          },
+          {
+            "id": 17,
+            "name": "left_shoulder_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5882,
+              2.2515
+            ],
+            "controlled": true
+          },
+          {
+            "id": 18,
+            "name": "left_shoulder_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.618,
+              2.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 19,
+            "name": "left_elbow_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              2.0944
+            ],
+            "controlled": true
+          },
+          {
+            "id": 20,
+            "name": "left_wrist_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.97222,
+              1.97222
+            ],
+            "controlled": true
+          },
+          {
+            "id": 21,
+            "name": "left_wrist_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.61443,
+              1.61443
+            ],
+            "controlled": true
+          },
+          {
+            "id": 22,
+            "name": "left_wrist_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.61443,
+              1.61443
+            ],
+            "controlled": true
+          },
+          {
+            "id": 23,
+            "name": "right_shoulder_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0892,
+              2.6704
+            ],
+            "controlled": true
+          },
+          {
+            "id": 24,
+            "name": "right_shoulder_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.2515,
+              1.5882
+            ],
+            "controlled": true
+          },
+          {
+            "id": 25,
+            "name": "right_shoulder_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.618,
+              2.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 26,
+            "name": "right_elbow_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              2.0944
+            ],
+            "controlled": true
+          },
+          {
+            "id": 27,
+            "name": "right_wrist_roll_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.97222,
+              1.97222
+            ],
+            "controlled": true
+          },
+          {
+            "id": 28,
+            "name": "right_wrist_pitch_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.61443,
+              1.61443
+            ],
+            "controlled": true
+          },
+          {
+            "id": 29,
+            "name": "right_wrist_yaw_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.61443,
+              1.61443
+            ],
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "left_hip_pitch_joint",
+            "joint": "left_hip_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "left_hip_roll_joint",
+            "joint": "left_hip_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "left_hip_yaw_joint",
+            "joint": "left_hip_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "left_knee_joint",
+            "joint": "left_knee_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 4,
+            "name": "left_ankle_pitch_joint",
+            "joint": "left_ankle_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 5,
+            "name": "left_ankle_roll_joint",
+            "joint": "left_ankle_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 6,
+            "name": "right_hip_pitch_joint",
+            "joint": "right_hip_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 7,
+            "name": "right_hip_roll_joint",
+            "joint": "right_hip_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 8,
+            "name": "right_hip_yaw_joint",
+            "joint": "right_hip_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 9,
+            "name": "right_knee_joint",
+            "joint": "right_knee_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 10,
+            "name": "right_ankle_pitch_joint",
+            "joint": "right_ankle_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 11,
+            "name": "right_ankle_roll_joint",
+            "joint": "right_ankle_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 12,
+            "name": "waist_yaw_joint",
+            "joint": "waist_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 13,
+            "name": "waist_roll_joint",
+            "joint": "waist_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 14,
+            "name": "waist_pitch_joint",
+            "joint": "waist_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 15,
+            "name": "left_shoulder_pitch_joint",
+            "joint": "left_shoulder_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 16,
+            "name": "left_shoulder_roll_joint",
+            "joint": "left_shoulder_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 17,
+            "name": "left_shoulder_yaw_joint",
+            "joint": "left_shoulder_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 18,
+            "name": "left_elbow_joint",
+            "joint": "left_elbow_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 19,
+            "name": "left_wrist_roll_joint",
+            "joint": "left_wrist_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 20,
+            "name": "left_wrist_pitch_joint",
+            "joint": "left_wrist_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 21,
+            "name": "left_wrist_yaw_joint",
+            "joint": "left_wrist_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 22,
+            "name": "right_shoulder_pitch_joint",
+            "joint": "right_shoulder_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 23,
+            "name": "right_shoulder_roll_joint",
+            "joint": "right_shoulder_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 24,
+            "name": "right_shoulder_yaw_joint",
+            "joint": "right_shoulder_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 25,
+            "name": "right_elbow_joint",
+            "joint": "right_elbow_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 26,
+            "name": "right_wrist_roll_joint",
+            "joint": "right_wrist_roll_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 27,
+            "name": "right_wrist_pitch_joint",
+            "joint": "right_wrist_pitch_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 28,
+            "name": "right_wrist_yaw_joint",
+            "joint": "right_wrist_yaw_joint",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "pelvis_local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 1,
+            "name": "pelvis_gyro",
+            "dim": 3
+          },
+          {
+            "id": 2,
+            "name": "pelvis_acceleration",
+            "dim": 3
+          },
+          {
+            "id": 3,
+            "name": "pelvis_upvector",
+            "dim": 3
+          },
+          {
+            "id": 4,
+            "name": "torso_gyro",
+            "dim": 3
+          },
+          {
+            "id": 5,
+            "name": "torso_acceleration",
+            "dim": 3
+          },
+          {
+            "id": 6,
+            "name": "torso_upvector",
+            "dim": 3
+          },
+          {
+            "id": 7,
+            "name": "left_foot_pos",
+            "dim": 3
+          },
+          {
+            "id": 8,
+            "name": "left_foot_quat",
+            "dim": 4
+          },
+          {
+            "id": 9,
+            "name": "left_foot_upvector",
+            "dim": 3
+          },
+          {
+            "id": 10,
+            "name": "right_foot_pos",
+            "dim": 3
+          },
+          {
+            "id": 11,
+            "name": "right_foot_quat",
+            "dim": 4
+          },
+          {
+            "id": 12,
+            "name": "right_foot_upvector",
+            "dim": 3
+          },
+          {
+            "id": 13,
+            "name": "left_foot_contact_0",
+            "dim": 1
+          },
+          {
+            "id": 14,
+            "name": "left_foot_contact_1",
+            "dim": 1
+          },
+          {
+            "id": 15,
+            "name": "left_foot_contact_2",
+            "dim": 1
+          },
+          {
+            "id": 16,
+            "name": "left_foot_contact_3",
+            "dim": 1
+          },
+          {
+            "id": 17,
+            "name": "right_foot_contact_0",
+            "dim": 1
+          },
+          {
+            "id": 18,
+            "name": "right_foot_contact_1",
+            "dim": 1
+          },
+          {
+            "id": 19,
+            "name": "right_foot_contact_2",
+            "dim": 1
+          },
+          {
+            "id": 20,
+            "name": "right_foot_contact_3",
+            "dim": 1
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/g1/assets/box_tracking/largebox.obj",
+        "src/unilab/assets/robots/g1/assets/climb_20_z_scale_1/box1.obj",
+        "src/unilab/assets/robots/g1/assets/climb_20_z_scale_1/box2.obj",
+        "src/unilab/assets/robots/g1/assets/crawl_slope/ground.obj",
+        "src/unilab/assets/robots/g1/assets/crawl_slope/plateau.obj",
+        "src/unilab/assets/robots/g1/assets/crawl_slope/slope.obj",
+        "src/unilab/assets/robots/g1/assets/head_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_ankle_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_ankle_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_elbow_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_index_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_index_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_middle_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_middle_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_palm_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_thumb_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_thumb_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hand_thumb_2_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hip_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hip_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_hip_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_knee_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_rubber_hand.STL",
+        "src/unilab/assets/robots/g1/assets/left_shoulder_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_shoulder_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_shoulder_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_wrist_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_wrist_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/left_wrist_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/logo_link.STL",
+        "src/unilab/assets/robots/g1/assets/pelvis.STL",
+        "src/unilab/assets/robots/g1/assets/pelvis_contour_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_ankle_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_ankle_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_elbow_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_index_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_index_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_middle_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_middle_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_palm_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_thumb_0_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_thumb_1_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hand_thumb_2_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hip_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hip_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_hip_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_knee_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_rubber_hand.STL",
+        "src/unilab/assets/robots/g1/assets/right_shoulder_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_shoulder_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_shoulder_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_wrist_pitch_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_wrist_roll_link.STL",
+        "src/unilab/assets/robots/g1/assets/right_wrist_yaw_link.STL",
+        "src/unilab/assets/robots/g1/assets/scene_crawl_slope.xml",
+        "src/unilab/assets/robots/g1/assets/torso_link_rev_1_0.STL",
+        "src/unilab/assets/robots/g1/assets/waist_roll_link_rev_1_0.STL",
+        "src/unilab/assets/robots/g1/assets/waist_yaw_link_rev_1_0.STL",
+        "src/unilab/assets/robots/g1/g1.xml",
+        "src/unilab/assets/robots/g1/g1_sphere_hand.xml",
+        "src/unilab/assets/robots/g1/hfields/hfield.png",
+        "src/unilab/assets/robots/g1/locomotion_task.xml",
+        "src/unilab/assets/robots/g1/scene_climb_20_z_scale_1.xml",
+        "src/unilab/assets/robots/g1/scene_crawl_slope.xml",
+        "src/unilab/assets/robots/g1/scene_flat.xml",
+        "src/unilab/assets/robots/g1/scene_flat_with_largebox.xml",
+        "src/unilab/assets/robots/g1/scene_flat_with_wall.xml",
+        "src/unilab/assets/robots/g1/scene_rough.xml",
+        "src/unilab/assets/robots/g1/textures/floor.png",
+        "src/unilab/assets/robots/g1/textures/rocky.png"
+      ]
+    },
+    "k1": {
+      "doc": {
+        "slug": "k1",
+        "title": "Booster K1",
+        "role": "人形行走与足球盘带机器人",
+        "primary_scene": "src/unilab/assets/robots/k1/scene_flat.xml",
+        "keyframe": "stand",
+        "intro": "K1 使用 22 DoF 可控人形模型，既用于稳定行走，也用于带球盘带。足球任务在 scene 中加入球体自由关节，机器人 XML 本身仍保持纯机器人描述。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/k1/scene_flat.xml",
+        "nq": 29,
+        "nv": 28,
+        "nu": 22,
+        "njnt": 23,
+        "nsensor": 9,
+        "keyframes": [
+          "stand"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "world_joint",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "AAHead_yaw",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0,
+              1.0
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "Head_pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.349,
+              0.855
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "ALeft_Shoulder_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.316,
+              1.22
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "Left_Shoulder_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.74,
+              1.57
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "Left_Elbow_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.27,
+              2.27
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "Left_Elbow_Yaw",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.44,
+              0.0
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "ARight_Shoulder_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.316,
+              1.22
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "Right_Shoulder_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.57,
+              1.74
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "Right_Elbow_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.27,
+              2.27
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "Right_Elbow_Yaw",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              2.44
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "Left_Hip_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0,
+              2.21
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "Left_Hip_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.4,
+              1.57
+            ],
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "Left_Hip_Yaw",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0,
+              1.0
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "Left_Knee_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              2.23
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "Left_Ankle_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.87,
+              0.345
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "Left_Ankle_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.345,
+              0.345
+            ],
+            "controlled": true
+          },
+          {
+            "id": 17,
+            "name": "Right_Hip_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0,
+              2.21
+            ],
+            "controlled": true
+          },
+          {
+            "id": 18,
+            "name": "Right_Hip_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.57,
+              0.4
+            ],
+            "controlled": true
+          },
+          {
+            "id": 19,
+            "name": "Right_Hip_Yaw",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0,
+              1.0
+            ],
+            "controlled": true
+          },
+          {
+            "id": 20,
+            "name": "Right_Knee_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              2.23
+            ],
+            "controlled": true
+          },
+          {
+            "id": 21,
+            "name": "Right_Ankle_Pitch",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.87,
+              0.345
+            ],
+            "controlled": true
+          },
+          {
+            "id": 22,
+            "name": "Right_Ankle_Roll",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.345,
+              0.345
+            ],
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "AAHead_yaw",
+            "joint": "AAHead_yaw",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 1,
+            "name": "Head_pitch",
+            "joint": "Head_pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 2,
+            "name": "ALeft_Shoulder_Pitch",
+            "joint": "ALeft_Shoulder_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 3,
+            "name": "Left_Shoulder_Roll",
+            "joint": "Left_Shoulder_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 4,
+            "name": "Left_Elbow_Pitch",
+            "joint": "Left_Elbow_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 5,
+            "name": "Left_Elbow_Yaw",
+            "joint": "Left_Elbow_Yaw",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 6,
+            "name": "ARight_Shoulder_Pitch",
+            "joint": "ARight_Shoulder_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 7,
+            "name": "Right_Shoulder_Roll",
+            "joint": "Right_Shoulder_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 8,
+            "name": "Right_Elbow_Pitch",
+            "joint": "Right_Elbow_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 9,
+            "name": "Right_Elbow_Yaw",
+            "joint": "Right_Elbow_Yaw",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 10,
+            "name": "Left_Hip_Pitch",
+            "joint": "Left_Hip_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 11,
+            "name": "Left_Hip_Roll",
+            "joint": "Left_Hip_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 12,
+            "name": "Left_Hip_Yaw",
+            "joint": "Left_Hip_Yaw",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 13,
+            "name": "Left_Knee_Pitch",
+            "joint": "Left_Knee_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 14,
+            "name": "Left_Ankle_Pitch",
+            "joint": "Left_Ankle_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 15,
+            "name": "Left_Ankle_Roll",
+            "joint": "Left_Ankle_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 16,
+            "name": "Right_Hip_Pitch",
+            "joint": "Right_Hip_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 17,
+            "name": "Right_Hip_Roll",
+            "joint": "Right_Hip_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 18,
+            "name": "Right_Hip_Yaw",
+            "joint": "Right_Hip_Yaw",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 19,
+            "name": "Right_Knee_Pitch",
+            "joint": "Right_Knee_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 20,
+            "name": "Right_Ankle_Pitch",
+            "joint": "Right_Ankle_Pitch",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          },
+          {
+            "id": 21,
+            "name": "Right_Ankle_Roll",
+            "joint": "Right_Ankle_Roll",
+            "ctrllimited": false,
+            "ctrlrange": [
+              0.0,
+              0.0
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "trunk_local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 1,
+            "name": "trunk_gyro",
+            "dim": 3
+          },
+          {
+            "id": 2,
+            "name": "trunk_upvector",
+            "dim": 3
+          },
+          {
+            "id": 3,
+            "name": "left_foot_pos",
+            "dim": 3
+          },
+          {
+            "id": 4,
+            "name": "left_foot_quat",
+            "dim": 4
+          },
+          {
+            "id": 5,
+            "name": "right_foot_pos",
+            "dim": 3
+          },
+          {
+            "id": 6,
+            "name": "right_foot_quat",
+            "dim": 4
+          },
+          {
+            "id": 7,
+            "name": "left_foot_contact_0",
+            "dim": 1
+          },
+          {
+            "id": 8,
+            "name": "right_foot_contact_0",
+            "dim": 1
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/k1/k1.xml",
+        "src/unilab/assets/robots/k1/meshes/Head_1.STL",
+        "src/unilab/assets/robots/k1/meshes/Head_2.STL",
+        "src/unilab/assets/robots/k1/meshes/Head_2_Collision.STL",
+        "src/unilab/assets/robots/k1/meshes/Head_2_ZED.STL",
+        "src/unilab/assets/robots/k1/meshes/K1_left_foot.STL",
+        "src/unilab/assets/robots/k1/meshes/K1logo.STL",
+        "src/unilab/assets/robots/k1/meshes/L1_XX_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/L1_X_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/L1_Y_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/L2_XX_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/L2_X_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/L2_Y_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Ankle_Cross.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Arm_1.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Arm_2.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Arm_3.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Arm_4.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Crank_Down.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Crank_Up.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Foot.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Foot_Collision.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Foot_old.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Hip_Pitch.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Hip_Roll.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Hip_Yaw.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Link_Long.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Link_Short.STL",
+        "src/unilab/assets/robots/k1/meshes/Left_Shank.STL",
+        "src/unilab/assets/robots/k1/meshes/R1_XX_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/R1_X_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/R1_Y_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/R2_XX_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/R2_X_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/R2_Y_Ball.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Ankle_Cross.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Arm_1.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Arm_2.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Arm_3.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Arm_4.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Crank_Down.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Crank_Up.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Foot.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Foot_Collision.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Foot_old.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Hip_Pitch.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Hip_Roll.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Hip_Yaw.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Link_Long.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Link_Short.STL",
+        "src/unilab/assets/robots/k1/meshes/Right_Shank.STL",
+        "src/unilab/assets/robots/k1/meshes/Trunk.STL",
+        "src/unilab/assets/robots/k1/meshes/Trunk_Collision.STL",
+        "src/unilab/assets/robots/k1/meshes/soccer_ball/Robot_Football.obj",
+        "src/unilab/assets/robots/k1/meshes/soccer_ball/Robot_Football.png",
+        "src/unilab/assets/robots/k1/scene_flat.xml",
+        "src/unilab/assets/robots/k1/scene_soccer_dribble_minimal.xml",
+        "src/unilab/assets/robots/k1/soccer_ball/Robot_Football.obj",
+        "src/unilab/assets/robots/k1/soccer_ball/Robot_Football.png"
+      ]
+    },
+    "go2_arm": {
+      "doc": {
+        "slug": "go2_arm",
+        "title": "Go2 + Airbot Arm",
+        "role": "四足移动操作机器人",
+        "primary_scene": "src/unilab/assets/robots/go2_arm/scene_flat.xml",
+        "keyframe": "home",
+        "intro": "Go2Arm 将 Go2 四足底盘和 6 DoF 机械臂组合成移动操作任务资产。它的文档重点区分底盘 locomotion action 与机械臂关节 action，以及目标物体距离类 reward。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/go2_arm/scene_flat.xml",
+        "nq": 25,
+        "nv": 24,
+        "nu": 18,
+        "njnt": 19,
+        "nsensor": 97,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "<unnamed:0>",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          },
+          {
+            "id": 1,
+            "name": "FL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "FL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "FL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "FR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "FR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "FR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "RL_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "RL_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "RL_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "RR_hip_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.0472,
+              1.0472
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "RR_thigh_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.5708,
+              3.4907
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "RR_calf_joint",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.7227,
+              -0.83776
+            ],
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "joint1",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.1416,
+              2.0944
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "joint2",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -2.9671,
+              0.17453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "joint3",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.087266,
+              3.1416
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "joint4",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0107,
+              3.0107
+            ],
+            "controlled": true
+          },
+          {
+            "id": 17,
+            "name": "joint5",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -1.7628,
+              1.7628
+            ],
+            "controlled": true
+          },
+          {
+            "id": 18,
+            "name": "joint6",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -3.0107,
+              3.0107
+            ],
+            "controlled": true
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "FL_hip",
+            "joint": "FL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.9472,
+              0.9472
+            ]
+          },
+          {
+            "id": 1,
+            "name": "FL_thigh",
+            "joint": "FL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -1.4,
+              2.5
+            ]
+          },
+          {
+            "id": 2,
+            "name": "FL_calf",
+            "joint": "FL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.6227,
+              -0.84776
+            ]
+          },
+          {
+            "id": 3,
+            "name": "FR_hip",
+            "joint": "FR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.9472,
+              0.9472
+            ]
+          },
+          {
+            "id": 4,
+            "name": "FR_thigh",
+            "joint": "FR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -1.4,
+              2.5
+            ]
+          },
+          {
+            "id": 5,
+            "name": "FR_calf",
+            "joint": "FR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.6227,
+              -0.84776
+            ]
+          },
+          {
+            "id": 6,
+            "name": "RL_hip",
+            "joint": "RL_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.9472,
+              0.9472
+            ]
+          },
+          {
+            "id": 7,
+            "name": "RL_thigh",
+            "joint": "RL_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -1.4,
+              2.5
+            ]
+          },
+          {
+            "id": 8,
+            "name": "RL_calf",
+            "joint": "RL_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.6227,
+              -0.84776
+            ]
+          },
+          {
+            "id": 9,
+            "name": "RR_hip",
+            "joint": "RR_hip_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.9472,
+              0.9472
+            ]
+          },
+          {
+            "id": 10,
+            "name": "RR_thigh",
+            "joint": "RR_thigh_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -1.4,
+              2.5
+            ]
+          },
+          {
+            "id": 11,
+            "name": "RR_calf",
+            "joint": "RR_calf_joint",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.6227,
+              -0.84776
+            ]
+          },
+          {
+            "id": 12,
+            "name": "<unnamed:12>",
+            "joint": "joint1",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -3.1416,
+              2.0944
+            ]
+          },
+          {
+            "id": 13,
+            "name": "<unnamed:13>",
+            "joint": "joint2",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -2.9671,
+              0.17452999999999985
+            ]
+          },
+          {
+            "id": 14,
+            "name": "<unnamed:14>",
+            "joint": "joint3",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.08726600000000007,
+              3.1416
+            ]
+          },
+          {
+            "id": 15,
+            "name": "<unnamed:15>",
+            "joint": "joint4",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -3.0107,
+              3.0107
+            ]
+          },
+          {
+            "id": 16,
+            "name": "<unnamed:16>",
+            "joint": "joint5",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -1.7628,
+              1.7628
+            ]
+          },
+          {
+            "id": 17,
+            "name": "<unnamed:17>",
+            "joint": "joint6",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -3.0107,
+              3.0107
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "abduction_front_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 1,
+            "name": "hip_front_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 2,
+            "name": "knee_front_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 3,
+            "name": "abduction_hind_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 4,
+            "name": "hip_hind_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 5,
+            "name": "knee_hind_left_pos",
+            "dim": 1
+          },
+          {
+            "id": 6,
+            "name": "abduction_front_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 7,
+            "name": "hip_front_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 8,
+            "name": "knee_front_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 9,
+            "name": "abduction_hind_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 10,
+            "name": "hip_hind_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 11,
+            "name": "knee_hind_right_pos",
+            "dim": 1
+          },
+          {
+            "id": 12,
+            "name": "abduction_front_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 13,
+            "name": "hip_front_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 14,
+            "name": "knee_front_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 15,
+            "name": "abduction_hind_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 16,
+            "name": "hip_hind_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 17,
+            "name": "knee_hind_left_vel",
+            "dim": 1
+          },
+          {
+            "id": 18,
+            "name": "abduction_front_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 19,
+            "name": "hip_front_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 20,
+            "name": "knee_front_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 21,
+            "name": "abduction_hind_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 22,
+            "name": "hip_hind_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 23,
+            "name": "knee_hind_right_vel",
+            "dim": 1
+          },
+          {
+            "id": 24,
+            "name": "gyro",
+            "dim": 3
+          },
+          {
+            "id": 25,
+            "name": "accelerometer",
+            "dim": 3
+          },
+          {
+            "id": 26,
+            "name": "local_linvel",
+            "dim": 3
+          },
+          {
+            "id": 27,
+            "name": "upvector",
+            "dim": 3
+          },
+          {
+            "id": 28,
+            "name": "orientation",
+            "dim": 4
+          },
+          {
+            "id": 29,
+            "name": "global_position",
+            "dim": 3
+          },
+          {
+            "id": 30,
+            "name": "global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 31,
+            "name": "global_angvel",
+            "dim": 3
+          },
+          {
+            "id": 32,
+            "name": "FR_global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 33,
+            "name": "FL_global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 34,
+            "name": "RR_global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 35,
+            "name": "RL_global_linvel",
+            "dim": 3
+          },
+          {
+            "id": 36,
+            "name": "FR_pos",
+            "dim": 3
+          },
+          {
+            "id": 37,
+            "name": "FL_pos",
+            "dim": 3
+          },
+          {
+            "id": 38,
+            "name": "RR_pos",
+            "dim": 3
+          },
+          {
+            "id": 39,
+            "name": "RL_pos",
+            "dim": 3
+          },
+          {
+            "id": 40,
+            "name": "joint1_pos",
+            "dim": 1
+          },
+          {
+            "id": 41,
+            "name": "joint2_pos",
+            "dim": 1
+          },
+          {
+            "id": 42,
+            "name": "joint3_pos",
+            "dim": 1
+          },
+          {
+            "id": 43,
+            "name": "joint4_pos",
+            "dim": 1
+          },
+          {
+            "id": 44,
+            "name": "joint5_pos",
+            "dim": 1
+          },
+          {
+            "id": 45,
+            "name": "joint6_pos",
+            "dim": 1
+          },
+          {
+            "id": 46,
+            "name": "joint1_vel",
+            "dim": 1
+          },
+          {
+            "id": 47,
+            "name": "joint2_vel",
+            "dim": 1
+          },
+          {
+            "id": 48,
+            "name": "joint3_vel",
+            "dim": 1
+          },
+          {
+            "id": 49,
+            "name": "joint4_vel",
+            "dim": 1
+          },
+          {
+            "id": 50,
+            "name": "joint5_vel",
+            "dim": 1
+          },
+          {
+            "id": 51,
+            "name": "joint6_vel",
+            "dim": 1
+          },
+          {
+            "id": 52,
+            "name": "joint1_torque",
+            "dim": 1
+          },
+          {
+            "id": 53,
+            "name": "joint2_torque",
+            "dim": 1
+          },
+          {
+            "id": 54,
+            "name": "joint3_torque",
+            "dim": 1
+          },
+          {
+            "id": 55,
+            "name": "joint4_torque",
+            "dim": 1
+          },
+          {
+            "id": 56,
+            "name": "joint5_torque",
+            "dim": 1
+          },
+          {
+            "id": 57,
+            "name": "joint6_torque",
+            "dim": 1
+          },
+          {
+            "id": 58,
+            "name": "endpoint_pos",
+            "dim": 3
+          },
+          {
+            "id": 59,
+            "name": "endpoint_quat",
+            "dim": 4
+          },
+          {
+            "id": 60,
+            "name": "endpoint_vel",
+            "dim": 3
+          },
+          {
+            "id": 61,
+            "name": "endpoint_relative_pos",
+            "dim": 3
+          },
+          {
+            "id": 62,
+            "name": "endpoint_relative_quat",
+            "dim": 4
+          },
+          {
+            "id": 63,
+            "name": "armbasepoint_world_pos",
+            "dim": 3
+          },
+          {
+            "id": 64,
+            "name": "armbasepoint_world_quat",
+            "dim": 4
+          },
+          {
+            "id": 65,
+            "name": "arm_touch_base",
+            "dim": 1
+          },
+          {
+            "id": 66,
+            "name": "arm_touch_link1",
+            "dim": 1
+          },
+          {
+            "id": 67,
+            "name": "arm_touch_link2",
+            "dim": 1
+          },
+          {
+            "id": 68,
+            "name": "arm_touch_link3",
+            "dim": 1
+          },
+          {
+            "id": 69,
+            "name": "arm_touch_link4",
+            "dim": 1
+          },
+          {
+            "id": 70,
+            "name": "arm_touch_link5",
+            "dim": 1
+          },
+          {
+            "id": 71,
+            "name": "arm_touch_link6",
+            "dim": 1
+          },
+          {
+            "id": 72,
+            "name": "arm_touch_eef",
+            "dim": 1
+          },
+          {
+            "id": 73,
+            "name": "arm_touch_g2base",
+            "dim": 1
+          },
+          {
+            "id": 74,
+            "name": "FL_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 75,
+            "name": "FR_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 76,
+            "name": "RL_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 77,
+            "name": "RR_foot_contact",
+            "dim": 1
+          },
+          {
+            "id": 78,
+            "name": "base1_contact",
+            "dim": 1
+          },
+          {
+            "id": 79,
+            "name": "base2_contact",
+            "dim": 1
+          },
+          {
+            "id": 80,
+            "name": "base3_contact",
+            "dim": 1
+          },
+          {
+            "id": 81,
+            "name": "FL_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 82,
+            "name": "FR_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 83,
+            "name": "RL_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 84,
+            "name": "RR_hip_contact",
+            "dim": 1
+          },
+          {
+            "id": 85,
+            "name": "FL_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 86,
+            "name": "FR_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 87,
+            "name": "RL_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 88,
+            "name": "RR_thigh_contact",
+            "dim": 1
+          },
+          {
+            "id": 89,
+            "name": "FL_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 90,
+            "name": "FR_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 91,
+            "name": "RL_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 92,
+            "name": "RR_calf_contact1",
+            "dim": 1
+          },
+          {
+            "id": 93,
+            "name": "FL_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 94,
+            "name": "FR_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 95,
+            "name": "RL_calf_contact2",
+            "dim": 1
+          },
+          {
+            "id": 96,
+            "name": "RR_calf_contact2",
+            "dim": 1
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/go2_arm/assets/arm_base_0.obj",
+        "src/unilab/assets/robots/go2_arm/assets/arm_base_1.obj",
+        "src/unilab/assets/robots/go2_arm/assets/left.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link1.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link2_0.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link2_1.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link3_0.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link3_1.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link4.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link5_0.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link5_1.obj",
+        "src/unilab/assets/robots/go2_arm/assets/link6.obj",
+        "src/unilab/assets/robots/go2_arm/assets/new_base_link.STL",
+        "src/unilab/assets/robots/go2_arm/assets/right.obj",
+        "src/unilab/assets/robots/go2_arm/assets/slider_base_link_0.STL",
+        "src/unilab/assets/robots/go2_arm/go2_with_arm_mjx_full_collision.xml",
+        "src/unilab/assets/robots/go2_arm/scene_flat.xml"
+      ]
+    },
+    "allegro_hand": {
+      "doc": {
+        "slug": "allegro_hand",
+        "title": "Allegro Hand",
+        "role": "灵巧手球体旋转与抓取生成任务",
+        "primary_scene": "src/unilab/assets/robots/allegro_hand/scene.xml",
+        "keyframe": "home",
+        "intro": "Allegro Hand 是 16 DoF 灵巧手，任务场景中 include 手本体和球体资产，用于手内旋转控制与抓取初始化生成。关节表按手指列出，可直接对应 action 维度。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/allegro_hand/scene.xml",
+        "nq": 23,
+        "nv": 22,
+        "nu": 16,
+        "njnt": 17,
+        "nsensor": 4,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "ffj0",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.47,
+              0.47
+            ],
+            "controlled": true
+          },
+          {
+            "id": 1,
+            "name": "ffj1",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.196,
+              1.61
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "ffj2",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.174,
+              1.709
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "ffj3",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.227,
+              1.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "mfj0",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.47,
+              0.47
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "mfj1",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.196,
+              1.61
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "mfj2",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.174,
+              1.709
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "mfj3",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.227,
+              1.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "rfj0",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.47,
+              0.47
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "rfj1",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.196,
+              1.61
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "rfj2",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.174,
+              1.709
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "rfj3",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.227,
+              1.618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "thj0",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.263,
+              1.396
+            ],
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "thj1",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.105,
+              1.163
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "thj2",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.189,
+              1.644
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "thj3",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.162,
+              1.719
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "ball_joint",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "ffa0",
+            "joint": "ffj0",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.47,
+              0.47
+            ]
+          },
+          {
+            "id": 1,
+            "name": "ffa1",
+            "joint": "ffj1",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.196,
+              1.61
+            ]
+          },
+          {
+            "id": 2,
+            "name": "ffa2",
+            "joint": "ffj2",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.174,
+              1.709
+            ]
+          },
+          {
+            "id": 3,
+            "name": "ffa3",
+            "joint": "ffj3",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.227,
+              1.618
+            ]
+          },
+          {
+            "id": 4,
+            "name": "mfa0",
+            "joint": "mfj0",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.47,
+              0.47
+            ]
+          },
+          {
+            "id": 5,
+            "name": "mfa1",
+            "joint": "mfj1",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.196,
+              1.61
+            ]
+          },
+          {
+            "id": 6,
+            "name": "mfa2",
+            "joint": "mfj2",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.174,
+              1.709
+            ]
+          },
+          {
+            "id": 7,
+            "name": "mfa3",
+            "joint": "mfj3",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.227,
+              1.618
+            ]
+          },
+          {
+            "id": 8,
+            "name": "rfa0",
+            "joint": "rfj0",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.47,
+              0.47
+            ]
+          },
+          {
+            "id": 9,
+            "name": "rfa1",
+            "joint": "rfj1",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.196,
+              1.61
+            ]
+          },
+          {
+            "id": 10,
+            "name": "rfa2",
+            "joint": "rfj2",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.174,
+              1.709
+            ]
+          },
+          {
+            "id": 11,
+            "name": "rfa3",
+            "joint": "rfj3",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.227,
+              1.618
+            ]
+          },
+          {
+            "id": 12,
+            "name": "tha0",
+            "joint": "thj0",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.263,
+              1.396
+            ]
+          },
+          {
+            "id": 13,
+            "name": "tha1",
+            "joint": "thj1",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.105,
+              1.163
+            ]
+          },
+          {
+            "id": 14,
+            "name": "tha2",
+            "joint": "thj2",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.189,
+              1.644
+            ]
+          },
+          {
+            "id": 15,
+            "name": "tha3",
+            "joint": "thj3",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.162,
+              1.719
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "ff_contact",
+            "dim": 1
+          },
+          {
+            "id": 1,
+            "name": "mf_contact",
+            "dim": 1
+          },
+          {
+            "id": 2,
+            "name": "rf_contact",
+            "dim": 1
+          },
+          {
+            "id": 3,
+            "name": "th_contact",
+            "dim": 1
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/allegro_hand/allegro_right.xml",
+        "src/unilab/assets/robots/allegro_hand/assets/base_link.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/base_link_left.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_0.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_1.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_12.0_left.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_12.0_right.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_13.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_14.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_15.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_15.0_tip.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_2.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_3.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_3.0_tip.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/link_4.0.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/kinbody.xml",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/nontextured.ply",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/nontextured.stl",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/texture_map.png",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured.dae",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured.mtl",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured.obj",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured.obj.mtl",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured_backup.obj",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured_vhacd.obj",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball/google_16k/textured_vhacd_backup.obj",
+        "src/unilab/assets/robots/allegro_hand/assets/ycb/056_tennis_ball.urdf",
+        "src/unilab/assets/robots/allegro_hand/ball.xml",
+        "src/unilab/assets/robots/allegro_hand/scene.xml"
+      ]
+    },
+    "sharpa_wave": {
+      "doc": {
+        "slug": "sharpa_wave",
+        "title": "Sharpa Wave Hand",
+        "role": "触觉灵巧手旋转与抓取任务",
+        "primary_scene": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+        "keyframe": "home",
+        "intro": "Sharpa Wave 是带触觉/接触建模的 22 DoF 灵巧手，场景中包含被操作圆柱物体。文档会把手部执行器、物体自由关节和接触传感器分开说明。"
+      },
+      "model": {
+        "xml": "src/unilab/assets/robots/sharpa_wave/scene.xml",
+        "nq": 29,
+        "nv": 28,
+        "nu": 22,
+        "njnt": 23,
+        "nsensor": 10,
+        "keyframes": [
+          "home"
+        ],
+        "joints": [
+          {
+            "id": 0,
+            "name": "right_thumb_CMC_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.1745,
+              1.9199
+            ],
+            "controlled": true
+          },
+          {
+            "id": 1,
+            "name": "right_thumb_CMC_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 2,
+            "name": "right_thumb_MCP_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.5236,
+              1.3963
+            ],
+            "controlled": true
+          },
+          {
+            "id": 3,
+            "name": "right_thumb_MCP_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 4,
+            "name": "right_thumb_IP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.7453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 5,
+            "name": "right_index_MCP_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.17453293,
+              1.5708
+            ],
+            "controlled": true
+          },
+          {
+            "id": 6,
+            "name": "right_index_MCP_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 7,
+            "name": "right_index_PIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.7453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 8,
+            "name": "right_index_DIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.3963
+            ],
+            "controlled": true
+          },
+          {
+            "id": 9,
+            "name": "right_middle_MCP_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.17453293,
+              1.5708
+            ],
+            "controlled": true
+          },
+          {
+            "id": 10,
+            "name": "right_middle_MCP_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 11,
+            "name": "right_middle_PIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.7453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 12,
+            "name": "right_middle_DIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.3963
+            ],
+            "controlled": true
+          },
+          {
+            "id": 13,
+            "name": "right_ring_MCP_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.17453293,
+              1.5708
+            ],
+            "controlled": true
+          },
+          {
+            "id": 14,
+            "name": "right_ring_MCP_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 15,
+            "name": "right_ring_PIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.7453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 16,
+            "name": "right_ring_DIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.3963
+            ],
+            "controlled": true
+          },
+          {
+            "id": 17,
+            "name": "right_pinky_CMC",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              0.2618
+            ],
+            "controlled": true
+          },
+          {
+            "id": 18,
+            "name": "right_pinky_MCP_FE",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.17453293,
+              1.5708
+            ],
+            "controlled": true
+          },
+          {
+            "id": 19,
+            "name": "right_pinky_MCP_AA",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              -0.3491,
+              0.3491
+            ],
+            "controlled": true
+          },
+          {
+            "id": 20,
+            "name": "right_pinky_PIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.7453
+            ],
+            "controlled": true
+          },
+          {
+            "id": 21,
+            "name": "right_pinky_DIP",
+            "type": "hinge",
+            "limited": true,
+            "range": [
+              0.0,
+              1.3963
+            ],
+            "controlled": true
+          },
+          {
+            "id": 22,
+            "name": "object_joint",
+            "type": "free",
+            "limited": false,
+            "range": null,
+            "controlled": false
+          }
+        ],
+        "actuators": [
+          {
+            "id": 0,
+            "name": "right_thumb_CMC_FE_ctrl",
+            "joint": "right_thumb_CMC_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.17449999999999988,
+              1.9199
+            ]
+          },
+          {
+            "id": 1,
+            "name": "right_thumb_CMC_AA_ctrl",
+            "joint": "right_thumb_CMC_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 2,
+            "name": "right_thumb_MCP_FE_ctrl",
+            "joint": "right_thumb_MCP_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.5236000000000001,
+              1.3963
+            ]
+          },
+          {
+            "id": 3,
+            "name": "right_thumb_MCP_AA_ctrl",
+            "joint": "right_thumb_MCP_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 4,
+            "name": "right_thumb_IP_ctrl",
+            "joint": "right_thumb_IP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.7453
+            ]
+          },
+          {
+            "id": 5,
+            "name": "right_index_MCP_FE_ctrl",
+            "joint": "right_index_MCP_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.17453293000000003,
+              1.5708
+            ]
+          },
+          {
+            "id": 6,
+            "name": "right_index_MCP_AA_ctrl",
+            "joint": "right_index_MCP_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 7,
+            "name": "right_index_PIP_ctrl",
+            "joint": "right_index_PIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.7453
+            ]
+          },
+          {
+            "id": 8,
+            "name": "right_index_DIP_ctrl",
+            "joint": "right_index_DIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.3963
+            ]
+          },
+          {
+            "id": 9,
+            "name": "right_middle_MCP_FE_ctrl",
+            "joint": "right_middle_MCP_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.17453293000000003,
+              1.5708
+            ]
+          },
+          {
+            "id": 10,
+            "name": "right_middle_MCP_AA_ctrl",
+            "joint": "right_middle_MCP_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 11,
+            "name": "right_middle_PIP_ctrl",
+            "joint": "right_middle_PIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.7453
+            ]
+          },
+          {
+            "id": 12,
+            "name": "right_middle_DIP_ctrl",
+            "joint": "right_middle_DIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.3963
+            ]
+          },
+          {
+            "id": 13,
+            "name": "right_ring_MCP_FE_ctrl",
+            "joint": "right_ring_MCP_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.17453293000000003,
+              1.5708
+            ]
+          },
+          {
+            "id": 14,
+            "name": "right_ring_MCP_AA_ctrl",
+            "joint": "right_ring_MCP_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 15,
+            "name": "right_ring_PIP_ctrl",
+            "joint": "right_ring_PIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.7453
+            ]
+          },
+          {
+            "id": 16,
+            "name": "right_ring_DIP_ctrl",
+            "joint": "right_ring_DIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.3963
+            ]
+          },
+          {
+            "id": 17,
+            "name": "right_pinky_CMC_ctrl",
+            "joint": "right_pinky_CMC",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              0.2618
+            ]
+          },
+          {
+            "id": 18,
+            "name": "right_pinky_MCP_FE_ctrl",
+            "joint": "right_pinky_MCP_FE",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.17453293000000003,
+              1.5708
+            ]
+          },
+          {
+            "id": 19,
+            "name": "right_pinky_MCP_AA_ctrl",
+            "joint": "right_pinky_MCP_AA",
+            "ctrllimited": true,
+            "ctrlrange": [
+              -0.3491,
+              0.3491
+            ]
+          },
+          {
+            "id": 20,
+            "name": "right_pinky_PIP_ctrl",
+            "joint": "right_pinky_PIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.7453
+            ]
+          },
+          {
+            "id": 21,
+            "name": "right_pinky_DIP_ctrl",
+            "joint": "right_pinky_DIP",
+            "ctrllimited": true,
+            "ctrlrange": [
+              0.0,
+              1.3963
+            ]
+          }
+        ],
+        "sensors": [
+          {
+            "id": 0,
+            "name": "contact_right_thumb_elastomer_force",
+            "dim": 3
+          },
+          {
+            "id": 1,
+            "name": "contact_right_index_elastomer_force",
+            "dim": 3
+          },
+          {
+            "id": 2,
+            "name": "contact_right_middle_elastomer_force",
+            "dim": 3
+          },
+          {
+            "id": 3,
+            "name": "contact_right_ring_elastomer_force",
+            "dim": 3
+          },
+          {
+            "id": 4,
+            "name": "contact_right_pinky_elastomer_force",
+            "dim": 3
+          },
+          {
+            "id": 5,
+            "name": "contact_right_thumb_dp_force",
+            "dim": 3
+          },
+          {
+            "id": 6,
+            "name": "contact_right_index_dp_force",
+            "dim": 3
+          },
+          {
+            "id": 7,
+            "name": "contact_right_middle_dp_force",
+            "dim": 3
+          },
+          {
+            "id": 8,
+            "name": "contact_right_ring_dp_force",
+            "dim": 3
+          },
+          {
+            "id": 9,
+            "name": "contact_right_pinky_dp_force",
+            "dim": 3
+          }
+        ]
+      },
+      "asset_files": [
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_HB1_4F.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_HB1_TH.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_Visual_HB1_TH.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_elastomer.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_elastomer_HB1_4F.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_elastomer_HB1_TH.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/DP_visual_HB1_4F.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/MCP_VL.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/elastomer.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/elastomer_HB1_4F.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/elastomer_HB1_TH.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/elastomer_surface.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/flange_A.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/flange_B.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_DP.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_DP_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_MCP_VL_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_MP.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_MP_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_PP.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_PP_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_hand_C_MC.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_hand_C_MC_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_hand_C_MC_visual_.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_pinky_MC.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_pinky_MC_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_CMC_VL_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_DP.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_DP_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_MC.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_MCP_VL_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_MC_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_PP.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/right_thumb_PP_visual.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/thumb_DP_elastomer.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/thumb_elastomer.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/thumb_elastomer_surface.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/wrist_A.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/wrist_B.STL",
+        "src/unilab/assets/robots/sharpa_wave/meshes/wrist_collision.STL",
+        "src/unilab/assets/robots/sharpa_wave/right_sharpa_wave.xml",
+        "src/unilab/assets/robots/sharpa_wave/scene.xml"
+      ]
+    }
+  }
+}

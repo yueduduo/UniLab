@@ -1,0 +1,702 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>G1 Motion Tracking · UniLab RL Tasks</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body class="page-task">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <aside class="sidebar">
+    <a class="brand" href="../../index.html">
+      <span class="brand-mark">RL</span>
+      <span><strong>UniLab</strong><small>Task Atlas</small></span>
+    </a>
+    <div class="sidebar-card">
+      <span>Contract driven</span>
+      <strong>Robot Learning Docs</strong>
+      <p>任务、资产、源码和配置的一站式索引。</p>
+    </div>
+    <label class="search-label" for="search">快速搜索</label>
+    <input id="search" type="search" placeholder="例如 G1、reward、action..." autocomplete="off">
+    <div id="search-results" class="search-results"></div>
+    <nav><section><h3>总览</h3><ul>
+<li><a href="../../index.html">UniLab 强化学习任务与机器人资产文档</a></li>
+</ul></section>
+<section><h3>机器人</h3><ul>
+<li><a href="../../robots/allegro_hand/index.html">Allegro Hand 机器人资产与关节说明</a></li>
+<li><a href="../../robots/g1/index.html">Unitree G1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go1/index.html">Unitree Go1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2/index.html">Unitree Go2 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2_arm/index.html">Go2 + Airbot Arm 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2w/index.html">Unitree Go2W 机器人资产与关节说明</a></li>
+<li><a href="../../robots/k1/index.html">Booster K1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/sharpa_wave/index.html">Sharpa Wave Hand 机器人资产与关节说明</a></li>
+</ul></section>
+<section><h3>运动控制</h3><ul>
+<li><a href="../../tasks/locomotion/index.html">运动控制任务</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_flat.html">G1 Walk Flat</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_rough.html">G1 Walk Rough</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_flat.html">Go1 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_rough.html">Go1 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2_footstand.html">Go2 FootStand</a></li>
+<li><a href="../../tasks/locomotion/go2_handstand.html">Go2 HandStand</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_flat.html">Go2 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_rough.html">Go2 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_flat.html">Go2W Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_rough.html">Go2W Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/k1_soccer_dribble.html">K1 Soccer Dribble</a></li>
+<li><a href="../../tasks/locomotion/k1_walk_flat.html">K1 Walk Flat</a></li>
+</ul></section>
+<section><h3>移动操作</h3><ul>
+<li><a href="../../tasks/manip_loco/index.html">移动操作任务</a></li>
+<li><a href="../../tasks/manip_loco/go2_arm_manip_loco.html">Go2 Arm Manip-Loco</a></li>
+</ul></section>
+<section><h3>灵巧操作</h3><ul>
+<li><a href="../../tasks/manipulation/index.html">灵巧操作任务</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand.html">Allegro In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand_grasp.html">Allegro In-Hand Grasp</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand.html">Sharpa In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand_grasp.html">Sharpa In-Hand Grasp</a></li>
+</ul></section>
+<section><h3>动作追踪</h3><ul>
+<li><a href="index.html">动作追踪任务</a></li>
+<li><a href="g1_box_tracking.html">G1 Box Tracking</a></li>
+<li><a href="g1_climb_tracking.html">G1 Climb Tracking</a></li>
+<li><a href="g1_flip_tracking.html">G1 Flip Tracking</a></li>
+<li class="active">G1 Motion Tracking</li>
+<li><a href="g1_motion_tracking_deploy.html">G1 Motion Tracking Deploy</a></li>
+<li><a href="g1_wall_flip_tracking.html">G1 Wall Flip Tracking</a></li>
+<li><a href="g1_wbt_obs.html">G1 WBT Obs</a></li>
+</ul></section></nav>
+  </aside>
+  <main class="main-stage">
+    
+    <header class="hero hero-task">
+      <div class="hero-copy">
+        <div class="eyebrow">动作追踪 · UniLab RL Tasks</div>
+        <h1>G1 Motion Tracking</h1>
+        <p>从 agent、env、obs、action、reward、初始状态、终止条件和域随机化八个角度拆解任务实现。</p>
+        
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </header>
+
+    
+    <aside class="page-toc" aria-label="本页目录">
+      <div class="page-toc-title">本页目录</div>
+      <nav>
+        <a class="toc-level-2" href="#任务目标">任务目标</a><a class="toc-level-2" href="#证据索引">证据索引</a><a class="toc-level-3" href="#registry-与-owner">Registry 与 Owner</a><a class="toc-level-2" href="#代码级执行流">代码级执行流</a><a class="toc-level-3" href="#本任务阅读重点">本任务阅读重点</a><a class="toc-level-3" href="#本任务注册入口">本任务注册入口</a><a class="toc-level-3" href="#本任务源码锚点">本任务源码锚点</a><a class="toc-level-2" href="#关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</a><a class="toc-level-3" href="#配置-motionloader">配置：MotionLoader</a><a class="toc-level-3" href="#reset-参考帧初态">Reset：参考帧初态</a><a class="toc-level-3" href="#obs-机器人-参考目标">Obs：机器人 + 参考目标</a><a class="toc-level-3" href="#action-延迟与默认角偏移">Action：延迟与默认角偏移</a><a class="toc-level-3" href="#reward-termination">Reward/Termination</a><a class="toc-level-2" href="#agent">Agent</a><a class="toc-level-2" href="#env">Env</a><a class="toc-level-2" href="#obs">Obs</a><a class="toc-level-3" href="#obs-字段级拆解">Obs 字段级拆解</a><a class="toc-level-2" href="#action">Action</a><a class="toc-level-3" href="#action-逐维拆解">Action 逐维拆解</a><a class="toc-level-2" href="#reward">Reward</a><a class="toc-level-3" href="#reward-逐项拆解">Reward 逐项拆解</a><a class="toc-level-2" href="#初始状态">初始状态</a><a class="toc-level-2" href="#终止条件">终止条件</a><a class="toc-level-2" href="#域随机化">域随机化</a><a class="toc-level-3" href="#域随机化字段拆解">域随机化字段拆解</a>
+      </nav>
+    </aside>
+
+    <article class="doc-article">
+      <h1 id="g1-motion-tracking">G1 Motion Tracking</h1>
+<h2 id="任务目标">任务目标</h2>
+<p>让 G1 全身跟踪参考 motion clip，在 root、body、末端和关节层面逼近离线动作数据。</p>
+<p><img src="../../images/tasks/g1_motion_tracking.png" alt="G1 Motion Tracking 场景渲染" loading="lazy"></p>
+<blockquote>
+<p>图片由 <code>_tools/render_static_images.py</code> 使用 <code>src/unilab/assets/robots/g1/scene_flat.xml</code> 的 MuJoCo scene 离屏渲染生成；如果当前环境无法启用 EGL/OSMesa，生成 manifest 会记录失败原因。</p>
+</blockquote>
+<h2 id="证据索引">证据索引</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>内容</th></tr></thead><tbody><tr><td>任务类别</td><td>动作追踪</td></tr><tr><td>机器人</td><td>g1</td></tr><tr><td>代表 scene</td><td>src/unilab/assets/robots/g1/scene_flat.xml</td></tr><tr><td>代表源码</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td></tr><tr><td>代表 owner YAML</td><td>conf/appo/task/g1_motion_tracking/mujoco.yaml</td></tr><tr><td>动作维度</td><td>29</td></tr></tbody></table></div>
+<h3 id="registry-与-owner">Registry 与 Owner</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>后端</th><th>配置类</th><th>配置源码</th></tr></thead><tbody><tr><td>G1MotionTracking</td><td>motrix, mujoco</td><td>G1MotionTrackingEnvCfg</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td></tr><tr><td>G1MotionTrackingSAC</td><td>motrix, mujoco</td><td>G1MotionTrackingSACCfg</td><td>src/unilab/envs/motion_tracking/g1/tracking_sac.py</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>算法组</th><th>后端</th><th>training.task_name</th><th>owner YAML</th></tr></thead><tbody><tr><td>appo</td><td>motrix</td><td>G1MotionTracking</td><td>conf/appo/task/g1_motion_tracking/motrix.yaml</td></tr><tr><td>appo</td><td>mujoco</td><td>G1MotionTracking</td><td>conf/appo/task/g1_motion_tracking/mujoco.yaml</td></tr><tr><td>sac</td><td>motrix</td><td>G1MotionTrackingSAC</td><td>conf/offpolicy/task/sac/g1_motion_tracking/motrix.yaml</td></tr><tr><td>sac</td><td>mujoco</td><td>G1MotionTrackingSAC</td><td>conf/offpolicy/task/sac/g1_motion_tracking/mujoco.yaml</td></tr><tr><td>ppo</td><td>motrix</td><td>G1MotionTracking</td><td>conf/ppo/task/g1_motion_tracking/motrix.yaml</td></tr><tr><td>ppo</td><td>mujoco</td><td>G1MotionTracking</td><td>conf/ppo/task/g1_motion_tracking/mujoco.yaml</td></tr></tbody></table></div>
+<h2 id="代码级执行流">代码级执行流</h2>
+<p>这部分不再用通用关键词套模板，而是为 <code>g1_motion_tracking</code> 单独写源码导读。源码片段只负责提供证据；每节说明都围绕本任务自己的配置、状态、观测、动作和 reward 语义展开。</p>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>证据位置</th><th>代码级说明</th></tr></thead><tbody><tr><td>1. Hydra owner</td><td>conf/appo/task/g1_motion_tracking/mujoco.yaml</td><td>训练命令先 compose owner YAML。这里确定 <code>training.task_name</code>、后端身份、obs_groups、reward scale 和 env override。</td></tr><tr><td>2. Registry 构造 Env</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td><code>@registry.envcfg</code> 注册配置类，<code>@registry.env</code> 注册后端实现类；训练脚本只调用 registry，不直接 new 任务类。</td></tr><tr><td>3. Reset/初始状态</td><td>src/unilab/assets/robots/g1/scene_flat.xml</td><td>env 从 scene keyframe 或 motion/grasp cache 取初态，再通过 reset randomization 改写 qpos/qvel/info。</td></tr><tr><td>4. Obs dict</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>env 读取 backend 传感器和 info，返回 dict；learner 根据 <code>obs_groups_spec</code> 和 owner <code>algo.obs_groups</code> 选择 actor/critic 输入。</td></tr><tr><td>5. Action 到控制目标</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>policy 输出先按 action scale / 控制顺序映射到 actuator，再由 backend step 推进仿真。</td></tr><tr><td>6. Reward dispatch</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>源码把 reward key 映射到函数，owner YAML 的 scale 决定每项奖励/惩罚是否启用以及权重。</td></tr><tr><td>7. Termination</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>env 根据高度、姿态、接触、参考轨迹误差、物体状态或能量阈值生成 done/terminated。</td></tr></tbody></table></div>
+<h3 id="本任务阅读重点">本任务阅读重点</h3>
+<div class="table-wrap"><table><thead><tr><th>阅读重点</th></tr></thead><tbody><tr><td>G1 Motion Tracking 的核心不是 joystick，而是从 motion npz 采样参考帧并构造机器人/参考误差。</td></tr><tr><td>reset 从 motion reference 生成 qpos/qvel，obs 同时包含机器人当前状态和参考 motion anchor/body 目标。</td></tr><tr><td>reward 是 root/body/joint/action 多层 tracking 误差，不应按 locomotion 速度跟踪来写。</td></tr></tbody></table></div>
+<h3 id="本任务注册入口">本任务注册入口</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>配置类</th><th>可用后端</th></tr></thead><tbody><tr><td>G1MotionTracking</td><td>G1MotionTrackingEnvCfg</td><td>motrix, mujoco</td></tr><tr><td>G1MotionTrackingSAC</td><td>G1MotionTrackingSACCfg</td><td>motrix, mujoco</td></tr></tbody></table></div>
+<h3 id="本任务源码锚点">本任务源码锚点</h3>
+<div class="table-wrap"><table><thead><tr><th>小节</th><th>源码文件</th><th>明确锚点</th></tr></thead><tbody><tr><td>配置：MotionLoader</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>G1MotionTrackingEnvCfg, G1MotionTrackingCfg</td></tr><tr><td>Reset：参考帧初态</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>build_reset_plan, motion_loader.get_motion_at_frame</td></tr><tr><td>Obs：机器人 + 参考目标</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>obs_groups_spec, _compute_obs</td></tr><tr><td>Action：延迟与默认角偏移</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>apply_action, simulate_action_latency</td></tr><tr><td>Reward/Termination</td><td>src/unilab/envs/motion_tracking/g1/tracking.py</td><td>_init_reward_functions, update_state</td></tr></tbody></table></div>
+<h2 id="关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</h2>
+<h3 id="配置-motionloader">配置：MotionLoader</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>cfg 声明 motion_file、body_names、anchor 和 tracking 阈值。</td></tr><tr><td>MotionLoader 在 env 初始化/冷路径读取 motion 数据。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+<span class="tok-comment"># 将通用 motion tracking 配置注册成 Hydra 可选择的 G1MotionTracking 任务。</span>
+<span class="tok-op">@</span>registry<span class="tok-op">.</span>envcfg<span class="tok-op">(</span><span class="tok-str">&quot;G1MotionTracking&quot;</span><span class="tok-op">)</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> G1MotionTrackingEnvCfg<span class="tok-op">(</span>G1MotionTrackingCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-str">&quot;&quot;&quot;Registered configuration for G1 motion tracking.&quot;&quot;&quot;</span>
+
+    <span class="tok-comment"># 该注册类不改字段，真实任务语义全部来自父类 G1MotionTrackingCfg。</span>
+    <span class="tok-kw">pass</span>
+</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> G1MotionTrackingCfg<span class="tok-op">(</span>G1BaseCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-str">&quot;&quot;&quot;Configuration for G1 motion tracking environment.&quot;&quot;&quot;</span>
+
+    <span class="tok-comment"># 默认场景是 G1 平地 scene，keyframe/传感器等 task 资源在 scene 中表达。</span>
+    scene<span class="tok-op">:</span> SceneCfg <span class="tok-op">=</span> field<span class="tok-op">(</span>
+        default_factory<span class="tok-op">=</span><span class="tok-kw">lambda</span><span class="tok-op">:</span> SceneCfg<span class="tok-op">(</span>
+            model_file<span class="tok-op">=</span><span class="tok-builtin">str</span><span class="tok-op">(</span>ASSETS_ROOT_PATH <span class="tok-op">/</span> <span class="tok-str">&quot;robots&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;g1&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;scene_flat.xml&quot;</span><span class="tok-op">)</span>
+        <span class="tok-op">)</span>
+    <span class="tok-op">)</span>
+    <span class="tok-comment"># Kept at the historical single-clip default for backward compatibility.</span>
+    <span class="tok-comment"># motion_file 是参考动作来源，MotionLoader 只在初始化/采样冷路径读取 npz。</span>
+    motion_file<span class="tok-op">:</span> <span class="tok-builtin">str</span> <span class="tok-op">|</span> <span class="tok-builtin">list</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">str</span><span class="tok-op">(</span>
+        ASSETS_ROOT_PATH <span class="tok-op">/</span> <span class="tok-str">&quot;motions&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;g1&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;dance1_subject2_part.npz&quot;</span>
+    <span class="tok-op">)</span>
+    <span class="tok-comment"># motion_file: str | list[str] = str(ASSETS_ROOT_PATH / &quot;motions&quot; / &quot;g1&quot; / &quot;gangnam_style.npz&quot;)</span>
+    <span class="tok-comment"># motion_file: str | list[str] = str(ASSETS_ROOT_PATH / &quot;motions&quot; / &quot;g1&quot; / &quot;fight1_subject5_from_csv.npz&quot;) #LAFAN</span>
+    <span class="tok-comment"># motion_file: str | list[str] = str(ASSETS_ROOT_PATH / &quot;motions&quot; / &quot;g1&quot; / &quot;dance_basic_slide_180_R_loop_001__A322_M.npz&quot;) #LAFAN</span>
+    <span class="tok-comment"># motion_file: str | list[str] = str(ASSETS_ROOT_PATH / &quot;motions&quot; / &quot;g1&quot; / &quot;playing_violin_R_003__A327_from_csv.npz&quot;) #Seed</span>
+    <span class="tok-comment"># torso_link 作为 anchor，用来计算机器人当前躯干与参考躯干的相对位姿。</span>
+    anchor_body_name<span class="tok-op">:</span> <span class="tok-builtin">str</span> <span class="tok-op">=</span> <span class="tok-str">&quot;torso_link&quot;</span>
+    <span class="tok-comment"># body_names 决定 motion 文件里哪些刚体参与 body-level obs/reward/termination。</span>
+    body_names<span class="tok-op">:</span> <span class="tok-builtin">tuple</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-op">...</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span>
+        <span class="tok-str">&quot;pelvis&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_hip_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_knee_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_ankle_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_hip_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_knee_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_ankle_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;torso_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_shoulder_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_elbow_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_wrist_yaw_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_shoulder_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_elbow_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_wrist_yaw_link&quot;</span><span class="tok-op">,</span>
+    <span class="tok-op">)</span>
+    <span class="tok-comment"># adaptive 采样会根据失败统计倾向困难帧，适合长 motion imitation。</span>
+    sampling_mode<span class="tok-op">:</span> Literal<span class="tok-op">[</span><span class="tok-str">&quot;start&quot;</span><span class="tok-op">,</span> <span class="tok-str">&quot;clip_start&quot;</span><span class="tok-op">,</span> <span class="tok-str">&quot;uniform&quot;</span><span class="tok-op">,</span> <span class="tok-str">&quot;adaptive&quot;</span><span class="tok-op">,</span> <span class="tok-str">&quot;mixed&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-str">&quot;adaptive&quot;</span>
+    sampling_start_ratio<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.0</span>
+    truncate_on_clip_end<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">False</span>
+    max_episode_seconds<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">10.0</span>
+    <span class="tok-comment"># reward/dr 配置由 owner YAML 覆盖，训练脚本不解释这些业务字段。</span>
+    reward_config<span class="tok-op">:</span> RewardConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>RewardConfig<span class="tok-op">)</span>
+    pose_randomization<span class="tok-op">:</span> PoseRandomization <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>PoseRandomization<span class="tok-op">)</span>
+    velocity_randomization<span class="tok-op">:</span> VelocityRandomization <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>VelocityRandomization<span class="tok-op">)</span>
+    domain_rand<span class="tok-op">:</span> Domain_Rand <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>Domain_Rand<span class="tok-op">)</span>
+    <span class="tok-comment"># reset 时在参考关节角附近采样，增强从 motion reference 附近恢复的能力。</span>
+    joint_position_range<span class="tok-op">:</span> <span class="tok-builtin">tuple</span><span class="tok-op">[</span><span class="tok-builtin">float</span><span class="tok-op">,</span> <span class="tok-builtin">float</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">0.1</span><span class="tok-op">,</span> <span class="tok-num">0.1</span><span class="tok-op">)</span>
+    <span class="tok-comment"># Termination thresholds</span>
+    <span class="tok-comment"># 以下阈值共同定义 imitation 失败边界：躯干高度/朝向、末端高度和异常接触。</span>
+    anchor_pos_z_threshold<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.25</span>
+    anchor_ori_threshold<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.8</span>
+    ee_body_pos_z_threshold<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.25</span>
+    ee_body_names<span class="tok-op">:</span> <span class="tok-builtin">tuple</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-op">...</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span>
+        <span class="tok-str">&quot;left_ankle_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_ankle_roll_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;left_wrist_yaw_link&quot;</span><span class="tok-op">,</span>
+        <span class="tok-str">&quot;right_wrist_yaw_link&quot;</span><span class="tok-op">,</span>
+    <span class="tok-op">)</span>
+    undesired_contact_z_threshold<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.05</span>
+    terminate_on_undesired_contacts<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">False</span>
+</code></pre>
+<h3 id="reset-参考帧初态">Reset：参考帧初态</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>reset 采样 motion frame，并用参考动作构造 qpos/qvel。</td></tr><tr><td>randomization 可叠加在参考初态上，而不是替代 motion 目标。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> build_reset_plan<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> env<span class="tok-op">:</span> <span class="tok-builtin">Any</span><span class="tok-op">,</span> env_ids<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> ResetPlan<span class="tok-op">:</span>
+        num_reset <span class="tok-op">=</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-comment"># sampler 给每个重置 env 选一个参考帧，adaptive 模式会利用失败统计。</span>
+        motion_frames <span class="tok-op">=</span> env<span class="tok-op">.</span>motion_sampler<span class="tok-op">.</span>sample_frames<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-comment"># MotionLoader 返回该帧的 root、body、joint 参考状态。</span>
+        motion_data <span class="tok-op">=</span> env<span class="tok-op">.</span>motion_loader<span class="tok-op">.</span>get_motion_at_frame<span class="tok-op">(</span>motion_frames<span class="tok-op">)</span>
+        <span class="tok-comment"># qpos/qvel 以参考 motion 为主，再叠加 pose/velocity/joint 随机化。</span>
+        qpos<span class="tok-op">,</span> qvel <span class="tok-op">=</span> _build_motion_reference_state<span class="tok-op">(</span>env<span class="tok-op">,</span> env_ids<span class="tok-op">,</span> motion_data<span class="tok-op">)</span>
+
+        <span class="tok-comment"># reset 后动作历史清零，避免上一段 episode 的控制量污染首帧 obs/action_rate。</span>
+        info_updates <span class="tok-op">=</span> <span class="tok-op">{</span>
+            <span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">:</span> zero_actions<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">:</span> zero_actions<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-op">}</span>
+        <span class="tok-comment"># 通用 reset DR 负责质量、COM、kp/kd 等低频随机化 payload。</span>
+        randomization <span class="tok-op">=</span> build_common_reset_randomization<span class="tok-op">(</span>
+            env<span class="tok-op">,</span> num_reset<span class="tok-op">,</span> base_kp<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_base_kp<span class="tok-op">,</span> base_kd<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_base_kd
+        <span class="tok-op">)</span>
+
+        dr_cfg <span class="tok-op">=</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>domain_rand
+        <span class="tok-kw">if</span> getattr<span class="tok-op">(</span>dr_cfg<span class="tok-op">,</span> <span class="tok-str">&quot;randomize_geom_friction&quot;</span><span class="tok-op">,</span> <span class="tok-kw">False</span><span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-kw">assert</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_base_geom_friction <span class="tok-kw">is</span> <span class="tok-kw">not</span> <span class="tok-kw">None</span>
+            <span class="tok-kw">assert</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_foot_geom_ids <span class="tok-kw">is</span> <span class="tok-kw">not</span> <span class="tok-kw">None</span>
+            payload <span class="tok-op">=</span> randomization <span class="tok-kw">or</span> ResetRandomizationPayload<span class="tok-op">(</span><span class="tok-op">)</span>
+            low<span class="tok-op">,</span> high <span class="tok-op">=</span> dr_cfg<span class="tok-op">.</span>friction_range
+            <span class="tok-comment"># 每个 env 采一个脚底摩擦缩放，并广播到匹配的 foot geoms。</span>
+            scale <span class="tok-op">=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span>low<span class="tok-op">,</span> high<span class="tok-op">,</span> size<span class="tok-op">=</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">1</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span>
+            geom_friction <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>
+                <span class="tok-builtin">self</span><span class="tok-op">.</span>_base_geom_friction<span class="tok-op">,</span>
+                <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-op">*</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_base_geom_friction<span class="tok-op">.</span>shape<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+            geom_friction<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_foot_geom_ids<span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">]</span> <span class="tok-op">=</span> scale <span class="tok-op">*</span> np<span class="tok-op">.</span>ones<span class="tok-op">(</span>
+                <span class="tok-op">(</span><span class="tok-num">1</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_foot_geom_ids<span class="tok-op">.</span>size<span class="tok-op">)</span>
+            <span class="tok-op">)</span>
+            payload<span class="tok-op">.</span>geom_friction <span class="tok-op">=</span> geom_friction
+            randomization <span class="tok-op">=</span> payload
+
+        <span class="tok-kw">if</span> getattr<span class="tok-op">(</span>dr_cfg<span class="tok-op">,</span> <span class="tok-str">&quot;randomize_joint_default_pos&quot;</span><span class="tok-op">,</span> <span class="tok-kw">False</span><span class="tok-op">)</span><span class="tok-op">:</span>
+            low<span class="tok-op">,</span> high <span class="tok-op">=</span> dr_cfg<span class="tok-op">.</span>joint_default_pos_range
+            <span class="tok-comment"># default_dof_pos_bias 会同时影响 obs 的相对关节角和 action 的目标基准。</span>
+            info_updates<span class="tok-op">[</span><span class="tok-str">&quot;default_dof_pos_bias&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span>
+                low<span class="tok-op">,</span> high<span class="tok-op">,</span> size<span class="tok-op">=</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span>
+            <span class="tok-op">)</span><span class="tok-op">.</span>astype<span class="tok-op">(</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># ResetPlan 是 env/backend contract：状态、info 和随机化一次性交给 reset 流程。</span>
+        <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            qpos<span class="tok-op">=</span>qpos<span class="tok-op">,</span>
+            qvel<span class="tok-op">=</span>qvel<span class="tok-op">,</span>
+            info_updates<span class="tok-op">=</span>info_updates<span class="tok-op">,</span>
+            randomization<span class="tok-op">=</span>randomization<span class="tok-op">,</span>
+        <span class="tok-op">)</span></code></pre>
+<h3 id="obs-机器人-参考目标">Obs：机器人 + 参考目标</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>actor obs 包含 command、motion anchor、linvel/gyro、joint 和 action。</td></tr><tr><td>critic 额外加入 body pos/ori 等 tracking 特权项。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-op">@</span>property
+    <span class="tok-kw">def</span> obs_groups_spec<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">int</span><span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># Actor: command(2n) + motion_anchor_pos_b(3) + motion_anchor_ori_b(6)</span>
+        <span class="tok-comment">#        + linvel(3) + gyro(3) + joint_pos(n) + joint_vel(n) + actions(n)</span>
+        <span class="tok-comment"># Critic mirrors BeyondMimic physical terms without actor observation noise:</span>
+        <span class="tok-comment">#        command, motion anchor, robot body pos/ori, linvel, gyro, joints, actions.</span>
+        n <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_num_action
+        <span class="tok-comment"># actor_width 是策略实际读取的单步观测宽度。</span>
+        actor_width <span class="tok-op">=</span> getattr<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> <span class="tok-str">&quot;_actor_obs_width&quot;</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_actor_obs_dim<span class="tok-op">(</span>n<span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># critic_width 在 actor 基础上加入每个 tracked body 的位置/姿态特权信息。</span>
+        critic_width <span class="tok-op">=</span> getattr<span class="tok-op">(</span>
+            <span class="tok-builtin">self</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;_critic_obs_width&quot;</span><span class="tok-op">,</span>
+            <span class="tok-builtin">self</span><span class="tok-op">.</span>_critic_base_obs_dim<span class="tok-op">(</span>n<span class="tok-op">)</span> <span class="tok-op">+</span> <span class="tok-builtin">len</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>body_names<span class="tok-op">)</span> <span class="tok-op">*</span> <span class="tok-num">9</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+        <span class="tok-kw">return</span> <span class="tok-op">{</span><span class="tok-str">&quot;obs&quot;</span><span class="tok-op">:</span> actor_width<span class="tok-op">,</span> <span class="tok-str">&quot;critic&quot;</span><span class="tok-op">:</span> critic_width<span class="tok-op">}</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> _compute_obs<span class="tok-op">(</span>
+        <span class="tok-builtin">self</span><span class="tok-op">,</span>
+        info<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">,</span>
+        motion_data<span class="tok-op">,</span>
+        linvel<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        gyro<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        dof_pos<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        dof_vel<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        robot_body_pos_w<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        robot_body_quat_w<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+    <span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-str">&quot;&quot;&quot;Compute observations as dict with actor and critic groups.&quot;&quot;&quot;</span>
+        num_envs <span class="tok-op">=</span> linvel<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">]</span>
+        dtype <span class="tok-op">=</span> get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span>
+        n_action <span class="tok-op">=</span> dof_pos<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">1</span><span class="tok-op">]</span>
+        <span class="tok-comment"># n_body 对应 cfg.body_names 的 motion tracking 刚体数量。</span>
+        n_body <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_n_motion_bodies
+
+        <span class="tok-comment"># Get anchor states</span>
+        <span class="tok-comment"># 参考 anchor 与机器人当前 anchor 分别来自 motion_data 和 backend body 状态。</span>
+        anchor_pos_w <span class="tok-op">=</span> motion_data<span class="tok-op">.</span>body_pos_w<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>anchor_body_idx<span class="tok-op">]</span>
+        anchor_quat_w <span class="tok-op">=</span> motion_data<span class="tok-op">.</span>body_quat_w<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>anchor_body_idx<span class="tok-op">]</span>
+        robot_anchor_pos_w <span class="tok-op">=</span> robot_body_pos_w<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>anchor_body_idx<span class="tok-op">]</span>
+        robot_anchor_quat_w <span class="tok-op">=</span> robot_body_quat_w<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>anchor_body_idx<span class="tok-op">]</span>
+
+        <span class="tok-comment"># Motion anchor pose in robot frame</span>
+        <span class="tok-kw">if</span> num_envs <span class="tok-op">==</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_num_envs<span class="tok-op">:</span>
+            <span class="tok-comment"># 全量 env 更新时复用预分配缓存，减少热路径分配。</span>
+            motion_anchor_pos_b <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_motion_anchor_pos_b
+            motion_anchor_ori_b <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_motion_anchor_ori_b
+            joint_pos_rel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_joint_pos_rel
+            zero_actions <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_zero_actions
+        <span class="tok-kw">else</span><span class="tok-op">:</span>
+            <span class="tok-comment"># reset observation 只计算部分 env，因此需要临时数组匹配 batch 大小。</span>
+            motion_anchor_pos_b <span class="tok-op">=</span> np<span class="tok-op">.</span>empty<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+            motion_anchor_ori_b <span class="tok-op">=</span> np<span class="tok-op">.</span>empty<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> <span class="tok-num">6</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+            joint_pos_rel <span class="tok-op">=</span> np<span class="tok-op">.</span>empty<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> n_action<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+            zero_actions <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> n_action<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+        _write_motion_anchor_transform<span class="tok-op">(</span>
+            robot_anchor_pos_w<span class="tok-op">,</span>
+            robot_anchor_quat_w<span class="tok-op">,</span>
+            anchor_pos_w<span class="tok-op">,</span>
+            anchor_quat_w<span class="tok-op">,</span>
+            motion_anchor_pos_b<span class="tok-op">,</span>
+            motion_anchor_ori_b<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+
+        <span class="tok-comment"># Joint positions and velocities</span>
+        bias <span class="tok-op">=</span> info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;default_dof_pos_bias&quot;</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 相对关节角以默认姿态为零点；若 reset 随机化默认角，需要同步扣除 bias。</span>
+        effective_default <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles <span class="tok-op">+</span> bias <span class="tok-kw">if</span> bias <span class="tok-kw">is</span> <span class="tok-kw">not</span> <span class="tok-kw">None</span> <span class="tok-kw">else</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles
+        np<span class="tok-op">.</span>subtract<span class="tok-op">(</span>dof_pos<span class="tok-op">,</span> effective_default<span class="tok-op">,</span> out<span class="tok-op">=</span>joint_pos_rel<span class="tok-op">)</span>
+        last_actions <span class="tok-op">=</span> info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">)</span>
+        <span class="tok-kw">if</span> <span class="tok-kw">not</span> isinstance<span class="tok-op">(</span>last_actions<span class="tok-op">,</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">)</span><span class="tok-op">:</span>
+            last_actions <span class="tok-op">=</span> zero_actions
+
+        <span class="tok-kw">if</span> num_envs <span class="tok-op">==</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_num_envs<span class="tok-op">:</span>
+            command <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_motion_command
+        <span class="tok-kw">else</span><span class="tok-op">:</span>
+            command <span class="tok-op">=</span> np<span class="tok-op">.</span>empty<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> n_action <span class="tok-op">*</span> <span class="tok-num">2</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+        <span class="tok-comment"># command 拼接参考关节角和参考关节速度，是策略跟踪 motion 的主要目标信号。</span>
+        command<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span>n_action<span class="tok-op">]</span> <span class="tok-op">=</span> motion_data<span class="tok-op">.</span>joint_pos
+        command<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> n_action <span class="tok-op">:</span> n_action <span class="tok-op">*</span> <span class="tok-num">2</span><span class="tok-op">]</span> <span class="tok-op">=</span> motion_data<span class="tok-op">.</span>joint_vel
+
+        <span class="tok-comment"># Per-step observation noise on sensor channels (actor only).</span>
+        <span class="tok-comment"># Critic uses the clean originals — asymmetric actor–critic contract.</span>
+        noise_cfg <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>noise_config
+        noise_enabled <span class="tok-op">=</span> noise_cfg<span class="tok-op">.</span>level <span class="tok-op">&gt;</span> <span class="tok-num">0.0</span>
+        <span class="tok-kw">if</span> noise_enabled<span class="tok-op">:</span>
+            <span class="tok-comment"># 噪声只加在 actor 传感通道，critic 保持干净状态用于非对称训练。</span>
+            linvel_actor <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>linvel<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_linvel<span class="tok-op">)</span>
+            gyro_actor <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>gyro<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_gyro<span class="tok-op">)</span>
+            joint_pos_actor <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>joint_pos_rel<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_joint_angle<span class="tok-op">)</span>
+            dof_vel_actor <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>dof_vel<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_joint_vel<span class="tok-op">)</span>
+        <span class="tok-kw">else</span><span class="tok-op">:</span>
+            linvel_actor <span class="tok-op">=</span> linvel
+            gyro_actor <span class="tok-op">=</span> gyro
+            joint_pos_actor <span class="tok-op">=</span> joint_pos_rel
+            dof_vel_actor <span class="tok-op">=</span> dof_vel
+
+        <span class="tok-comment"># Actor observations (noisy proprioception)</span>
+        <span class="tok-comment"># actor_obs 是部署时策略输入：参考目标 + anchor 误差 + 本体感知 + 动作历史。</span>
+        actor_obs <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_build_actor_obs<span class="tok-op">(</span>
+            command<span class="tok-op">=</span>command<span class="tok-op">,</span>
+            motion_anchor_pos_b<span class="tok-op">=</span>motion_anchor_pos_b<span class="tok-op">,</span>
+            motion_anchor_ori_b<span class="tok-op">=</span>motion_anchor_ori_b<span class="tok-op">,</span>
+            noisy_linvel<span class="tok-op">=</span>linvel_actor<span class="tok-op">,</span>
+            noisy_gyro<span class="tok-op">=</span>gyro_actor<span class="tok-op">,</span>
+            noisy_joint_pos_rel<span class="tok-op">=</span>joint_pos_actor<span class="tok-op">,</span>
+            noisy_dof_vel<span class="tok-op">=</span>dof_vel_actor<span class="tok-op">,</span>
+            last_actions<span class="tok-op">=</span>last_actions<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+
+        <span class="tok-comment"># Critic observations (clean proprioception + privileged body transforms)</span>
+        <span class="tok-comment"># critic_obs 显式写入干净 command/body 信息，用于价值函数估计 tracking 误差。</span>
+        critic_obs <span class="tok-op">=</span> np<span class="tok-op">.</span>empty<span class="tok-op">(</span><span class="tok-op">(</span>num_envs<span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_critic_obs_width<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>dtype<span class="tok-op">)</span>
+        offset <span class="tok-op">=</span> <span class="tok-num">0</span>
+        critic_obs<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> offset <span class="tok-op">:</span> offset <span class="tok-op">+</span> command<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">1</span><span class="tok-op">]</span><span class="tok-op">]</span> <span class="tok-op">=</span> command
+        offset <span class="tok-op">+=</span> command<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">1</span><span class="tok-op">]</span></code></pre>
+<h3 id="action-延迟与默认角偏移">Action：延迟与默认角偏移</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>动作可按配置模拟 latency，之后叠加 default_dof_pos_bias。</td></tr><tr><td>这是 sim2real/部署前常见控制口径。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> apply_action<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> actions<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">:</span>
+        <span class="tok-comment"># 保存上一帧和当前帧动作，reward 的 action_rate 和 obs 的 last_actions 都依赖它。</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">,</span> np<span class="tok-op">.</span>zeros_like<span class="tok-op">(</span>actions<span class="tok-op">)</span><span class="tok-op">)</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> actions
+        <span class="tok-comment"># 开启 latency 时，本步真正下发上一帧动作，模拟实机控制延迟。</span>
+        exec_actions <span class="tok-op">=</span> <span class="tok-op">(</span>
+            state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">]</span>
+            <span class="tok-kw">if</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>control_config<span class="tok-op">.</span>simulate_action_latency
+            <span class="tok-kw">else</span> actions
+        <span class="tok-op">)</span>
+        bias <span class="tok-op">=</span> state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;default_dof_pos_bias&quot;</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 控制目标围绕默认关节角展开；默认角随机化时 action 基准也跟着移动。</span>
+        base <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles <span class="tok-op">+</span> bias <span class="tok-kw">if</span> bias <span class="tok-kw">is</span> <span class="tok-kw">not</span> <span class="tok-kw">None</span> <span class="tok-kw">else</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles
+        <span class="tok-comment"># 策略输出是归一化 29 维动作，按 action_scale 映射为 position target。</span>
+        ctrl<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray <span class="tok-op">=</span> exec_actions <span class="tok-op">*</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>control_config<span class="tok-op">.</span>action_scale <span class="tok-op">+</span> base
+        <span class="tok-kw">return</span> ctrl</code></pre>
+<h3 id="reward-termination">Reward/Termination</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>reward map 是多层 motion tracking：root、body、joint、velocity、action_rate。</td></tr><tr><td>termination 看 anchor z/ori、ee z、undesired contact 和 clip 结束。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> _init_reward_functions<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span><span class="tok-op">:</span>
+        <span class="tok-comment"># reward_config.scales 中的名字会通过这张表映射到真实计算函数。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_fns <span class="tok-op">=</span> <span class="tok-op">{</span>
+            <span class="tok-comment"># root/body 项约束全身 motion imitation 的空间姿态和速度。</span>
+            <span class="tok-str">&quot;motion_global_root_pos&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_global_root_pos<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_global_root_ori&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_global_root_ori<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_body_pos&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_body_pos<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_body_ori&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_body_ori<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_body_lin_vel&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_body_lin_vel<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_body_ang_vel&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_body_ang_vel<span class="tok-op">,</span>
+            <span class="tok-comment"># ee/joint 项补充末端高度和关节级误差，权重由 YAML 决定是否启用。</span>
+            <span class="tok-str">&quot;motion_ee_body_pos_z&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_ee_body_pos_z<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_joint_pos&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_joint_pos<span class="tok-op">,</span>
+            <span class="tok-str">&quot;motion_joint_vel&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_motion_joint_vel<span class="tok-op">,</span>
+            <span class="tok-comment"># 控制正则和异常接触项负责稳定性与失败惩罚。</span>
+            <span class="tok-str">&quot;action_rate_l2&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_action_rate_l2<span class="tok-op">,</span>
+            <span class="tok-str">&quot;joint_limit&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_joint_limit<span class="tok-op">,</span>
+            <span class="tok-str">&quot;undesired_contacts&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_undesired_contacts<span class="tok-op">,</span>
+        <span class="tok-op">}</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> update_state<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> NpEnvState<span class="tok-op">:</span>
+        <span class="tok-comment"># 每步先清空 clip-end truncation 标记，后面 motion sampler 再按需写入。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_clip_end_truncated<span class="tok-op">.</span>fill<span class="tok-op">(</span><span class="tok-kw">False</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># Get current motion data</span>
+        <span class="tok-comment"># 当前参考帧由 motion_sampler 维护，reward/obs/termination 都基于同一份 motion_data。</span>
+        motion_data <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_get_current_motion<span class="tok-op">(</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># Get robot state</span>
+        <span class="tok-comment"># 本体速度、IMU、关节状态来自 backend，是 actor/critic/reward 的公共输入。</span>
+        linvel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_local_linvel<span class="tok-op">(</span><span class="tok-op">)</span>
+        gyro <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_gyro<span class="tok-op">(</span><span class="tok-op">)</span>
+        dof_pos <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_dof_pos<span class="tok-op">(</span><span class="tok-op">)</span>
+        dof_vel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_dof_vel<span class="tok-op">(</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># Get body states</span>
+        <span class="tok-op">(</span>
+            robot_body_pos_w<span class="tok-op">,</span>
+            robot_body_quat_w<span class="tok-op">,</span>
+            robot_body_lin_vel_w<span class="tok-op">,</span>
+            robot_body_ang_vel_w<span class="tok-op">,</span>
+        <span class="tok-op">)</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_get_body_state_w<span class="tok-op">(</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># Compute relative body transforms (for observations and rewards)</span>
+        <span class="tok-comment"># 将参考 body 与当前 body 的相对变换缓存起来，避免 obs/reward 重复计算。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_update_relative_transforms<span class="tok-op">(</span>motion_data<span class="tok-op">,</span> robot_body_pos_w<span class="tok-op">,</span> robot_body_quat_w<span class="tok-op">)</span>
+
+        <span class="tok-comment"># Compute terminations</span>
+        <span class="tok-comment"># termination 使用 anchor/ee/contact 等边界判断 motion tracking 是否失败。</span>
+        terminated <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_terminations<span class="tok-op">(</span>motion_data<span class="tok-op">,</span> robot_body_pos_w<span class="tok-op">,</span> robot_body_quat_w<span class="tok-op">)</span>
+
+        <span class="tok-comment"># Update failure statistics for adaptive sampling</span>
+        <span class="tok-comment"># adaptive sampler 根据失败帧更新后续 reset 的采样分布。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>motion_sampler<span class="tok-op">.</span>update_failure_stats<span class="tok-op">(</span>terminated<span class="tok-op">)</span>
+
+        <span class="tok-comment"># Compute reward</span>
+        <span class="tok-comment"># reward 对比当前机器人状态与参考 motion，逐项加权后输出每个 env 的标量。</span>
+        reward <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_reward<span class="tok-op">(</span>
+            state<span class="tok-op">.</span>info<span class="tok-op">,</span>
+            motion_data<span class="tok-op">,</span>
+            robot_body_pos_w<span class="tok-op">,</span>
+            robot_body_quat_w<span class="tok-op">,</span>
+            robot_body_lin_vel_w<span class="tok-op">,</span>
+            robot_body_ang_vel_w<span class="tok-op">,</span>
+            dof_pos<span class="tok-op">,</span>
+            dof_vel<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+
+        <span class="tok-comment"># Compute observations</span>
+        <span class="tok-comment"># obs 必须保持 dict contract，actor/critic 组由 obs_groups_spec 声明维度。</span>
+        obs <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_obs<span class="tok-op">(</span>
+            state<span class="tok-op">.</span>info<span class="tok-op">,</span>
+            motion_data<span class="tok-op">,</span>
+            linvel<span class="tok-op">,</span>
+            gyro<span class="tok-op">,</span>
+            dof_pos<span class="tok-op">,</span>
+            dof_vel<span class="tok-op">,</span>
+            robot_body_pos_w<span class="tok-op">,</span>
+            robot_body_quat_w<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+
+        <span class="tok-comment"># Advance motion frames</span>
+        done_env_ids <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>motion_sampler<span class="tok-op">.</span>step<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-kw">if</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>done_env_ids<span class="tok-op">)</span> <span class="tok-op">&gt;</span> <span class="tok-num">0</span><span class="tok-op">:</span>
+            <span class="tok-kw">if</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>truncate_on_clip_end<span class="tok-op">:</span>
+                <span class="tok-builtin">self</span><span class="tok-op">.</span>_clip_end_truncated<span class="tok-op">[</span>done_env_ids<span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-kw">True</span>
+            <span class="tok-kw">else</span><span class="tok-op">:</span>
+                <span class="tok-comment"># Match BeyondMimic: clip boundaries are command resampling points, not</span>
+                <span class="tok-comment"># episode boundaries; sync the simulated robot to the new reference.</span>
+                resample_env_ids <span class="tok-op">=</span> done_env_ids<span class="tok-op">[</span><span class="tok-op">~</span>terminated<span class="tok-op">[</span>done_env_ids<span class="tok-op">]</span><span class="tok-op">]</span>
+                <span class="tok-kw">if</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>resample_env_ids<span class="tok-op">)</span> <span class="tok-op">&gt;</span> <span class="tok-num">0</span><span class="tok-op">:</span>
+                    <span class="tok-builtin">self</span><span class="tok-op">.</span>_resample_reference_state<span class="tok-op">(</span>resample_env_ids<span class="tok-op">)</span>
+                    <span class="tok-builtin">self</span><span class="tok-op">.</span>_refresh_observation_rows<span class="tok-op">(</span>obs<span class="tok-op">,</span> state<span class="tok-op">.</span>info<span class="tok-op">,</span> resample_env_ids<span class="tok-op">)</span>
+
+        <span class="tok-kw">return</span> state<span class="tok-op">.</span>replace<span class="tok-op">(</span>obs<span class="tok-op">=</span>obs<span class="tok-op">,</span> reward<span class="tok-op">=</span>reward<span class="tok-op">,</span> terminated<span class="tok-op">=</span>terminated<span class="tok-op">)</span></code></pre>
+<h2 id="agent">Agent</h2>
+<p>Agent 输出 G1 29 维动作；PPO/APPO/SAC 变体共享 motion tracking 目标，但 critic/算法配置不同。</p>
+<p>训练入口通过 owner YAML 决定注册 env、后端身份和算法参数；CLI 应使用 <code>--sim</code> 选择 backend owner，而不是单独 override <code>training.sim_backend</code>。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">training</span>:
+  <span class="tok-key">task_name</span>: G1MotionTracking
+  <span class="tok-key">sim_backend</span>: mujoco
+  <span class="tok-key">play_steps</span>: <span class="tok-num">1000</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>: {}
+  <span class="tok-key">num_envs</span>: <span class="tok-num">1024</span>
+  <span class="tok-key">max_iterations</span>: <span class="tok-num">5000</span></code></pre>
+<h2 id="env">Env</h2>
+<p>Env 使用 <code>MotionLoader</code> 读取 npz motion，并在 reset 时采样 clip 时间。</p>
+<p>Env 必须遵守 <code>NpEnv</code> contract：<code>reset()</code> 返回 <code>(obs_dict, info_dict)</code>，<code>obs</code> 是 dict，<code>obs_groups_spec</code> 决定 learner 使用哪些观测组。</p>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-op">)</span>
+    undesired_contact_z_threshold<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.05</span>
+    terminate_on_undesired_contacts<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">False</span>
+
+
+<span class="tok-op">@</span>registry<span class="tok-op">.</span>envcfg<span class="tok-op">(</span><span class="tok-str">&quot;G1MotionTracking&quot;</span><span class="tok-op">)</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> G1MotionTrackingEnvCfg<span class="tok-op">(</span>G1MotionTrackingCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-str">&quot;&quot;&quot;Registered configuration for G1 motion tracking.&quot;&quot;&quot;</span>
+
+    <span class="tok-kw">pass</span></code></pre>
+<h2 id="obs">Obs</h2>
+<p>观测围绕当前机器人状态、参考 motion 相位/目标和动作历史构造；SAC 变体会额外给 critic base linvel。</p>
+<h3 id="obs-字段级拆解">Obs 字段级拆解</h3>
+<p>下面的表格把源码里的观测拼接逻辑拆成语义字段。维度如果依赖 history、terrain scan 或 motion body 数量，文档会写成“规模”而不是硬编码，避免和配置漂移。</p>
+<div class="table-wrap"><table><thead><tr><th>观测字段</th><th>维度/规模</th><th>代码来源</th><th>中文说明</th></tr></thead><tbody><tr><td>current robot state</td><td>随 G1 nu 变化</td><td><code>G1MotionTrackingEnv</code></td><td>当前 root、关节、末端和 body 状态。</td></tr><tr><td>reference root</td><td>位置/朝向/速度</td><td><code>MotionLoader</code></td><td>参考 motion 中 root 的目标位置、朝向和速度。</td></tr><tr><td>reference body</td><td>body_names × 状态</td><td><code>body_names</code></td><td>参考 motion 中关键 body 的位置、朝向、线速度和角速度。</td></tr><tr><td>reference joints</td><td>nu 维</td><td><code>motion_data.joint_pos</code></td><td>参考 motion 的关节角。</td></tr><tr><td>phase / sampling</td><td>clip 时间相关</td><td><code>MotionSampler</code></td><td>当前 episode 对应 motion clip 的时间位置。</td></tr><tr><td>last_actions</td><td>nu 维</td><td>info 动作历史</td><td>帮助策略保持动作连续。</td></tr><tr><td>critic extras</td><td>任务相关</td><td>SAC/Deploy 变体</td><td>SAC 变体可给 critic 额外 base linvel 或全身特权信息。</td></tr></tbody></table></div>
+<p>owner YAML 中的 <code>algo.obs_groups</code> 说明算法从 env obs dict 中读取哪些组。没有写入 owner 的字段保持 env cfg 默认值，文档不臆造未配置项。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>:
+    {}
+</code></pre>
+<p>代码侧观测通常在 <code>_get_obs</code>、<code>_build_obs</code>、<code>obs_groups_spec</code> 或 base env 中组装：</p>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    <span class="tok-kw">def</span> _get_current_motion<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span> <span class="tok-op">-&gt;</span> MotionData<span class="tok-op">:</span>
+        <span class="tok-kw">if</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_motion_data_buffer <span class="tok-kw">is</span> <span class="tok-kw">None</span><span class="tok-op">:</span>
+            <span class="tok-kw">return</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>motion_sampler<span class="tok-op">.</span>get_current_motion<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-kw">return</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>motion_sampler<span class="tok-op">.</span>get_current_motion<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_motion_data_buffer<span class="tok-op">)</span>
+
+    <span class="tok-op">@</span>property
+    <span class="tok-kw">def</span> obs_groups_spec<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">int</span><span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># Actor: command(2n) + motion_anchor_pos_b(3) + motion_anchor_ori_b(6)</span>
+        <span class="tok-comment">#        + linvel(3) + gyro(3) + joint_pos(n) + joint_vel(n) + actions(n)</span>
+        <span class="tok-comment"># Critic mirrors BeyondMimic physical terms without actor observation noise:</span>
+        <span class="tok-comment">#        command, motion anchor, robot body pos/ori, linvel, gyro, joints, actions.</span>
+        n <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_num_action
+        actor_width <span class="tok-op">=</span> getattr<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> <span class="tok-str">&quot;_actor_obs_width&quot;</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_actor_obs_dim<span class="tok-op">(</span>n<span class="tok-op">)</span><span class="tok-op">)</span></code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>obs_groups_spec</td><td>声明 obs dict 中各观测组的维度，是 wrapper/learner 对齐观测的契约。</td></tr><tr><td>_compute_obs</td><td>读取 backend 传感器和 info 字段，拼接 actor/critic 观测。</td></tr></tbody></table></div>
+<h2 id="action">Action</h2>
+<p>动作控制 G1 29 个 actuator，通过 action_scale 映射到关节目标。</p>
+<h3 id="action-逐维拆解">Action 逐维拆解</h3>
+<p>G1 的 action 覆盖 29 个可控关节：腿、腰和双臂都参与控制。行走任务更强调腿部和腰部稳定，motion tracking 则让上肢也跟随参考动作。</p>
+<p>当前代表 scene 编译出的 action 维度为 <code>29</code>。下表来自 MuJoCo 编译模型的 actuator 顺序，也就是策略输出维度和执行器维度的对应关系。</p>
+<div class="table-wrap"><table><thead><tr><th>Action 维度</th><th>执行器</th><th>驱动关节</th><th>中文含义</th><th>控制/限制说明</th></tr></thead><tbody><tr><td>0</td><td>left_hip_pitch_joint</td><td>left_hip_pitch_joint</td><td>左髋俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>1</td><td>left_hip_roll_joint</td><td>left_hip_roll_joint</td><td>左髋侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>2</td><td>left_hip_yaw_joint</td><td>left_hip_yaw_joint</td><td>左髋偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>3</td><td>left_knee_joint</td><td>left_knee_joint</td><td>左膝关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>4</td><td>left_ankle_pitch_joint</td><td>left_ankle_pitch_joint</td><td>左踝俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>5</td><td>left_ankle_roll_joint</td><td>left_ankle_roll_joint</td><td>左踝侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>6</td><td>right_hip_pitch_joint</td><td>right_hip_pitch_joint</td><td>右髋俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>7</td><td>right_hip_roll_joint</td><td>right_hip_roll_joint</td><td>右髋侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>8</td><td>right_hip_yaw_joint</td><td>right_hip_yaw_joint</td><td>右髋偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>9</td><td>right_knee_joint</td><td>right_knee_joint</td><td>右膝关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>10</td><td>right_ankle_pitch_joint</td><td>right_ankle_pitch_joint</td><td>右踝俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>11</td><td>right_ankle_roll_joint</td><td>right_ankle_roll_joint</td><td>右踝侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>12</td><td>waist_yaw_joint</td><td>waist_yaw_joint</td><td>腰偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>13</td><td>waist_roll_joint</td><td>waist_roll_joint</td><td>腰侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>14</td><td>waist_pitch_joint</td><td>waist_pitch_joint</td><td>腰俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>15</td><td>left_shoulder_pitch_joint</td><td>left_shoulder_pitch_joint</td><td>左肩俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>16</td><td>left_shoulder_roll_joint</td><td>left_shoulder_roll_joint</td><td>左肩侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>17</td><td>left_shoulder_yaw_joint</td><td>left_shoulder_yaw_joint</td><td>左肩偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>18</td><td>left_elbow_joint</td><td>left_elbow_joint</td><td>左肘关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>19</td><td>left_wrist_roll_joint</td><td>left_wrist_roll_joint</td><td>左腕侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>20</td><td>left_wrist_pitch_joint</td><td>left_wrist_pitch_joint</td><td>左腕俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>21</td><td>left_wrist_yaw_joint</td><td>left_wrist_yaw_joint</td><td>左腕偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>22</td><td>right_shoulder_pitch_joint</td><td>right_shoulder_pitch_joint</td><td>右肩俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>23</td><td>right_shoulder_roll_joint</td><td>right_shoulder_roll_joint</td><td>右肩侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>24</td><td>right_shoulder_yaw_joint</td><td>right_shoulder_yaw_joint</td><td>右肩偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>25</td><td>right_elbow_joint</td><td>right_elbow_joint</td><td>右肘关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>26</td><td>right_wrist_roll_joint</td><td>right_wrist_roll_joint</td><td>右腕侧摆关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>27</td><td>right_wrist_pitch_joint</td><td>right_wrist_pitch_joint</td><td>右腕俯仰关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr><tr><td>28</td><td>right_wrist_yaw_joint</td><td>right_wrist_yaw_joint</td><td>右腕偏航关节</td><td>XML 未显式限制，实际由 env 缩放/默认角和 backend 控制</td></tr></tbody></table></div>
+<p>控制参数来自 owner YAML 的 <code>env.control_config</code>，缺省值由对应 env cfg/dataclass 提供。</p>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">control_config</span>:
+    {}
+</code></pre>
+<p>动作到执行器的实际映射由 backend 的 actuator control range 和 env 的 <code>apply_action</code>/控制函数完成：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/motion_tracking/g1/tracking.py
+            if bias is not None:
+                if env_ids is not None:
+                    return self.default_angles + bias[env_ids]
+                return self.default_angles + bias
+        return self.default_angles
+
+    def apply_action(self, actions: np.ndarray, state: NpEnvState) -&gt; np.ndarray:
+        state.info[&quot;last_actions&quot;] = state.info.get(&quot;current_actions&quot;, np.zeros_like(actions))
+        state.info[&quot;current_actions&quot;] = actions
+        exec_actions = (
+            state.info[&quot;last_actions&quot;]
+            if self._cfg.control_config.simulate_action_latency
+            else actions</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>apply_action</td><td>把策略输出缩放为执行器控制目标。</td></tr></tbody></table></div>
+<h2 id="reward">Reward</h2>
+<p>reward 包含 root pos/ori、body pos/ori、body velocity、joint pos/vel、action_rate 和 joint_limit 等 tracking 项。</p>
+<h3 id="reward-逐项拆解">Reward 逐项拆解</h3>
+<p>reward scale 以 owner YAML 的 <code>reward.scales</code> 为真源；源码中的 <code>RewardConfig</code> 描述可用字段，训练脚本只做 Hydra 组装和注入。正数通常表示奖励，负数通常表示惩罚，0 表示该项在当前 owner 中关闭或仅保留接口。</p>
+<div class="table-wrap"><table><thead><tr><th>Reward key</th><th>Scale</th><th>方向</th><th>中文含义</th></tr></thead><tbody><tr><td>motion_global_root_pos</td><td>0.5</td><td>奖励</td><td>参考 motion 的 root 全局位置跟踪奖励。</td></tr><tr><td>motion_global_root_ori</td><td>0.5</td><td>奖励</td><td>参考 motion 的 root 全局朝向跟踪奖励。</td></tr><tr><td>motion_body_pos</td><td>1.0</td><td>奖励</td><td>参考 motion 的各 body 位置跟踪奖励。</td></tr><tr><td>motion_body_ori</td><td>1.0</td><td>奖励</td><td>参考 motion 的各 body 朝向跟踪奖励。</td></tr><tr><td>motion_body_lin_vel</td><td>1.0</td><td>奖励</td><td>参考 motion 的 body 线速度跟踪奖励。</td></tr><tr><td>motion_body_ang_vel</td><td>1.0</td><td>奖励</td><td>参考 motion 的 body 角速度跟踪奖励。</td></tr><tr><td>motion_joint_pos</td><td>0.0</td><td>记录/关闭</td><td>参考 motion 的关节位置跟踪奖励。</td></tr><tr><td>motion_joint_vel</td><td>0.0</td><td>记录/关闭</td><td>参考 motion 的关节速度跟踪奖励。</td></tr><tr><td>action_rate_l2</td><td>-0.1</td><td>惩罚</td><td>动作变化 L2 惩罚， motion tracking 中用于约束动作平滑。</td></tr><tr><td>joint_limit</td><td>-10.0</td><td>惩罚</td><td>关节限位惩罚，避免追踪动作时撞到机械限位。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">reward</span>:
+  <span class="tok-key">scales</span>:
+    <span class="tok-key">motion_global_root_pos</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">motion_global_root_ori</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">motion_body_pos</span>: <span class="tok-num">1.0</span>
+    <span class="tok-key">motion_body_ori</span>: <span class="tok-num">1.0</span>
+    <span class="tok-key">motion_body_lin_vel</span>: <span class="tok-num">1.0</span>
+    <span class="tok-key">motion_body_ang_vel</span>: <span class="tok-num">1.0</span>
+    <span class="tok-key">motion_joint_pos</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">motion_joint_vel</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">action_rate_l2</span>: <span class="tok-num">-0.1</span>
+    <span class="tok-key">joint_limit</span>: <span class="tok-num">-10.0</span>
+  <span class="tok-key">std_root_pos</span>: <span class="tok-num">0.3</span>
+  <span class="tok-key">std_root_ori</span>: <span class="tok-num">0.4</span>
+  <span class="tok-key">std_body_pos</span>: <span class="tok-num">0.3</span>
+  <span class="tok-key">std_body_ori</span>: <span class="tok-num">0.4</span>
+  <span class="tok-key">std_body_lin_vel</span>: <span class="tok-num">1.0</span>
+  <span class="tok-key">std_body_ang_vel</span>: <span class="tok-num">3.14</span>
+  <span class="tok-key">std_joint_pos</span>: <span class="tok-num">0.2</span>
+  <span class="tok-key">std_joint_vel</span>: <span class="tok-num">1.0</span>
+</code></pre>
+<p>源码中的 reward 入口：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/motion_tracking/g1/tracking.py
+from unilab.envs.locomotion.g1.base import G1BaseCfg, G1BaseEnv
+
+from .motion_loader import MotionData, MotionLoader, MotionSampler
+
+
+@dataclass
+class RewardConfig:
+    &quot;&quot;&quot;Reward configuration for motion tracking.&quot;&quot;&quot;
+
+    scales: dict[str, float] = field(
+        default_factory=lambda: {
+            &quot;motion_global_root_pos&quot;: 0.5,
+            &quot;motion_global_root_ori&quot;: 0.5,</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>RewardConfig:</td><td>声明 reward 可用参数和默认 scale。</td></tr><tr><td>_init_reward_functions</td><td>把 reward 名称映射到源码函数，owner YAML 的 scale 会按这些 key 分发。</td></tr><tr><td>_reward_term_is_active</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_compute_reward</td><td>reward 相关源码锚点。</td></tr><tr><td>_exp_reward_from_error</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_global_root_pos</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_global_root_ori</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_body_pos</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_body_ori</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_body_lin_vel</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_body_ang_vel</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_motion_ee_body_pos_z</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr></tbody></table></div>
+<h2 id="初始状态">初始状态</h2>
+<p>初始状态从 motion reference 构造，并叠加 pose/velocity/joint 随机化。</p>
+<p>机器人默认姿态来自 scene/task fragment 中的 keyframe；任务 reset 在此基础上加入命令、motion reference、物体状态或随机化。</p>
+<pre class="code-block language-xml"><code><span class="tok-comment">&lt;!-- src/unilab/assets/robots/g1/scene_flat.xml --&gt;</span>
+    &lt;<span class="tok-tag">contact</span> <span class="tok-attr">name</span>=<span class="tok-str">&quot;right_foot_contact_3&quot;</span> <span class="tok-attr">geom1</span>=<span class="tok-str">&quot;floor&quot;</span> <span class="tok-attr">geom2</span>=<span class="tok-str">&quot;right_foot_contact_3_geom&quot;</span> <span class="tok-attr">data</span>=<span class="tok-str">&quot;found&quot;</span> <span class="tok-attr">num</span>=<span class="tok-str">&quot;1&quot;</span> <span class="tok-attr">reduce</span>=<span class="tok-str">&quot;mindist&quot;</span>/&gt;
+  &lt;/<span class="tok-tag">sensor</span>&gt;
+
+  &lt;<span class="tok-tag">keyframe</span>&gt;
+    &lt;!-- &lt;key name=&quot;home&quot;
+      qpos=&quot;
+      0 0 0.79</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/motion_tracking/g1/tracking.py</span>
+    DomainRandomizationCapabilities<span class="tok-op">,</span>
+    DomainRandomizationProvider<span class="tok-op">,</span>
+    IntervalRandomizationPlan<span class="tok-op">,</span>
+    ResetPlan<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr<span class="tok-op">.</span>dr_utils <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    build_common_reset_randomization<span class="tok-op">,</span>
+    build_interval_push_plan<span class="tok-op">,</span>
+    validate_common_reset_randomization<span class="tok-op">,</span>
+    validate_interval_push_support<span class="tok-op">,</span>
+    zero_actions<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr<span class="tok-op">.</span>types <span class="tok-kw">import</span> RESET_TERM_GEOM_FRICTION<span class="tok-op">,</span> ResetRandomizationPayload</code></pre>
+<h2 id="终止条件">终止条件</h2>
+<p>终止由 anchor z/ori 误差、末端 z 误差、undesired contact 和 clip 截断策略决定。</p>
+<p>终止条件通常由 env 源码中的 <code>_compute_termination(s)</code>、reward config 阈值和 <code>max_episode_seconds</code> 共同决定。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  {}
+
+<span class="tok-key">reward</span>:
+  {}
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/motion_tracking/g1/tracking.py
+            robot_body_lin_vel_w,
+            robot_body_ang_vel_w,
+        ) = self._get_body_state_w()
+
+        # Compute relative body transforms (for observations and rewards)
+        self._update_relative_transforms(motion_data, robot_body_pos_w, robot_body_quat_w)
+
+        # Compute terminations
+        terminated = self._compute_terminations(motion_data, robot_body_pos_w, robot_body_quat_w)
+
+        # Update failure statistics for adaptive sampling
+        self.motion_sampler.update_failure_stats(terminated)
+
+        # Compute reward
+        reward = self._compute_reward(
+            state.info,
+            motion_data,</code></pre>
+<h2 id="域随机化">域随机化</h2>
+<p>domain_rand 支持 base mass、COM、gravity、push、kp/kd、friction 和 joint default pos 扰动。</p>
+<p>域随机化只在 reset/interval 等冷路径触发，不在 step 热路径解析资产或探测 backend 私有能力。</p>
+<h3 id="域随机化字段拆解">域随机化字段拆解</h3>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/appo/task/g1_motion_tracking/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">domain_rand</span>:
+    {}
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/motion_tracking/g1/tracking.py
+from unilab.assets import ASSETS_ROOT_PATH
+from unilab.base import registry
+from unilab.base.backend import create_backend
+from unilab.base.np_env import NpEnvState
+from unilab.base.scene import SceneCfg
+from unilab.dr import (
+    DomainRandomizationCapabilities,
+    DomainRandomizationProvider,
+    IntervalRandomizationPlan,
+    ResetPlan,
+)
+from unilab.dr.dr_utils import (
+    build_common_reset_randomization,</code></pre>
+    </article>
+  </main>
+  <script>window.SEARCH_INDEX_URL = "../../search-index.json";</script>
+  <script>window.SITE_ROOT_PREFIX = "../../";</script>
+  <script src="../../site.js"></script>
+</body>
+</html>

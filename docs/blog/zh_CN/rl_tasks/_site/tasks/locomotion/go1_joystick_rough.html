@@ -1,0 +1,924 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Go1 Joystick Rough · UniLab RL Tasks</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body class="page-task">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <aside class="sidebar">
+    <a class="brand" href="../../index.html">
+      <span class="brand-mark">RL</span>
+      <span><strong>UniLab</strong><small>Task Atlas</small></span>
+    </a>
+    <div class="sidebar-card">
+      <span>Contract driven</span>
+      <strong>Robot Learning Docs</strong>
+      <p>任务、资产、源码和配置的一站式索引。</p>
+    </div>
+    <label class="search-label" for="search">快速搜索</label>
+    <input id="search" type="search" placeholder="例如 G1、reward、action..." autocomplete="off">
+    <div id="search-results" class="search-results"></div>
+    <nav><section><h3>总览</h3><ul>
+<li><a href="../../index.html">UniLab 强化学习任务与机器人资产文档</a></li>
+</ul></section>
+<section><h3>机器人</h3><ul>
+<li><a href="../../robots/allegro_hand/index.html">Allegro Hand 机器人资产与关节说明</a></li>
+<li><a href="../../robots/g1/index.html">Unitree G1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go1/index.html">Unitree Go1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2/index.html">Unitree Go2 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2_arm/index.html">Go2 + Airbot Arm 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2w/index.html">Unitree Go2W 机器人资产与关节说明</a></li>
+<li><a href="../../robots/k1/index.html">Booster K1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/sharpa_wave/index.html">Sharpa Wave Hand 机器人资产与关节说明</a></li>
+</ul></section>
+<section><h3>运动控制</h3><ul>
+<li><a href="index.html">运动控制任务</a></li>
+<li><a href="g1_walk_flat.html">G1 Walk Flat</a></li>
+<li><a href="g1_walk_rough.html">G1 Walk Rough</a></li>
+<li><a href="go1_joystick_flat.html">Go1 Joystick Flat</a></li>
+<li class="active">Go1 Joystick Rough</li>
+<li><a href="go2_footstand.html">Go2 FootStand</a></li>
+<li><a href="go2_handstand.html">Go2 HandStand</a></li>
+<li><a href="go2_joystick_flat.html">Go2 Joystick Flat</a></li>
+<li><a href="go2_joystick_rough.html">Go2 Joystick Rough</a></li>
+<li><a href="go2w_joystick_flat.html">Go2W Joystick Flat</a></li>
+<li><a href="go2w_joystick_rough.html">Go2W Joystick Rough</a></li>
+<li><a href="k1_soccer_dribble.html">K1 Soccer Dribble</a></li>
+<li><a href="k1_walk_flat.html">K1 Walk Flat</a></li>
+</ul></section>
+<section><h3>移动操作</h3><ul>
+<li><a href="../../tasks/manip_loco/index.html">移动操作任务</a></li>
+<li><a href="../../tasks/manip_loco/go2_arm_manip_loco.html">Go2 Arm Manip-Loco</a></li>
+</ul></section>
+<section><h3>灵巧操作</h3><ul>
+<li><a href="../../tasks/manipulation/index.html">灵巧操作任务</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand.html">Allegro In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/allegro_inhand_grasp.html">Allegro In-Hand Grasp</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand.html">Sharpa In-Hand Rotation</a></li>
+<li><a href="../../tasks/manipulation/sharpa_inhand_grasp.html">Sharpa In-Hand Grasp</a></li>
+</ul></section>
+<section><h3>动作追踪</h3><ul>
+<li><a href="../../tasks/motion_tracking/index.html">动作追踪任务</a></li>
+<li><a href="../../tasks/motion_tracking/g1_box_tracking.html">G1 Box Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_climb_tracking.html">G1 Climb Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_flip_tracking.html">G1 Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking.html">G1 Motion Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking_deploy.html">G1 Motion Tracking Deploy</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wall_flip_tracking.html">G1 Wall Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wbt_obs.html">G1 WBT Obs</a></li>
+</ul></section></nav>
+  </aside>
+  <main class="main-stage">
+    
+    <header class="hero hero-task">
+      <div class="hero-copy">
+        <div class="eyebrow">运动控制 · UniLab RL Tasks</div>
+        <h1>Go1 Joystick Rough</h1>
+        <p>从 agent、env、obs、action、reward、初始状态、终止条件和域随机化八个角度拆解任务实现。</p>
+        
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </header>
+
+    
+    <aside class="page-toc" aria-label="本页目录">
+      <div class="page-toc-title">本页目录</div>
+      <nav>
+        <a class="toc-level-2" href="#任务目标">任务目标</a><a class="toc-level-2" href="#证据索引">证据索引</a><a class="toc-level-3" href="#registry-与-owner">Registry 与 Owner</a><a class="toc-level-2" href="#代码级执行流">代码级执行流</a><a class="toc-level-3" href="#本任务阅读重点">本任务阅读重点</a><a class="toc-level-3" href="#本任务注册入口">本任务注册入口</a><a class="toc-level-3" href="#本任务源码锚点">本任务源码锚点</a><a class="toc-level-2" href="#关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</a><a class="toc-level-3" href="#配置与地形">配置与地形</a><a class="toc-level-3" href="#reset-地形-spawn">Reset：地形 spawn</a><a class="toc-level-3" href="#obs-高度扫描">Obs：高度扫描</a><a class="toc-level-3" href="#action-控制语义不变">Action：控制语义不变</a><a class="toc-level-3" href="#reward-termination-地形风险">Reward/Termination：地形风险</a><a class="toc-level-2" href="#agent">Agent</a><a class="toc-level-2" href="#env">Env</a><a class="toc-level-2" href="#obs">Obs</a><a class="toc-level-3" href="#obs-字段级拆解">Obs 字段级拆解</a><a class="toc-level-2" href="#action">Action</a><a class="toc-level-3" href="#action-逐维拆解">Action 逐维拆解</a><a class="toc-level-2" href="#reward">Reward</a><a class="toc-level-3" href="#reward-逐项拆解">Reward 逐项拆解</a><a class="toc-level-2" href="#初始状态">初始状态</a><a class="toc-level-2" href="#终止条件">终止条件</a><a class="toc-level-2" href="#域随机化">域随机化</a><a class="toc-level-3" href="#域随机化字段拆解">域随机化字段拆解</a>
+      </nav>
+    </aside>
+
+    <article class="doc-article">
+      <h1 id="go1-joystick-rough">Go1 Joystick Rough</h1>
+<h2 id="任务目标">任务目标</h2>
+<p>让 Go1 在崎岖地形上保持 joystick 跟踪能力，并适应高度扫描、地形 spawn 与足端接触扰动。</p>
+<p><img src="../../images/tasks/go1_joystick_rough.png" alt="Go1 Joystick Rough 场景渲染" loading="lazy"></p>
+<blockquote>
+<p>图片由 <code>_tools/render_static_images.py</code> 使用 <code>src/unilab/assets/robots/go1/scene_flat.xml</code> 的 MuJoCo scene 离屏渲染生成；如果当前环境无法启用 EGL/OSMesa，生成 manifest 会记录失败原因。</p>
+</blockquote>
+<h2 id="证据索引">证据索引</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>内容</th></tr></thead><tbody><tr><td>任务类别</td><td>运动控制</td></tr><tr><td>机器人</td><td>go1</td></tr><tr><td>代表 scene</td><td>src/unilab/assets/robots/go1/scene_flat.xml</td></tr><tr><td>代表源码</td><td>src/unilab/envs/locomotion/go1/rough.py</td></tr><tr><td>代表 owner YAML</td><td>conf/ppo/task/go1_joystick_rough/mujoco.yaml</td></tr><tr><td>动作维度</td><td>12</td></tr></tbody></table></div>
+<h3 id="registry-与-owner">Registry 与 Owner</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>后端</th><th>配置类</th><th>配置源码</th></tr></thead><tbody><tr><td>Go1JoystickRough</td><td>mujoco, motrix</td><td>Go1JoystickRoughCfg</td><td>src/unilab/envs/locomotion/go1/rough.py</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>算法组</th><th>后端</th><th>training.task_name</th><th>owner YAML</th></tr></thead><tbody><tr><td>ppo</td><td>motrix</td><td>Go1JoystickRough</td><td>conf/ppo/task/go1_joystick_rough/motrix.yaml</td></tr><tr><td>ppo</td><td>mujoco</td><td>Go1JoystickRough</td><td>conf/ppo/task/go1_joystick_rough/mujoco.yaml</td></tr></tbody></table></div>
+<h2 id="代码级执行流">代码级执行流</h2>
+<p>这部分不再用通用关键词套模板，而是为 <code>go1_joystick_rough</code> 单独写源码导读。源码片段只负责提供证据；每节说明都围绕本任务自己的配置、状态、观测、动作和 reward 语义展开。</p>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>证据位置</th><th>代码级说明</th></tr></thead><tbody><tr><td>1. Hydra owner</td><td>conf/ppo/task/go1_joystick_rough/mujoco.yaml</td><td>训练命令先 compose owner YAML。这里确定 <code>training.task_name</code>、后端身份、obs_groups、reward scale 和 env override。</td></tr><tr><td>2. Registry 构造 Env</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td><code>@registry.envcfg</code> 注册配置类，<code>@registry.env</code> 注册后端实现类；训练脚本只调用 registry，不直接 new 任务类。</td></tr><tr><td>3. Reset/初始状态</td><td>src/unilab/assets/robots/go1/scene_flat.xml</td><td>env 从 scene keyframe 或 motion/grasp cache 取初态，再通过 reset randomization 改写 qpos/qvel/info。</td></tr><tr><td>4. Obs dict</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>env 读取 backend 传感器和 info，返回 dict；learner 根据 <code>obs_groups_spec</code> 和 owner <code>algo.obs_groups</code> 选择 actor/critic 输入。</td></tr><tr><td>5. Action 到控制目标</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>policy 输出先按 action scale / 控制顺序映射到 actuator，再由 backend step 推进仿真。</td></tr><tr><td>6. Reward dispatch</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>源码把 reward key 映射到函数，owner YAML 的 scale 决定每项奖励/惩罚是否启用以及权重。</td></tr><tr><td>7. Termination</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>env 根据高度、姿态、接触、参考轨迹误差、物体状态或能量阈值生成 done/terminated。</td></tr></tbody></table></div>
+<h3 id="本任务阅读重点">本任务阅读重点</h3>
+<div class="table-wrap"><table><thead><tr><th>阅读重点</th></tr></thead><tbody><tr><td>Go1 rough 不是换一个奖励名字，而是在 rough env 中显式加入 terrain、spawn、height scan 和地形相对高度判断。</td></tr><tr><td>动作空间仍是 Go1 12 DoF，变化集中在 reset 如何落到地形、obs 如何加入地形信息、reward 如何惩罚拖脚和姿态失稳。</td></tr><tr><td>阅读时要把 <code>Go1JoystickRoughCfg</code> 和 <code>Go1JoystickRoughEnv</code> 同平地任务对比，才能看出 rough 任务新增了哪些风险边界。</td></tr></tbody></table></div>
+<h3 id="本任务注册入口">本任务注册入口</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>配置类</th><th>可用后端</th></tr></thead><tbody><tr><td>Go1JoystickRough</td><td>Go1JoystickRoughCfg</td><td>mujoco, motrix</td></tr></tbody></table></div>
+<h3 id="本任务源码锚点">本任务源码锚点</h3>
+<div class="table-wrap"><table><thead><tr><th>小节</th><th>源码文件</th><th>明确锚点</th></tr></thead><tbody><tr><td>配置与地形</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>Go1JoystickRoughCfg, Go1RoughTerrainCfg</td></tr><tr><td>Reset：地形 spawn</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>build_reset_plan, spawn</td></tr><tr><td>Obs：高度扫描</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>obs_groups_spec, _compute_obs, height_scan</td></tr><tr><td>Action：控制语义不变</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>apply_action, clip_actions</td></tr><tr><td>Reward/Termination：地形风险</td><td>src/unilab/envs/locomotion/go1/rough.py</td><td>_init_reward_functions, update_state</td></tr></tbody></table></div>
+<h2 id="关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</h2>
+<h3 id="配置与地形">配置与地形</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>Rough cfg 声明 terrain generator、rough scene 和地形采样参数。</td></tr><tr><td>这些字段属于任务层，机器人 XML 不承载地形规则。</td></tr><tr><td><code>&lt;keyframe&gt;</code> 和 locomotion task fragment 留在 task-level XML，rough 地形通过 <code>TerrainSceneCfg</code> 注入。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+<span class="tok-op">@</span>registry<span class="tok-op">.</span>envcfg<span class="tok-op">(</span><span class="tok-str">&quot;Go1JoystickRough&quot;</span><span class="tok-op">)</span>
+<span class="tok-comment"># 注册 rough 任务配置名，Hydra owner 通过 Go1JoystickRough 找到它。</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-comment"># dataclass 让 terrain_scan、termination_config 等字段可被配置系统覆盖。</span>
+<span class="tok-kw">class</span> Go1JoystickRoughCfg<span class="tok-op">(</span>Go1JoystickCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-comment"># 继承平地 Go1JoystickCfg，保留 Go1 12 DoF joystick 控制主逻辑。</span>
+    scene<span class="tok-op">:</span> SceneCfg <span class="tok-op">=</span> field<span class="tok-op">(</span>
+        <span class="tok-comment"># rough 任务覆盖 scene，不能复用平地 scene_flat.xml。</span>
+        default_factory<span class="tok-op">=</span><span class="tok-kw">lambda</span><span class="tok-op">:</span> SceneCfg<span class="tok-op">(</span>
+            <span class="tok-comment"># default_factory 防止 dataclass 共享可变 SceneCfg。</span>
+            model_file<span class="tok-op">=</span><span class="tok-builtin">str</span><span class="tok-op">(</span>ASSETS_ROOT_PATH <span class="tok-op">/</span> <span class="tok-str">&quot;robots&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;go1&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;go1.xml&quot;</span><span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># model_file 指向纯机器人 XML，机器人描述不包含 rough 地形规则。</span>
+            fragment_files<span class="tok-op">=</span><span class="tok-op">[</span>
+                <span class="tok-comment"># fragment_files 引入任务级 XML 片段。</span>
+                <span class="tok-builtin">str</span><span class="tok-op">(</span>ASSETS_ROOT_PATH <span class="tok-op">/</span> <span class="tok-str">&quot;robots&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;go1&quot;</span> <span class="tok-op">/</span> <span class="tok-str">&quot;locomotion_task.xml&quot;</span><span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># locomotion_task.xml 承载任务相关 keyframe/传感器/场景片段。</span>
+            <span class="tok-op">]</span><span class="tok-op">,</span>
+            terrain<span class="tok-op">=</span>TerrainSceneCfg<span class="tok-op">(</span>
+                <span class="tok-comment"># terrain 字段声明 height field 地形，由 backend/materialization 冷路径生成。</span>
+                generator<span class="tok-op">=</span>Go1RoughTerrainCfg<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 使用 Go1RoughTerrainCfg 生成多类型 rough terrain。</span>
+                hfield_name<span class="tok-op">=</span><span class="tok-str">&quot;terrain_hfield&quot;</span><span class="tok-op">,</span>
+                <span class="tok-comment"># hfield 名称要和场景里使用的高度场资源对应。</span>
+                geom_name<span class="tok-op">=</span><span class="tok-str">&quot;floor&quot;</span><span class="tok-op">,</span>
+            <span class="tok-comment"># floor geom 绑定到 terrain height field。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+    <span class="tok-op">)</span>
+    control_config<span class="tok-op">:</span> RoughControlConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>RoughControlConfig<span class="tok-op">)</span>
+    <span class="tok-comment"># rough 使用专门控制配置，hip 和非 hip action scale 不同。</span>
+    commands<span class="tok-op">:</span> RoughCommands <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>RoughCommands<span class="tok-op">)</span>
+    <span class="tok-comment"># rough 使用 heading command 和更宽速度范围。</span>
+    terrain_scan<span class="tok-op">:</span> HeightScanConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>HeightScanConfig<span class="tok-op">)</span>
+    <span class="tok-comment"># critic 高度扫描配置，定义采样网格。</span>
+    termination_config<span class="tok-op">:</span> RoughTerminationConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>RoughTerminationConfig<span class="tok-op">)</span>
+    <span class="tok-comment"># rough 终止/截断配置，例如是否检查 terrain out-of-bounds。</span>
+    terrain_curriculum<span class="tok-op">:</span> TerrainCurriculumCfg <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>TerrainCurriculumCfg<span class="tok-op">)</span>
+    <span class="tok-comment"># 地形课程学习配置，用于根据完成情况调整 spawn 难度。</span>
+    sensor<span class="tok-op">:</span> RoughJoystickSensor <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>RoughJoystickSensor<span class="tok-op">)</span>
+    <span class="tok-comment"># rough 传感器在平地基础上增加 feet_vel 和 undesired_contact。</span>
+    domain_rand<span class="tok-op">:</span> Go1RoughDomainRandConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>Go1RoughDomainRandConfig<span class="tok-op">)</span>
+    <span class="tok-comment"># rough 专用 DR 默认打开 kp/kd 随机化。</span>
+    reward_config<span class="tok-op">:</span> RoughRewardConfig <span class="tok-op">|</span> <span class="tok-kw">None</span> <span class="tok-op">=</span> <span class="tok-kw">None</span>
+    <span class="tok-comment"># reward_config 仍由 owner YAML 注入，源码只声明类型。</span>
+</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+<span class="tok-op">@</span>dataclass<span class="tok-op">(</span>kw_only<span class="tok-op">=</span><span class="tok-kw">True</span><span class="tok-op">)</span>
+<span class="tok-comment"># kw_only 强制 terrain cfg 使用关键字参数构造，减少字段顺序错误。</span>
+<span class="tok-kw">class</span> Go1RoughTerrainCfg<span class="tok-op">(</span>TerrainGeneratorCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-comment"># 继承通用 TerrainGeneratorCfg，供 TerrainSceneCfg 在冷路径生成 hfield。</span>
+    size<span class="tok-op">:</span> <span class="tok-builtin">tuple</span><span class="tok-op">[</span><span class="tok-builtin">float</span><span class="tok-op">,</span> <span class="tok-builtin">float</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span><span class="tok-num">8.0</span><span class="tok-op">,</span> <span class="tok-num">8.0</span><span class="tok-op">)</span>
+    <span class="tok-comment"># 单个 terrain cell 的尺寸是 8m x 8m。</span>
+    num_rows<span class="tok-op">:</span> <span class="tok-builtin">int</span> <span class="tok-op">=</span> <span class="tok-num">6</span>
+    <span class="tok-comment"># 地形网格有 6 行。</span>
+    num_cols<span class="tok-op">:</span> <span class="tok-builtin">int</span> <span class="tok-op">=</span> <span class="tok-num">6</span>
+    <span class="tok-comment"># 地形网格有 6 列，共 36 个子地形区域。</span>
+    border_width<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">1.0</span>
+    <span class="tok-comment"># 全局边界宽度，用于避免机器人出生在地形边缘。</span>
+    add_lights<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">True</span>
+    <span class="tok-comment"># 生成场景时附加灯光，方便可视化。</span>
+    horizontal_scale<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.2</span>
+    <span class="tok-comment"># height field 横向采样分辨率。</span>
+
+    sub_terrains<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> SubTerrainCfg<span class="tok-op">]</span> <span class="tok-op">=</span> field<span class="tok-op">(</span>
+        <span class="tok-comment"># 定义不同 rough 子地形及其比例。</span>
+        default_factory<span class="tok-op">=</span><span class="tok-kw">lambda</span><span class="tok-op">:</span> <span class="tok-op">{</span>
+            <span class="tok-comment"># 使用 lambda 避免共享 dict。</span>
+            <span class="tok-str">&quot;flat&quot;</span><span class="tok-op">:</span> flat<span class="tok-op">(</span>proportion<span class="tok-op">=</span><span class="tok-num">0.0</span><span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># flat 比例为 0，说明本 rough 训练不主动采样平地子地形。</span>
+            <span class="tok-str">&quot;pyramid_stairs&quot;</span><span class="tok-op">:</span> pyramid_stairs<span class="tok-op">(</span>
+                <span class="tok-comment"># 正向金字塔楼梯地形。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.1</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 10% 地形样本。</span>
+                step_height_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.025</span><span class="tok-op">,</span> <span class="tok-num">0.10</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 台阶高度从 2.5cm 到 10cm。</span>
+                step_width<span class="tok-op">=</span><span class="tok-num">0.4</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 每级台阶宽度 0.4m。</span>
+                platform_width<span class="tok-op">=</span><span class="tok-num">3.0</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 中央平台宽度 3m，给机器人稳定区域。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界 0.2m。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;pyramid_stairs_inv&quot;</span><span class="tok-op">:</span> pyramid_stairs_inv<span class="tok-op">(</span>
+                <span class="tok-comment"># 反向金字塔楼梯。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.1</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 10%。</span>
+                step_height_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.025</span><span class="tok-op">,</span> <span class="tok-num">0.10</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 台阶高度范围同正向楼梯。</span>
+                step_width<span class="tok-op">=</span><span class="tok-num">0.4</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 台阶宽度同正向楼梯。</span>
+                platform_width<span class="tok-op">=</span><span class="tok-num">3.0</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 中央平台宽度。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;hf_pyramid_slope&quot;</span><span class="tok-op">:</span> hf_pyramid_slope<span class="tok-op">(</span>
+                <span class="tok-comment"># 正向斜坡地形。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 20%。</span>
+                slope_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.0</span><span class="tok-op">,</span> <span class="tok-num">0.3</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 坡度从 0 到 0.3。</span>
+                platform_width<span class="tok-op">=</span><span class="tok-num">2.0</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 平台宽度 2m。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;hf_pyramid_slope_inv&quot;</span><span class="tok-op">:</span> hf_pyramid_slope_inv<span class="tok-op">(</span>
+                <span class="tok-comment"># 反向斜坡地形。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 20%。</span>
+                slope_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.0</span><span class="tok-op">,</span> <span class="tok-num">0.3</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 坡度范围同正向斜坡。</span>
+                platform_width<span class="tok-op">=</span><span class="tok-num">2.0</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 平台宽度。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;random_rough&quot;</span><span class="tok-op">:</span> random_rough<span class="tok-op">(</span>
+                <span class="tok-comment"># 随机粗糙地面。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.3</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 30%，是 rough 训练的主要扰动之一。</span>
+                noise_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.01</span><span class="tok-op">,</span> <span class="tok-num">0.06</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 高度噪声 1cm 到 6cm。</span>
+                noise_step<span class="tok-op">=</span><span class="tok-num">0.01</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 噪声量化步长 1cm。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-str">&quot;wave_terrain&quot;</span><span class="tok-op">:</span> wave_terrain<span class="tok-op">(</span>
+                <span class="tok-comment"># 波浪地形。</span>
+                proportion<span class="tok-op">=</span><span class="tok-num">0.3</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 占 30%。</span>
+                amplitude_range<span class="tok-op">=</span><span class="tok-op">(</span><span class="tok-num">0.0</span><span class="tok-op">,</span> <span class="tok-num">0.12</span><span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 波浪幅值 0 到 12cm。</span>
+                num_waves<span class="tok-op">=</span><span class="tok-num">4</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 一个 cell 内生成 4 个波。</span>
+                border_width<span class="tok-op">=</span><span class="tok-num">0.2</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 子地形边界。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-op">}</span>
+    <span class="tok-op">)</span>
+</code></pre>
+<h3 id="reset-地形-spawn">Reset：地形 spawn</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>reset 会按 terrain spawn 重新放置 base，而不是简单复用平地位置。</td></tr><tr><td>qpos/qvel、commands 和 reset randomization 一起写入 ResetPlan。</td></tr><tr><td>reset 属于冷路径：采样出生点、随机 root 姿态、采样命令和 DR payload 都集中在 ResetPlan。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-kw">def</span> build_reset_plan<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> env<span class="tok-op">:</span> <span class="tok-builtin">Any</span><span class="tok-op">,</span> env_ids<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> ResetPlan<span class="tok-op">:</span>
+        <span class="tok-comment"># rough reset provider 为指定 env 构造完整 reset 方案。</span>
+        num_reset <span class="tok-op">=</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-comment"># 本次 reset 的并行环境数量。</span>
+        qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>tile<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qpos<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">1</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 从模型 home keyframe 复制 qpos，保持关节默认姿态。</span>
+        qvel <span class="tok-op">=</span> np<span class="tok-op">.</span>tile<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qvel<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">1</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 从初始 qvel 复制速度状态。</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">:</span><span class="tok-num">2</span><span class="tok-op">]</span> <span class="tok-op">+=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">0.5</span><span class="tok-op">,</span> <span class="tok-num">0.5</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">2</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 在局部 x/y 方向增加出生随机偏移。</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">2</span><span class="tok-op">]</span> <span class="tok-op">+=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-num">0.25</span><span class="tok-op">,</span> <span class="tok-num">0.5</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 抬高 base，避免出生时直接插入崎岖地形。</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">:</span><span class="tok-num">3</span><span class="tok-op">]</span> <span class="tok-op">+=</span> env<span class="tok-op">.</span>_spawn<span class="tok-op">.</span>origins_for<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-comment"># 把局部出生位姿平移到 terrain curriculum 选中的地形 cell 原点。</span>
+        roll <span class="tok-op">=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 随机 roll，增强 reset 姿态多样性。</span>
+        pitch <span class="tok-op">=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 随机 pitch。</span>
+        yaw <span class="tok-op">=</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-num">3.14</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 随机 yaw。</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">:</span><span class="tok-num">7</span><span class="tok-op">]</span> <span class="tok-op">=</span> np_quat_mul<span class="tok-op">(</span>qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">:</span><span class="tok-num">7</span><span class="tok-op">]</span><span class="tok-op">,</span> np_quat_from_euler_xyz<span class="tok-op">(</span>roll<span class="tok-op">,</span> pitch<span class="tok-op">,</span> yaw<span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 把随机欧拉角转四元数后乘到 root quaternion 上。</span>
+        qvel<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">:</span><span class="tok-num">6</span><span class="tok-op">]</span> <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>
+            <span class="tok-comment"># 随机 root 线速度和角速度。</span>
+            np<span class="tok-op">.</span>random<span class="tok-op">.</span>uniform<span class="tok-op">(</span><span class="tok-op">-</span><span class="tok-num">0.5</span><span class="tok-op">,</span> <span class="tok-num">0.5</span><span class="tok-op">,</span> size<span class="tok-op">=</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">6</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 速度范围是 [-0.5, 0.5]，dtype 与 env 数组一致。</span>
+        <span class="tok-op">)</span>
+        commands <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_sample_commands<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">)</span>
+        <span class="tok-comment"># reset 时采样新的速度/heading 命令。</span>
+        info_updates<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">Any</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">{</span>
+            <span class="tok-comment"># info_updates 会在 reset lifecycle 写入 state.info。</span>
+            <span class="tok-str">&quot;commands&quot;</span><span class="tok-op">:</span> commands<span class="tok-op">,</span>
+            <span class="tok-comment"># 写入当前 episode 的命令。</span>
+            <span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">:</span> zero_actions<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 清空当前动作历史。</span>
+            <span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">:</span> zero_actions<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 清空上一帧动作历史。</span>
+            <span class="tok-str">&quot;qacc&quot;</span><span class="tok-op">:</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 初始化关节加速度缓存，供 rough reward 使用。</span>
+            <span class="tok-str">&quot;torques&quot;</span><span class="tok-op">:</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 初始化力矩缓存，供 torque/power reward 使用。</span>
+        <span class="tok-op">}</span>
+        <span class="tok-kw">if</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>commands<span class="tok-op">.</span>heading_command<span class="tok-op">:</span>
+            <span class="tok-comment"># heading command 打开时，还需要单独采样目标 heading。</span>
+            info_updates<span class="tok-op">[</span><span class="tok-str">&quot;heading_commands&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> sample_heading_commands<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">)</span>
+        <span class="tok-comment"># 写入 heading_commands，后续 _update_commands 会做 yaw feedback。</span>
+        env<span class="tok-op">.</span>_spawn<span class="tok-op">.</span>record_episode_start<span class="tok-op">(</span>env_ids<span class="tok-op">,</span> qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">:</span><span class="tok-num">3</span><span class="tok-op">]</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 记录每个 env 的 episode 起点，用于 terrain curriculum 和越界判断。</span>
+        <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+            <span class="tok-comment"># 返回标准 ResetPlan，交给 DR manager/backend 统一应用。</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            <span class="tok-comment"># 指定 reset 的 env id。</span>
+            qpos<span class="tok-op">=</span>qpos<span class="tok-op">,</span>
+            <span class="tok-comment"># reset 后的完整 qpos。</span>
+            qvel<span class="tok-op">=</span>qvel<span class="tok-op">,</span>
+            <span class="tok-comment"># reset 后的完整 qvel。</span>
+            info_updates<span class="tok-op">=</span>info_updates<span class="tok-op">,</span>
+            <span class="tok-comment"># episode 级 info 更新。</span>
+            randomization<span class="tok-op">=</span>build_common_reset_randomization<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 叠加通用 reset randomization，例如质量、COM、摩擦、kp/kd 等。</span>
+        <span class="tok-op">)</span>
+</code></pre>
+<h3 id="obs-高度扫描">Obs：高度扫描</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>policy obs 保持紧凑，critic 扩展 height scan 特权信息。</td></tr><tr><td>高度扫描只来自 env/backend 的地形查询结果，训练脚本不直接读地形资产。</td></tr><tr><td>actor 不直接拿 height scan；critic 使用 <code>height_scan_obs</code> 提供地形特权信息。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-op">@</span>property
+    <span class="tok-comment"># 声明 rough 任务的 obs group 维度。</span>
+    <span class="tok-kw">def</span> obs_groups_spec<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">int</span><span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># policy/actor 组保持 45 维，critic 组随 height scan 网格变化。</span>
+        <span class="tok-comment"># Match the rough format: policy obs = 45, critic = 48 + height_scan.</span>
+        <span class="tok-comment"># 45 = gyro(3)+gravity(3)+cmd(3)+diff(12)+vel(12)+action(12)。</span>
+        <span class="tok-kw">return</span> <span class="tok-op">{</span><span class="tok-str">&quot;obs&quot;</span><span class="tok-op">:</span> <span class="tok-num">45</span><span class="tok-op">,</span> <span class="tok-str">&quot;critic&quot;</span><span class="tok-op">:</span> <span class="tok-num">48</span> <span class="tok-op">+</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_height_scan_dim<span class="tok-op">}</span>
+        <span class="tok-comment"># critic_base 是 48 维，再追加 height scan。</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-kw">def</span> _compute_obs<span class="tok-op">(</span>
+        <span class="tok-comment"># rough 覆写 obs，去掉平地 feet_phase，加入 critic height scan。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 当前 env。</span>
+        info<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">,</span>
+        <span class="tok-comment"># reset/step 信息，包括 commands 和动作历史。</span>
+        linvel<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        <span class="tok-comment"># base 局部线速度。</span>
+        gyro<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        <span class="tok-comment"># IMU 角速度。</span>
+        gravity<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        <span class="tok-comment"># upvector/重力方向。</span>
+        dof_pos<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        <span class="tok-comment"># 12 维关节角。</span>
+        dof_vel<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        <span class="tok-comment"># 12 维关节速度。</span>
+        feet_phase<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+    <span class="tok-comment"># rough obs 不使用 feet_phase，但签名保持和父类兼容。</span>
+    <span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># 返回 obs dict。</span>
+        <span class="tok-kw">del</span> feet_phase
+        <span class="tok-comment"># 明确丢弃 feet_phase，rough policy 不把相位作为输入。</span>
+        noise_cfg <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>noise_config
+        <span class="tok-comment"># 读取噪声配置。</span>
+        diff <span class="tok-op">=</span> dof_pos <span class="tok-op">-</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles
+        <span class="tok-comment"># 关节角相对默认角偏差。</span>
+        policy_gyro <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>gyro<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_gyro<span class="tok-op">)</span> <span class="tok-op">*</span> <span class="tok-num">0.25</span>
+        <span class="tok-comment"># actor 角速度加噪并缩放。</span>
+        policy_gravity <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span><span class="tok-op">-</span>gravity<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_gravity<span class="tok-op">)</span>
+        <span class="tok-comment"># actor 使用负 gravity 表示 up direction，并加噪。</span>
+        policy_diff <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>diff<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_joint_angle<span class="tok-op">)</span>
+        <span class="tok-comment"># actor 关节角偏差加噪。</span>
+        policy_dof_vel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_obs_noise<span class="tok-op">(</span>dof_vel<span class="tok-op">,</span> noise_cfg<span class="tok-op">.</span>scale_joint_vel<span class="tok-op">)</span> <span class="tok-op">*</span> <span class="tok-num">0.05</span>
+        <span class="tok-comment"># actor 关节速度加噪并缩放。</span>
+        last_actions <span class="tok-op">=</span> info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">,</span> np<span class="tok-op">.</span>zeros_like<span class="tok-op">(</span>diff<span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 读取上一帧/当前动作历史。</span>
+        commands <span class="tok-op">=</span> info<span class="tok-op">[</span><span class="tok-str">&quot;commands&quot;</span><span class="tok-op">]</span>
+        <span class="tok-comment"># 读取速度/heading 命令。</span>
+        obs <span class="tok-op">=</span> np<span class="tok-op">.</span>concatenate<span class="tok-op">(</span>
+            <span class="tok-comment"># 拼接 45 维 actor obs。</span>
+            <span class="tok-op">[</span>policy_gyro<span class="tok-op">,</span> policy_gravity<span class="tok-op">,</span> commands<span class="tok-op">,</span> policy_diff<span class="tok-op">,</span> policy_dof_vel<span class="tok-op">,</span> last_actions<span class="tok-op">]</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 3+3+3+12+12+12 = 45。</span>
+            axis<span class="tok-op">=</span><span class="tok-num">1</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 沿特征维拼接。</span>
+            dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 保持全局 dtype。</span>
+        <span class="tok-op">)</span>
+        critic_base <span class="tok-op">=</span> np<span class="tok-op">.</span>concatenate<span class="tok-op">(</span>
+            <span class="tok-comment"># critic 使用无噪状态加 command/action。</span>
+            <span class="tok-op">[</span>linvel<span class="tok-op">,</span> gyro<span class="tok-op">,</span> <span class="tok-op">-</span>gravity<span class="tok-op">,</span> commands<span class="tok-op">,</span> diff<span class="tok-op">,</span> dof_vel<span class="tok-op">,</span> last_actions<span class="tok-op">]</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 3+3+3+3+12+12+12 = 48。</span>
+            axis<span class="tok-op">=</span><span class="tok-num">1</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 沿特征维拼接。</span>
+            dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 保持全局 dtype。</span>
+        <span class="tok-op">)</span>
+        critic <span class="tok-op">=</span> np<span class="tok-op">.</span>concatenate<span class="tok-op">(</span>
+            <span class="tok-comment"># critic 在 base 信息之后追加地形高度扫描。</span>
+            <span class="tok-op">[</span>critic_base<span class="tok-op">,</span> height_scan_obs<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>terrain_scan<span class="tok-op">,</span> critic_base<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">]</span><span class="tok-op">)</span><span class="tok-op">]</span><span class="tok-op">,</span>
+            <span class="tok-comment"># height_scan_obs 从 env/backend 已初始化的 height scan sensor 读取，不解析资产。</span>
+            axis<span class="tok-op">=</span><span class="tok-num">1</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 沿特征维拼接。</span>
+            dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 保持全局 dtype。</span>
+        <span class="tok-op">)</span>
+        <span class="tok-kw">return</span> <span class="tok-op">{</span><span class="tok-str">&quot;obs&quot;</span><span class="tok-op">:</span> obs<span class="tok-op">,</span> <span class="tok-str">&quot;critic&quot;</span><span class="tok-op">:</span> critic<span class="tok-op">}</span>
+        <span class="tok-comment"># 返回 actor/critic obs dict。</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    height_scan_obs<span class="tok-op">,</span>
+    init_height_scan_sensor<span class="tok-op">,</span>
+    raw_height_scan_obs<span class="tok-op">,</span>
+    terrain_out_of_bounds<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>locomotion<span class="tok-op">.</span>common<span class="tok-op">.</span>rewards <span class="tok-kw">import</span> RewardContext
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>locomotion<span class="tok-op">.</span>common<span class="tok-op">.</span>terrain_spawn <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    TerrainCurriculumCfg<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>locomotion<span class="tok-op">.</span>go1<span class="tok-op">.</span>base <span class="tok-kw">import</span> ControlConfig
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>locomotion<span class="tok-op">.</span>go1<span class="tok-op">.</span>joystick <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    Go1JoystickCfg<span class="tok-op">,</span>
+    Go1JoystickDomainRandomizationProvider<span class="tok-op">,</span>
+    Go1WalkTask<span class="tok-op">,</span>
+    JoystickSensor<span class="tok-op">,</span>
+    RewardConfig<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>terrains <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    SubTerrainCfg<span class="tok-op">,</span>
+    TerrainGeneratorCfg<span class="tok-op">,</span>
+    flat<span class="tok-op">,</span>
+    hf_pyramid_slope<span class="tok-op">,</span>
+    hf_pyramid_slope_inv<span class="tok-op">,</span>
+    pyramid_stairs<span class="tok-op">,</span>
+    pyramid_stairs_inv<span class="tok-op">,</span>
+    random_rough<span class="tok-op">,</span>
+    wave_terrain<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+
+<span class="tok-comment"># pyright: reportIncompatibleVariableOverride=false, reportAttributeAccessIssue=false, reportCallIssue=false</span>
+
+
+GO1_HIP_INDICES <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span><span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">,</span> <span class="tok-num">6</span><span class="tok-op">,</span> <span class="tok-num">9</span><span class="tok-op">]</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>int32<span class="tok-op">)</span>
+GO1_FRONT_LEFT <span class="tok-op">=</span> <span class="tok-num">0</span>
+GO1_FRONT_RIGHT <span class="tok-op">=</span> <span class="tok-num">1</span>
+GO1_REAR_LEFT <span class="tok-op">=</span> <span class="tok-num">2</span>
+GO1_REAR_RIGHT <span class="tok-op">=</span> <span class="tok-num">3</span>
+</code></pre>
+<h3 id="action-控制语义不变">Action：控制语义不变</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>rough 仍输出 12 维腿部位置目标。</td></tr><tr><td>代码中先裁剪 action，再叠加默认角，保证崎岖地形扰动下控制边界稳定。</td></tr><tr><td>hip 使用更小 action scale，降低髋关节在 rough 地形上的横向大幅摆动。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-kw">def</span> apply_action<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> actions<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">:</span>
+        <span class="tok-comment"># rough 自己覆写 action 映射，增加 clip 和 per-joint action scale。</span>
+        clipped <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>
+            <span class="tok-comment"># 先把 action 裁剪到配置范围，再转 dtype。</span>
+            np<span class="tok-op">.</span>clip<span class="tok-op">(</span>
+                <span class="tok-comment"># 使用 numpy clip 做向量化裁剪。</span>
+                actions<span class="tok-op">,</span>
+                <span class="tok-comment"># policy 输出的原始动作。</span>
+                <span class="tok-op">-</span><span class="tok-builtin">float</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>control_config<span class="tok-op">.</span>clip_actions<span class="tok-op">)</span><span class="tok-op">,</span>
+                <span class="tok-comment"># 下界是 -clip_actions。</span>
+                <span class="tok-builtin">float</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>control_config<span class="tok-op">.</span>clip_actions<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 上界是 +clip_actions。</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-comment"># 裁剪结果使用全局 dtype。</span>
+        <span class="tok-op">)</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">,</span> np<span class="tok-op">.</span>zeros_like<span class="tok-op">(</span>clipped<span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 保存上一帧动作。</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;current_actions&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> clipped
+        <span class="tok-comment"># 保存裁剪后的当前动作，obs/reward 都以裁剪后动作为准。</span>
+        exec_actions <span class="tok-op">=</span> <span class="tok-op">(</span>
+            <span class="tok-comment"># exec_actions 是实际执行动作。</span>
+            state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;last_actions&quot;</span><span class="tok-op">]</span>
+            <span class="tok-comment"># 如果模拟动作延迟，则执行上一帧动作。</span>
+            <span class="tok-kw">if</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>control_config<span class="tok-op">.</span>simulate_action_latency
+            <span class="tok-comment"># 延迟开关来自 control_config。</span>
+            <span class="tok-kw">else</span> clipped
+        <span class="tok-comment"># 默认执行当前裁剪动作。</span>
+        <span class="tok-op">)</span>
+        <span class="tok-kw">return</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>
+            <span class="tok-comment"># 直接返回 12 维关节目标角。</span>
+            exec_actions <span class="tok-op">*</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_action_scale <span class="tok-op">+</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>default_angles<span class="tok-op">,</span> dtype<span class="tok-op">=</span>get_global_dtype<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 每个关节使用 _action_scale；hip scale 小，非 hip scale 大，然后加默认角。</span>
+        <span class="tok-op">)</span></code></pre>
+<h3 id="reward-termination-地形风险">Reward/Termination：地形风险</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>rough reward 增加 foot_drag、upright/height 等地形稳定相关项。</td></tr><tr><td>终止要看 terrain-relative base height，而不是只看世界坐标高度。</td></tr><tr><td>当前 <code>_compute_terminated</code> 不按倾倒直接终止；地形越界通过 <code>_compute_truncated</code>，而 reward 用 upright gate 抑制失稳状态。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-kw">def</span> _init_reward_functions<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span><span class="tok-op">:</span>
+        <span class="tok-comment"># 初始化 rough 专用 reward dispatch 表。</span>
+        scale_gravity <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_upright_scale
+        <span class="tok-comment"># scale_gravity 根据重力方向计算 upright gate，机器人越倒奖励越被压低。</span>
+
+        <span class="tok-kw">def</span> gated<span class="tok-op">(</span>fn<span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 给普通 reward 包一层 upright gate。</span>
+            <span class="tok-kw">return</span> <span class="tok-kw">lambda</span> ctx<span class="tok-op">:</span> fn<span class="tok-op">(</span>ctx<span class="tok-op">)</span> <span class="tok-op">*</span> scale_gravity<span class="tok-op">(</span>ctx<span class="tok-op">.</span>gravity<span class="tok-op">)</span>
+        <span class="tok-comment"># 返回一个闭包：原 reward 乘以 upright scale。</span>
+
+        <span class="tok-kw">def</span> _joint_pos_penalty<span class="tok-op">(</span>ctx<span class="tok-op">:</span> RewardContext<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">:</span>
+            <span class="tok-comment"># joint_pos_penalty 需要 rough reward cfg 中的多个阈值参数。</span>
+            cfg <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_cfg
+            <span class="tok-comment"># 读取当前 rough reward 配置。</span>
+            <span class="tok-kw">return</span> rewards<span class="tok-op">.</span>joint_pos_penalty<span class="tok-op">(</span>
+                <span class="tok-comment"># 调用通用 joint_pos_penalty 实现。</span>
+                ctx<span class="tok-op">,</span>
+                <span class="tok-comment"># 传入 reward context。</span>
+                stand_still_scale<span class="tok-op">=</span>cfg<span class="tok-op">.</span>joint_pos_penalty_stand_still_scale<span class="tok-op">,</span>
+                <span class="tok-comment"># 站立时姿态惩罚放大系数。</span>
+                velocity_threshold<span class="tok-op">=</span>cfg<span class="tok-op">.</span>joint_pos_penalty_velocity_threshold<span class="tok-op">,</span>
+                <span class="tok-comment"># 速度阈值。</span>
+                command_threshold<span class="tok-op">=</span>cfg<span class="tok-op">.</span>joint_pos_penalty_command_threshold<span class="tok-op">,</span>
+            <span class="tok-comment"># 命令阈值。</span>
+            <span class="tok-op">)</span> <span class="tok-op">*</span> scale_gravity<span class="tok-op">(</span>ctx<span class="tok-op">.</span>gravity<span class="tok-op">)</span>
+        <span class="tok-comment"># 姿态惩罚也乘 upright gate。</span>
+
+        <span class="tok-kw">def</span> _stand_still<span class="tok-op">(</span>ctx<span class="tok-op">:</span> RewardContext<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">:</span>
+            <span class="tok-comment"># stand_still 包装通用站立奖励/惩罚。</span>
+            <span class="tok-kw">return</span> rewards<span class="tok-op">.</span>stand_still<span class="tok-op">(</span>
+                <span class="tok-comment"># 调用通用 stand_still。</span>
+                ctx<span class="tok-op">,</span> command_threshold<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_cfg<span class="tok-op">.</span>stand_still_command_threshold
+            <span class="tok-comment"># 命令很小时才要求站稳。</span>
+            <span class="tok-op">)</span> <span class="tok-op">*</span> scale_gravity<span class="tok-op">(</span>ctx<span class="tok-op">.</span>gravity<span class="tok-op">)</span>
+        <span class="tok-comment"># 同样乘 upright gate。</span>
+
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_fns<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">Any</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">{</span>
+            <span class="tok-comment"># reward key 到函数的映射，是否启用由 owner YAML scales 决定。</span>
+            <span class="tok-str">&quot;tracking_lin_vel&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>tracking_lin_vel<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 线速度跟踪，乘 upright gate。</span>
+            <span class="tok-str">&quot;tracking_ang_vel&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>tracking_ang_vel<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># yaw 角速度跟踪，乘 upright gate。</span>
+            <span class="tok-str">&quot;lin_vel_z&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>lin_vel_z<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 垂直速度惩罚，乘 upright gate。</span>
+            <span class="tok-str">&quot;ang_vel_xy&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>ang_vel_xy<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># roll/pitch 角速度惩罚，乘 upright gate。</span>
+            <span class="tok-str">&quot;dof_torques_l2&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>dof_torques_l2<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 关节力矩 L2 惩罚。</span>
+            <span class="tok-str">&quot;joint_torques_l2&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>dof_torques_l2<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 兼容 joint_torques_l2 key，复用 dof_torques_l2。</span>
+            <span class="tok-str">&quot;dof_acc_l2&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>dof_acc_l2<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 关节加速度惩罚。</span>
+            <span class="tok-str">&quot;joint_acc_l2&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>dof_acc_l2<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 兼容 joint_acc_l2 key，复用 dof_acc_l2。</span>
+            <span class="tok-str">&quot;joint_power&quot;</span><span class="tok-op">:</span> gated<span class="tok-op">(</span>rewards<span class="tok-op">.</span>joint_power<span class="tok-op">)</span><span class="tok-op">,</span>
+            <span class="tok-comment"># 关节功率惩罚。</span>
+            <span class="tok-str">&quot;stand_still&quot;</span><span class="tok-op">:</span> _stand_still<span class="tok-op">,</span>
+            <span class="tok-comment"># 小命令时保持站立。</span>
+            <span class="tok-str">&quot;hip_pos&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_hip_pos<span class="tok-op">,</span>
+            <span class="tok-comment"># 髋关节位置惩罚，约束 lateral hip。</span>
+            <span class="tok-str">&quot;joint_pos_penalty&quot;</span><span class="tok-op">:</span> _joint_pos_penalty<span class="tok-op">,</span>
+            <span class="tok-comment"># 关节姿态综合惩罚。</span>
+            <span class="tok-str">&quot;joint_mirror&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_joint_mirror<span class="tok-op">,</span>
+            <span class="tok-comment"># 左右腿镜像对称项。</span>
+            <span class="tok-str">&quot;action_rate&quot;</span><span class="tok-op">:</span> rewards<span class="tok-op">.</span>action_rate<span class="tok-op">,</span>
+            <span class="tok-comment"># 动作变化惩罚。</span>
+            <span class="tok-str">&quot;action_rate_l2&quot;</span><span class="tok-op">:</span> rewards<span class="tok-op">.</span>action_rate<span class="tok-op">,</span>
+            <span class="tok-comment"># action_rate_l2 key 复用 action_rate。</span>
+            <span class="tok-str">&quot;undesired_contacts&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_undesired_contacts<span class="tok-op">,</span>
+            <span class="tok-comment"># 非期望部位接触惩罚。</span>
+            <span class="tok-str">&quot;contact_forces&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_contact_forces<span class="tok-op">,</span>
+            <span class="tok-comment"># 足端接触力过大惩罚。</span>
+            <span class="tok-str">&quot;feet_air_time&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_air_time<span class="tok-op">,</span>
+            <span class="tok-comment"># 足端腾空时间奖励/惩罚。</span>
+            <span class="tok-str">&quot;feet_air_time_variance&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_air_time_variance<span class="tok-op">,</span>
+            <span class="tok-comment"># 四足腾空时间方差约束。</span>
+            <span class="tok-str">&quot;feet_contact_without_cmd&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_contact_without_cmd<span class="tok-op">,</span>
+            <span class="tok-comment"># 无命令时脚接触约束。</span>
+            <span class="tok-str">&quot;feet_slide&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_slide<span class="tok-op">,</span>
+            <span class="tok-comment"># 足端滑动惩罚。</span>
+            <span class="tok-str">&quot;feet_height_body&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_height_body<span class="tok-op">,</span>
+            <span class="tok-comment"># 脚相对身体高度项，适应崎岖地形。</span>
+            <span class="tok-str">&quot;feet_gait&quot;</span><span class="tok-op">:</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_reward_feet_gait<span class="tok-op">,</span>
+            <span class="tok-comment"># 四足步态节律项。</span>
+            <span class="tok-str">&quot;upward&quot;</span><span class="tok-op">:</span> rewards<span class="tok-op">.</span>upward<span class="tok-op">,</span>
+        <span class="tok-comment"># 躯干朝上奖励。</span>
+        <span class="tok-op">}</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+    <span class="tok-kw">def</span> update_state<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> NpEnvState<span class="tok-op">:</span>
+        <span class="tok-comment"># 每个 step 后更新命令、步态、传感器缓存、reward、obs 和 terrain curriculum。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_update_commands<span class="tok-op">(</span>state<span class="tok-op">.</span>info<span class="tok-op">)</span>
+        <span class="tok-comment"># heading_command 开启时根据 heading 反馈更新 yaw command。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>phase <span class="tok-op">=</span> np<span class="tok-op">.</span>fmod<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>phase <span class="tok-op">+</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>ctrl_dt <span class="tok-op">*</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>gait_frequency<span class="tok-op">,</span> <span class="tok-num">1.0</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 推进全局步态相位。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_phase<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">0</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>phase
+        <span class="tok-comment"># FL 脚相位。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_phase<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>phase
+        <span class="tok-comment"># RR 脚相位，与 FL 同相。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_phase<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">1</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>phase <span class="tok-op">+</span> <span class="tok-num">0.5</span><span class="tok-op">)</span> <span class="tok-op">%</span> <span class="tok-num">1</span>
+        <span class="tok-comment"># FR 脚相位，错半周期。</span>
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_phase<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">2</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>phase <span class="tok-op">+</span> <span class="tok-num">0.5</span><span class="tok-op">)</span> <span class="tok-op">%</span> <span class="tok-num">1</span>
+        <span class="tok-comment"># RL 脚相位，和 FR 同相。</span>
+
+        linvel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_local_linvel<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># base 局部线速度。</span>
+        gyro <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_gyro<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># base 角速度。</span>
+        gravity <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_backend<span class="tok-op">.</span>get_sensor_data<span class="tok-op">(</span><span class="tok-str">&quot;upvector&quot;</span><span class="tok-op">)</span>
+        <span class="tok-comment"># upvector，用于 upright gate 和 obs。</span>
+        dof_pos <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_dof_pos<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 12 维关节位置。</span>
+        dof_vel <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_dof_vel<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 12 维关节速度。</span>
+
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_force<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-num">0</span>
+        <span class="tok-comment"># 清空足端力缓存。</span>
+        <span class="tok-kw">for</span> i <span class="tok-kw">in</span> <span class="tok-builtin">range</span><span class="tok-op">(</span><span class="tok-builtin">len</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_force<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 遍历四个足端力传感器。</span>
+            <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_force<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> i<span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_backend<span class="tok-op">.</span>get_sensor_data<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_force<span class="tok-op">[</span>i<span class="tok-op">]</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 写入当前足端力。</span>
+        <span class="tok-kw">for</span> i <span class="tok-kw">in</span> <span class="tok-builtin">range</span><span class="tok-op">(</span><span class="tok-builtin">len</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_pos<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 遍历四个足端位置传感器。</span>
+            <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_pos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> i<span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_backend<span class="tok-op">.</span>get_sensor_data<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_pos<span class="tok-op">[</span>i<span class="tok-op">]</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 写入足端位置。</span>
+        <span class="tok-kw">for</span> i <span class="tok-kw">in</span> <span class="tok-builtin">range</span><span class="tok-op">(</span><span class="tok-builtin">len</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_vel<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 遍历四个足端速度传感器。</span>
+            <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_vel<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> i<span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_backend<span class="tok-op">.</span>get_sensor_data<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>sensor<span class="tok-op">.</span>feet_vel<span class="tok-op">[</span>i<span class="tok-op">]</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 写入足端速度，用于 feet_slide 等 reward。</span>
+
+        <span class="tok-builtin">self</span><span class="tok-op">.</span>_update_contact_timers<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_foot_contact_mask<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">)</span>
+        <span class="tok-comment"># 根据足端接触更新 air/contact time 计时器。</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;qacc&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_estimate_dof_acc<span class="tok-op">(</span>dof_vel<span class="tok-op">)</span>
+        <span class="tok-comment"># 估计关节加速度，供 dof_acc reward 使用。</span>
+        state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;torques&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_estimate_pd_torques<span class="tok-op">(</span>state<span class="tok-op">.</span>info<span class="tok-op">,</span> dof_pos<span class="tok-op">,</span> dof_vel<span class="tok-op">)</span>
+        <span class="tok-comment"># 估计 PD 力矩，供 torque/power reward 使用。</span>
+
+        terminated <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_terminated<span class="tok-op">(</span>gravity<span class="tok-op">)</span>
+        <span class="tok-comment"># 当前实现不直接用倾倒终止，返回全 False。</span>
+        reward <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_rough_reward<span class="tok-op">(</span>state<span class="tok-op">.</span>info<span class="tok-op">,</span> linvel<span class="tok-op">,</span> gyro<span class="tok-op">,</span> gravity<span class="tok-op">,</span> dof_pos<span class="tok-op">,</span> dof_vel<span class="tok-op">)</span>
+        <span class="tok-comment"># 计算 rough reward。</span>
+        obs <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_compute_obs<span class="tok-op">(</span>
+            <span class="tok-comment"># 计算下一帧 obs dict。</span>
+            state<span class="tok-op">.</span>info<span class="tok-op">,</span> linvel<span class="tok-op">,</span> gyro<span class="tok-op">,</span> gravity<span class="tok-op">,</span> dof_pos<span class="tok-op">,</span> dof_vel<span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>feet_phase
+        <span class="tok-comment"># 传入当前机器人状态和 feet_phase。</span>
+        <span class="tok-op">)</span>
+        state <span class="tok-op">=</span> state<span class="tok-op">.</span>replace<span class="tok-op">(</span>obs<span class="tok-op">=</span>obs<span class="tok-op">,</span> reward<span class="tok-op">=</span>reward<span class="tok-op">,</span> terminated<span class="tok-op">=</span>terminated<span class="tok-op">)</span>
+        <span class="tok-comment"># 更新 NpEnvState。</span>
+
+        done <span class="tok-op">=</span> state<span class="tok-op">.</span>terminated <span class="tok-op">|</span> state<span class="tok-op">.</span>truncated
+        <span class="tok-comment"># done 包含 terminated 和 truncated。</span>
+        <span class="tok-kw">if</span> np<span class="tok-op">.</span>any<span class="tok-op">(</span>done<span class="tok-op">)</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 有 env 结束时更新 terrain curriculum。</span>
+            done_indices <span class="tok-op">=</span> np<span class="tok-op">.</span>where<span class="tok-op">(</span>done<span class="tok-op">)</span><span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">]</span>
+            <span class="tok-comment"># 找到结束的 env id。</span>
+            stats <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_spawn<span class="tok-op">.</span>update_on_done<span class="tok-op">(</span>
+                <span class="tok-comment"># 根据结束位置更新地形课程统计。</span>
+                done_indices<span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_backend<span class="tok-op">.</span>get_base_pos<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">[</span>done_indices<span class="tok-op">]</span>
+            <span class="tok-comment"># 提供结束 env 的 base 位置。</span>
+            <span class="tok-op">)</span>
+            <span class="tok-kw">if</span> stats<span class="tok-op">:</span>
+                <span class="tok-comment"># 如果 curriculum 返回统计信息，则写入 log。</span>
+                <span class="tok-kw">if</span> <span class="tok-str">&quot;log&quot;</span> <span class="tok-kw">not</span> <span class="tok-kw">in</span> state<span class="tok-op">.</span>info<span class="tok-op">:</span>
+                    <span class="tok-comment"># 初始化 log 字典。</span>
+                    state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;log&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-op">{</span><span class="tok-op">}</span>
+                <span class="tok-comment"># log 会被训练器采集。</span>
+                <span class="tok-kw">for</span> k<span class="tok-op">,</span> v <span class="tok-kw">in</span> stats<span class="tok-op">.</span>items<span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">:</span>
+                    <span class="tok-comment"># 遍历地形课程统计项。</span>
+                    state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;log&quot;</span><span class="tok-op">]</span><span class="tok-op">[</span>f&quot;terrain_curriculum/<span class="tok-op">{</span>k<span class="tok-op">}</span>&quot;<span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>v<span class="tok-op">)</span>
+        <span class="tok-comment"># 写入 terrain_curriculum 前缀的日志。</span>
+        <span class="tok-kw">return</span> state
+        <span class="tok-comment"># 返回更新后的 state。</span></code></pre>
+<h2 id="agent">Agent</h2>
+<p>Agent 与平地任务一致输出 12 维关节目标，但训练信号加入崎岖地形下的稳定性约束。</p>
+<p>训练入口通过 owner YAML 决定注册 env、后端身份和算法参数；CLI 应使用 <code>--sim</code> 选择 backend owner，而不是单独 override <code>training.sim_backend</code>。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">training</span>:
+  <span class="tok-key">task_name</span>: Go1JoystickRough
+  <span class="tok-key">sim_backend</span>: mujoco
+  <span class="tok-key">play_steps</span>: <span class="tok-num">500</span>
+  <span class="tok-key">play_env_num</span>: <span class="tok-num">16</span>
+  <span class="tok-key">render_spacing</span>: <span class="tok-num">0.0</span>
+  <span class="tok-key">cam_tracking</span>: true
+  <span class="tok-key">cam_tracking_env_idx</span>: <span class="tok-num">0</span>
+  <span class="tok-key">cam_tracking_extra_envs</span>: <span class="tok-num">9</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>:
+    <span class="tok-key">actor</span>:
+    - actor
+    <span class="tok-key">critic</span>:
+    - critic
+  <span class="tok-key">num_envs</span>: <span class="tok-num">2048</span>
+  <span class="tok-key">max_iterations</span>: <span class="tok-num">1000</span></code></pre>
+<h2 id="env">Env</h2>
+<p>Env 使用 rough 配置和 scene fragment，把地形/接触传感器留在任务层而不是机器人 XML。</p>
+<p>Env 必须遵守 <code>NpEnv</code> contract：<code>reset()</code> 返回 <code>(obs_dict, info_dict)</code>，<code>obs</code> 是 dict，<code>obs_groups_spec</code> 决定 learner 使用哪些观测组。</p>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+            ),
+        }
+    )
+
+
+@registry.envcfg(&quot;Go1JoystickRough&quot;)
+@dataclass
+class Go1JoystickRoughCfg(Go1JoystickCfg):
+    scene: SceneCfg = field(
+        default_factory=lambda: SceneCfg(
+            model_file=str(ASSETS_ROOT_PATH / &quot;robots&quot; / &quot;go1&quot; / &quot;go1.xml&quot;),</code></pre>
+<h2 id="obs">Obs</h2>
+<p>观测在基础 locomotion 观测外引入地形高度扫描或地形相关特权信息，critic 维度随扫描网格变化。</p>
+<h3 id="obs-字段级拆解">Obs 字段级拆解</h3>
+<p>下面的表格把源码里的观测拼接逻辑拆成语义字段。维度如果依赖 history、terrain scan 或 motion body 数量，文档会写成“规模”而不是硬编码，避免和配置漂移。</p>
+<div class="table-wrap"><table><thead><tr><th>观测字段</th><th>维度/规模</th><th>代码来源</th><th>中文说明</th></tr></thead><tbody><tr><td>command</td><td>通常 3 维</td><td><code>commands</code> / joystick 采样</td><td>期望 x/y 线速度和 yaw 角速度，是策略要跟踪的外部目标。</td></tr><tr><td>gyro</td><td>3 维</td><td><code>get_gyro()</code> / sensor.gyro</td><td>机身角速度，帮助策略判断身体旋转和姿态变化。</td></tr><tr><td>gravity</td><td>3 维</td><td>局部重力投影</td><td>把世界重力投到 body 坐标系，用于表示 roll/pitch 倾斜。</td></tr><tr><td>dof_pos - default</td><td>nu 维</td><td>关节角与 keyframe 默认角差</td><td>告诉策略每个关节离默认站姿有多远。</td></tr><tr><td>dof_vel</td><td>nu 维</td><td>backend dof velocity</td><td>关节速度，用于阻尼和判断腿部摆动速度。</td></tr><tr><td>last_actions</td><td>nu 维</td><td>info[&#x27;last_actions&#x27;]</td><td>上一控制步动作，帮助策略形成平滑控制。</td></tr><tr><td>critic privileged</td><td>任务相关</td><td><code>critic</code> obs group</td><td>训练 critic 可读取更多速度或地形信息，actor 不一定可见。</td></tr></tbody></table></div>
+<p>owner YAML 中的 <code>algo.obs_groups</code> 说明算法从 env obs dict 中读取哪些组。没有写入 owner 的字段保持 env cfg 默认值，文档不臆造未配置项。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>:
+    <span class="tok-key">actor</span>:
+    - actor
+    <span class="tok-key">critic</span>:
+    - critic
+</code></pre>
+<p>代码侧观测通常在 <code>_get_obs</code>、<code>_build_obs</code>、<code>obs_groups_spec</code> 或 base env 中组装：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+        self._last_contact_time = np.zeros((num_envs, len(cfg.sensor.feet_force)), dtype=np.float32)
+        self._first_foot_contact = np.zeros((num_envs, len(cfg.sensor.feet_force)), dtype=bool)
+
+        init_height_scan_sensor(self, cfg.terrain_scan, cfg.asset.base_name)
+
+    @property
+    def obs_groups_spec(self) -&gt; dict[str, int]:
+        # Match the rough format: policy obs = 45, critic = 48 + height_scan.
+        return {&quot;obs&quot;: 45, &quot;critic&quot;: 48 + self._height_scan_dim}
+
+    def reset(self, env_indices: np.ndarray) -&gt; tuple[dict[str, np.ndarray], dict]:
+        env_ids = np.asarray(env_indices, dtype=np.int32)
+        obs, info = super().reset(env_ids)</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>obs_groups_spec</td><td>声明 obs dict 中各观测组的维度，是 wrapper/learner 对齐观测的契约。</td></tr><tr><td>_compute_obs</td><td>读取 backend 传感器和 info 字段，拼接 actor/critic 观测。</td></tr></tbody></table></div>
+<h2 id="action">Action</h2>
+<p>动作仍对应 Go1 12 个腿部执行器，控制语义不因地形变化而改变。</p>
+<h3 id="action-逐维拆解">Action 逐维拆解</h3>
+<p>四足任务的 action 逐维对应四条腿的 hip/thigh/calf actuator。env 在 <code>apply_action</code> 中把策略输出乘以 <code>action_scale</code>，再加到 keyframe 默认角上；因此策略学习的是“相对默认站姿的目标角偏移”，不是直接力矩。</p>
+<p>当前代表 scene 编译出的 action 维度为 <code>12</code>。下表来自 MuJoCo 编译模型的 actuator 顺序，也就是策略输出维度和执行器维度的对应关系。</p>
+<div class="table-wrap"><table><thead><tr><th>Action 维度</th><th>执行器</th><th>驱动关节</th><th>中文含义</th><th>控制/限制说明</th></tr></thead><tbody><tr><td>0</td><td>FR_hip</td><td>FR_hip_joint</td><td>右前腿髋外展/内收关节</td><td>-0.863 ~ 0.863</td></tr><tr><td>1</td><td>FR_thigh</td><td>FR_thigh_joint</td><td>右前腿髋俯仰（大腿）关节</td><td>-0.686 ~ 4.501</td></tr><tr><td>2</td><td>FR_calf</td><td>FR_calf_joint</td><td>右前腿膝关节（小腿摆动）</td><td>-2.818 ~ -0.888</td></tr><tr><td>3</td><td>FL_hip</td><td>FL_hip_joint</td><td>左前腿髋外展/内收关节</td><td>-0.863 ~ 0.863</td></tr><tr><td>4</td><td>FL_thigh</td><td>FL_thigh_joint</td><td>左前腿髋俯仰（大腿）关节</td><td>-0.686 ~ 4.501</td></tr><tr><td>5</td><td>FL_calf</td><td>FL_calf_joint</td><td>左前腿膝关节（小腿摆动）</td><td>-2.818 ~ -0.888</td></tr><tr><td>6</td><td>RR_hip</td><td>RR_hip_joint</td><td>右后腿髋外展/内收关节</td><td>-0.863 ~ 0.863</td></tr><tr><td>7</td><td>RR_thigh</td><td>RR_thigh_joint</td><td>右后腿髋俯仰（大腿）关节</td><td>-0.686 ~ 4.501</td></tr><tr><td>8</td><td>RR_calf</td><td>RR_calf_joint</td><td>右后腿膝关节（小腿摆动）</td><td>-2.818 ~ -0.888</td></tr><tr><td>9</td><td>RL_hip</td><td>RL_hip_joint</td><td>左后腿髋外展/内收关节</td><td>-0.863 ~ 0.863</td></tr><tr><td>10</td><td>RL_thigh</td><td>RL_thigh_joint</td><td>左后腿髋俯仰（大腿）关节</td><td>-0.686 ~ 4.501</td></tr><tr><td>11</td><td>RL_calf</td><td>RL_calf_joint</td><td>左后腿膝关节（小腿摆动）</td><td>-2.818 ~ -0.888</td></tr></tbody></table></div>
+<p>控制参数来自 owner YAML 的 <code>env.control_config</code>，缺省值由对应 env cfg/dataclass 提供。</p>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody><tr><td>action_scale</td><td>0.25</td><td>策略输出到目标关节角的缩放系数。</td></tr><tr><td>clip_actions</td><td>100.0</td><td>动作裁剪范围，防止策略输出过大。</td></tr><tr><td>hip_action_scale</td><td>0.125</td><td>策略输出到目标关节角的缩放系数。</td></tr><tr><td>non_hip_action_scale</td><td>0.25</td><td>策略输出到目标关节角的缩放系数。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">control_config</span>:
+    <span class="tok-key">action_scale</span>: <span class="tok-num">0.25</span>
+    <span class="tok-key">hip_action_scale</span>: <span class="tok-num">0.125</span>
+    <span class="tok-key">non_hip_action_scale</span>: <span class="tok-num">0.25</span>
+    <span class="tok-key">clip_actions</span>: <span class="tok-num">100.0</span>
+</code></pre>
+<p>动作到执行器的实际映射由 backend 的 actuator control range 和 env 的 <code>apply_action</code>/控制函数完成：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+            &quot;feet_slide&quot;: self._reward_feet_slide,
+            &quot;feet_height_body&quot;: self._reward_feet_height_body,
+            &quot;feet_gait&quot;: self._reward_feet_gait,
+            &quot;upward&quot;: rewards.upward,
+        }
+
+    def apply_action(self, actions: np.ndarray, state: NpEnvState) -&gt; np.ndarray:
+        clipped = np.asarray(
+            np.clip(
+                actions,
+                -float(self._cfg.control_config.clip_actions),
+                float(self._cfg.control_config.clip_actions),
+            ),</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>apply_action</td><td>把策略输出缩放为执行器控制目标。</td></tr></tbody></table></div>
+<h2 id="reward">Reward</h2>
+<p>reward 在速度跟踪之外提高姿态、足端拖拽、接触稳定性和高度约束的权重。</p>
+<h3 id="reward-逐项拆解">Reward 逐项拆解</h3>
+<p>reward scale 以 owner YAML 的 <code>reward.scales</code> 为真源；源码中的 <code>RewardConfig</code> 描述可用字段，训练脚本只做 Hydra 组装和注入。正数通常表示奖励，负数通常表示惩罚，0 表示该项在当前 owner 中关闭或仅保留接口。</p>
+<div class="table-wrap"><table><thead><tr><th>Reward key</th><th>Scale</th><th>方向</th><th>中文含义</th></tr></thead><tbody><tr><td>lin_vel_z</td><td>-2.0</td><td>惩罚</td><td>竖直速度惩罚，限制 base 上下弹跳。</td></tr><tr><td>ang_vel_xy</td><td>-0.05</td><td>惩罚</td><td>横滚/俯仰角速度惩罚，抑制身体剧烈摇摆。</td></tr><tr><td>joint_torques_l2</td><td>-2.5e-05</td><td>惩罚</td><td>力矩惩罚，降低控制输出过大。</td></tr><tr><td>joint_acc_l2</td><td>-2.5e-07</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>joint_power</td><td>-2e-05</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>stand_still</td><td>-2.0</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>hip_pos</td><td>-0.5</td><td>惩罚</td><td>位置相关奖励/惩罚，用于跟踪目标位置或避免偏离安全区域。</td></tr><tr><td>joint_pos_penalty</td><td>-1.0</td><td>惩罚</td><td>位置相关奖励/惩罚，用于跟踪目标位置或避免偏离安全区域。</td></tr><tr><td>joint_mirror</td><td>-0.05</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>action_rate</td><td>-0.01</td><td>惩罚</td><td>动作变化惩罚，抑制相邻控制步之间的目标突变。</td></tr><tr><td>undesired_contacts</td><td>-1.0</td><td>惩罚</td><td>非期望接触惩罚，例如手、膝、身体等部位异常触地。</td></tr><tr><td>contact_forces</td><td>-0.00015</td><td>惩罚</td><td>接触项，约束指定足端或身体部位的接触模式。</td></tr><tr><td>tracking_lin_vel</td><td>3.0</td><td>奖励</td><td>线速度命令跟踪奖励，鼓励机器人实际平面速度贴近 joystick/命令速度。</td></tr><tr><td>tracking_ang_vel</td><td>1.5</td><td>奖励</td><td>角速度命令跟踪奖励，鼓励 yaw 角速度贴近转向命令。</td></tr><tr><td>feet_air_time</td><td>0.5</td><td>奖励</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>feet_air_time_variance</td><td>-1.0</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>feet_contact_without_cmd</td><td>0.1</td><td>奖励</td><td>接触项，约束指定足端或身体部位的接触模式。</td></tr><tr><td>feet_slide</td><td>-0.1</td><td>惩罚</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>feet_height_body</td><td>-5.0</td><td>惩罚</td><td>目标高度奖励，用于 footstand/handstand 等姿态任务。</td></tr><tr><td>feet_gait</td><td>0.5</td><td>奖励</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr><tr><td>upward</td><td>1.0</td><td>奖励</td><td>仓库 owner YAML 中声明的奖励项；具体实现见本页源码片段和 env 的 reward dispatch。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">reward</span>:
+  <span class="tok-key">scales</span>:
+    <span class="tok-key">lin_vel_z</span>: <span class="tok-num">-2.0</span>
+    <span class="tok-key">ang_vel_xy</span>: <span class="tok-num">-0.05</span>
+    <span class="tok-key">joint_torques_l2</span>: -2.5e-05
+    <span class="tok-key">joint_acc_l2</span>: -2.5e-07
+    <span class="tok-key">joint_power</span>: -2.0e-05
+    <span class="tok-key">stand_still</span>: <span class="tok-num">-2.0</span>
+    <span class="tok-key">hip_pos</span>: <span class="tok-num">-0.5</span>
+    <span class="tok-key">joint_pos_penalty</span>: <span class="tok-num">-1.0</span>
+    <span class="tok-key">joint_mirror</span>: <span class="tok-num">-0.05</span>
+    <span class="tok-key">action_rate</span>: <span class="tok-num">-0.01</span>
+    <span class="tok-key">undesired_contacts</span>: <span class="tok-num">-1.0</span>
+    <span class="tok-key">contact_forces</span>: <span class="tok-num">-0.00015</span>
+    <span class="tok-key">tracking_lin_vel</span>: <span class="tok-num">3.0</span>
+    <span class="tok-key">tracking_ang_vel</span>: <span class="tok-num">1.5</span>
+    <span class="tok-key">feet_air_time</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">feet_air_time_variance</span>: <span class="tok-num">-1.0</span>
+    <span class="tok-key">feet_contact_without_cmd</span>: <span class="tok-num">0.1</span>
+    <span class="tok-key">feet_slide</span>: <span class="tok-num">-0.1</span>
+    <span class="tok-key">feet_height_body</span>: <span class="tok-num">-5.0</span>
+    <span class="tok-key">feet_gait</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">upward</span>: <span class="tok-num">1.0</span>
+  <span class="tok-key">tracking_sigma</span>: <span class="tok-num">0.25</span>
+  <span class="tok-key">base_height_target</span>: <span class="tok-num">0.33</span>
+  <span class="tok-key">stand_still_command_threshold</span>: <span class="tok-num">0.1</span>
+  <span class="tok-key">joint_pos_penalty_stand_still_scale</span>: <span class="tok-num">5.0</span>
+  <span class="tok-key">joint_pos_penalty_velocity_threshold</span>: <span class="tok-num">0.5</span>
+  <span class="tok-key">joint_pos_penalty_command_threshold</span>: <span class="tok-num">0.1</span>
+  <span class="tok-key">contact_threshold</span>: <span class="tok-num">1.0</span>
+  <span class="tok-key">contact_forces_threshold</span>: <span class="tok-num">100.0</span>
+  <span class="tok-key">feet_air_time_threshold</span>: <span class="tok-num">0.5</span>
+  <span class="tok-key">feet_height_body_target</span>: <span class="tok-num">-0.2</span>
+  <span class="tok-key">feet_height_body_tanh_mult</span>: <span class="tok-num">2.0</span>
+  <span class="tok-key">feet_gait_std</span>: <span class="tok-num">0.7071067811865476</span>
+  <span class="tok-key">feet_gait_max_err</span>: <span class="tok-num">0.2</span>
+  <span class="tok-key">feet_gait_velocity_threshold</span>: <span class="tok-num">0.5</span>
+  <span class="tok-key">feet_gait_command_threshold</span>: <span class="tok-num">0.1</span>
+</code></pre>
+<p>源码中的 reward 入口：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+from unilab.envs.locomotion.go1.base import ControlConfig
+from unilab.envs.locomotion.go1.joystick import (
+    Go1JoystickCfg,
+    Go1JoystickDomainRandomizationProvider,
+    Go1WalkTask,
+    JoystickSensor,
+    RewardConfig,
+)
+from unilab.terrains import (
+    SubTerrainCfg,
+    TerrainGeneratorCfg,
+    flat,
+    hf_pyramid_slope,</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>RoughRewardConfig</td><td>声明 reward 可用参数和默认 scale。</td></tr><tr><td>_init_reward_functions</td><td>把 reward 名称映射到源码函数，owner YAML 的 scale 会按这些 key 分发。</td></tr><tr><td>_reward_base_height_values</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_hip_pos</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_joint_mirror</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_undesired_contacts</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_contact_forces</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_feet_air_time</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_feet_air_time_variance</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_feet_contact_without_cmd</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_feet_slide</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr><tr><td>_reward_feet_height_body</td><td>单个 reward 项的实现函数，通常返回每个 env 的 reward 向量。</td></tr></tbody></table></div>
+<h2 id="初始状态">初始状态</h2>
+<p>reset 通过地形 spawn manager 放置机器人，并从 <code>home</code> 姿态开始。</p>
+<p>机器人默认姿态来自 scene/task fragment 中的 keyframe；任务 reset 在此基础上加入命令、motion reference、物体状态或随机化。</p>
+<pre class="code-block language-xml"><code><span class="tok-comment">&lt;!-- src/unilab/assets/robots/go1/scene_flat.xml --&gt;</span>
+    &lt;<span class="tok-tag">contact</span> <span class="tok-attr">name</span>=<span class="tok-str">&quot;RR_foot_contact&quot;</span> <span class="tok-attr">geom1</span>=<span class="tok-str">&quot;floor&quot;</span> <span class="tok-attr">geom2</span>=<span class="tok-str">&quot;RR&quot;</span> <span class="tok-attr">data</span>=<span class="tok-str">&quot;force&quot;</span> <span class="tok-attr">num</span>=<span class="tok-str">&quot;1&quot;</span> <span class="tok-attr">reduce</span>=<span class="tok-str">&quot;mindist&quot;</span>/&gt;
+  &lt;/<span class="tok-tag">sensor</span>&gt;
+
+  &lt;<span class="tok-tag">keyframe</span>&gt;
+    &lt;key name=&quot;home&quot; qpos=&quot;
+        0 0 0.27 1 0 0 0  
+        0 0.9 -1.8</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/locomotion/go1/rough.py</span>
+
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>assets <span class="tok-kw">import</span> ASSETS_ROOT_PATH
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>base <span class="tok-kw">import</span> registry
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>base<span class="tok-op">.</span>np_env <span class="tok-kw">import</span> NpEnvState
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>base<span class="tok-op">.</span>scene <span class="tok-kw">import</span> SceneCfg<span class="tok-op">,</span> TerrainSceneCfg
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr <span class="tok-kw">import</span> DomainRandomizationManager<span class="tok-op">,</span> ResetPlan
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr<span class="tok-op">.</span>dr_utils <span class="tok-kw">import</span> build_common_reset_randomization<span class="tok-op">,</span> zero_actions
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dtype_config <span class="tok-kw">import</span> get_global_dtype
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>common<span class="tok-op">.</span>rotation <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    np_quat_apply_inverse<span class="tok-op">,</span>
+    np_quat_from_euler_xyz<span class="tok-op">,</span>
+    np_quat_mul<span class="tok-op">,</span>
+<span class="tok-op">)</span></code></pre>
+<h2 id="终止条件">终止条件</h2>
+<p>终止条件除倾倒外，还关注崎岖地形相对高度导致的跌落。</p>
+<p>终止条件通常由 env 源码中的 <code>_compute_termination(s)</code>、reward config 阈值和 <code>max_episode_seconds</code> 共同决定。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  {}
+
+<span class="tok-key">reward</span>:
+  {}
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+            self.feet_pos[:, i, :] = self._backend.get_sensor_data(self._cfg.sensor.feet_pos[i])
+        for i in range(len(self._cfg.sensor.feet_vel)):
+            self.feet_vel[:, i, :] = self._backend.get_sensor_data(self._cfg.sensor.feet_vel[i])
+
+        self._update_contact_timers(self._foot_contact_mask())
+        state.info[&quot;qacc&quot;] = self._estimate_dof_acc(dof_vel)
+        state.info[&quot;torques&quot;] = self._estimate_pd_torques(state.info, dof_pos, dof_vel)
+
+        terminated = self._compute_terminated(gravity)
+        reward = self._compute_rough_reward(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
+        obs = self._compute_obs(
+            state.info, linvel, gyro, gravity, dof_pos, dof_vel, self.feet_phase
+        )
+        state = state.replace(obs=obs, reward=reward, terminated=terminated)
+
+        done = state.terminated | state.truncated
+        if np.any(done):</code></pre>
+<h2 id="域随机化">域随机化</h2>
+<p>域随机化包含地形、摩擦、质量、COM、推力和控制延迟等鲁棒训练项。</p>
+<p>域随机化只在 reset/interval 等冷路径触发，不在 step 热路径解析资产或探测 backend 私有能力。</p>
+<h3 id="域随机化字段拆解">域随机化字段拆解</h3>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody><tr><td>added_mass_range</td><td>[-1.0, 3.0]</td><td>随机采样范围或控制范围。</td></tr><tr><td>kd_multiplier_range</td><td>[0.5, 2.0]</td><td>随机采样范围或控制范围。</td></tr><tr><td>kp_multiplier_range</td><td>[0.5, 2.0]</td><td>随机采样范围或控制范围。</td></tr><tr><td>max_force</td><td>[1.0, 1.0, 0.5]</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>push_interval</td><td>625</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>push_robots</td><td>True</td><td>布尔开关。</td></tr><tr><td>random_com</td><td>True</td><td>布尔开关。</td></tr><tr><td>randomize_base_mass</td><td>True</td><td>域随机化开关。</td></tr><tr><td>randomize_kd</td><td>True</td><td>域随机化开关。</td></tr><tr><td>randomize_kp</td><td>True</td><td>域随机化开关。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/go1_joystick_rough/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">domain_rand</span>:
+    <span class="tok-key">randomize_base_mass</span>: true
+    <span class="tok-key">added_mass_range</span>:
+    - <span class="tok-num">-1.0</span>
+    - <span class="tok-num">3.0</span>
+    <span class="tok-key">random_com</span>: true
+    <span class="tok-key">randomize_kp</span>: true
+    <span class="tok-key">kp_multiplier_range</span>:
+    - <span class="tok-num">0.5</span>
+    - <span class="tok-num">2.0</span>
+    <span class="tok-key">randomize_kd</span>: true
+    <span class="tok-key">kd_multiplier_range</span>:
+    - <span class="tok-num">0.5</span>
+    - <span class="tok-num">2.0</span>
+    <span class="tok-key">push_robots</span>: true
+    <span class="tok-key">push_interval</span>: <span class="tok-num">625</span>
+    <span class="tok-key">max_force</span>:
+    - <span class="tok-num">1.0</span>
+    - <span class="tok-num">1.0</span>
+    - <span class="tok-num">0.5</span>
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/locomotion/go1/rough.py
+import numpy as np
+
+from unilab.assets import ASSETS_ROOT_PATH
+from unilab.base import registry
+from unilab.base.np_env import NpEnvState
+from unilab.base.scene import SceneCfg, TerrainSceneCfg
+from unilab.dr import DomainRandomizationManager, ResetPlan
+from unilab.dr.dr_utils import build_common_reset_randomization, zero_actions
+from unilab.dtype_config import get_global_dtype
+from unilab.envs.common.rotation import (
+    np_quat_apply_inverse,
+    np_quat_from_euler_xyz,
+    np_quat_mul,</code></pre>
+    </article>
+  </main>
+  <script>window.SEARCH_INDEX_URL = "../../search-index.json";</script>
+  <script>window.SITE_ROOT_PREFIX = "../../";</script>
+  <script src="../../site.js"></script>
+</body>
+</html>
