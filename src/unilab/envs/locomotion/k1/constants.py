@@ -60,3 +60,38 @@ K1_OBS_FRAME_STACK = 5
 K1_OBS_SINGLE_DIM = 75
 K1_OBS_STACKED_DIM = K1_OBS_SINGLE_DIM * K1_OBS_FRAME_STACK
 K1_NUM_ACTION = len(K1_ACTUATOR_JOINT_ORDER)
+K1_UPPER_BODY_JOINTS = 10
+# G1-walk-aligned pose weights (22 DOF): low on head/arms, high on legs.
+K1_G1_ALIGNED_POSE_WEIGHTS: tuple[float, ...] = (
+    0.01,
+    1.0,
+    5.0,
+    0.01,
+    5.0,
+    5.0,
+    0.01,
+    1.0,
+    5.0,
+    0.01,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+    50.0,
+)
+
+
+def k1_walk_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    """G1 walk profile: gyro(3)+gravity(3)+joint(3n)+cmd(3)+phase(2)."""
+    return 6 + 3 * num_action + 5
+
+
+def k1_walk_critic_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    return k1_walk_actor_obs_dim(num_action) + 3

@@ -42,6 +42,8 @@ env:
   post_step_forward_sensor: false
 
 hydra:
+  searchpath:
+    - file://${oc.env:PWD}/conf
   run:
     dir: .
   output_subdir: null

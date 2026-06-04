@@ -118,6 +118,8 @@ interactive:
   motrix_yaw_speed: 0.8
 
 hydra:
+  searchpath:
+    - file://${oc.env:PWD}/conf
   run:
     dir: .
   output_subdir: null

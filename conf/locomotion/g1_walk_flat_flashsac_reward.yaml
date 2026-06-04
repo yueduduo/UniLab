@@ -1,0 +1,30 @@
+# @package _global_
+# FlashSAC flat-walk reward profile (merged on top of g1_walk_flat_recipe).
+# Duplicate recipe penalties are disabled here; use penalty_* aliases only (same reward fns).
+reward:
+  scales:
+    tracking_lin_vel: 2.0
+    tracking_ang_vel: 1.5
+    forward_progress: 0.0
+    under_speed: -0.2
+    upper_body_pose: -0.05
+    feet_phase: 5.0
+    feet_phase_contrast: 1.5
+    feet_phase_contact: 1.0
+    feet_double_stance: -1.0
+    lin_vel_z: -1.0
+    base_height: -120.0
+    pose: -0.5
+    penalty_close_feet_xy: -0.5
+    penalty_feet_ori: -25.0
+    penalty_ang_vel_xy: -1.0
+    penalty_orientation: -10.0
+    penalty_action_rate: -5.0
+    alive: 10.0
+    # Recipe aliases for the same terms — must stay 0 to avoid double counting.
+    ang_vel_xy: 0.0
+    orientation: 0.0
+    action_rate: 0.0
+  max_tilt_deg: 65.0
+  min_base_height: 0.3
+  feet_phase_tracking_sigma: 0.005

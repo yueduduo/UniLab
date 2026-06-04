@@ -1,4 +1,4 @@
-"""K1 joystick flat locomotion with AMP-compatible stacked observations."""
+"""K1 joystick flat locomotion (G1-walk-aligned obs/reward by default)."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ import numpy as np
 from unilab.assets import ASSETS_ROOT_PATH
 from unilab.base import registry
 from unilab.base.backend import create_backend
+from unilab.base.curriculum import EpisodeLengthTracker, PenaltyCurriculum
 from unilab.base.np_env import NpEnvState
 from unilab.base.scene import SceneCfg
 from unilab.dtype_config import get_global_dtype
@@ -22,8 +23,21 @@ from unilab.envs.locomotion.common.commands import (
 )
 from unilab.envs.locomotion.common.domain_rand import DomainRandConfig
 from unilab.envs.locomotion.common.dr_provider import LocomotionDRProvider
+
+
+@dataclass
+class K1DomainRandConfig(DomainRandConfig):
+    randomize_kp: bool = True
+    kp_multiplier_range: list[float] = field(default_factory=lambda: [0.9, 1.1])
+
+    randomize_kd: bool = True
+    kd_multiplier_range: list[float] = field(default_factory=lambda: [0.9, 1.1])
+
 from unilab.envs.locomotion.common.rewards import RewardContext
 from unilab.envs.locomotion.g1.joystick import (
+    LEFT_FOOT_CONTACT_SENSORS,
+    RIGHT_FOOT_CONTACT_SENSORS,
+    CurriculumConfig,
     compute_aggregated_foot_contact,
     compute_feet_phase_contact_targets,
     compute_feet_phase_height_targets,
@@ -32,14 +46,12 @@ from unilab.envs.locomotion.g1.joystick import (
 )
 from unilab.envs.locomotion.k1.base import K1BaseCfg, K1BaseEnv
 from unilab.envs.locomotion.k1.constants import (
+    K1_G1_ALIGNED_POSE_WEIGHTS,
     K1_NUM_ACTION,
-    K1_OBS_FRAME_STACK,
-    K1_OBS_SINGLE_DIM,
-    K1_OBS_STACKED_DIM,
+    K1_UPPER_BODY_JOINTS,
+    k1_walk_actor_obs_dim,
+    k1_walk_critic_obs_dim,
 )
-
-LEFT_FOOT_CONTACT_SENSORS = ["left_foot_contact_0"]
-RIGHT_FOOT_CONTACT_SENSORS = ["right_foot_contact_0"]
 
 
 @dataclass
@@ -48,7 +60,7 @@ class InitState:
 
 
 def commands_to_amp_obs(commands: np.ndarray) -> np.ndarray:
-    """Map physical velocity commands to AMP deploy obs (body-frame flip + yaw scale)."""
+    """Map physical velocity commands to AMP deploy obs (soccer / legacy stack only)."""
     return np.stack(
         (
             -commands[:, 0],
@@ -71,10 +83,8 @@ class K1RewardConfig:
     min_base_height: float
     max_tilt_deg: float
     min_forward_speed_for_gait_reward: float = 0.05
-    close_feet_threshold: float = 0.12
-    pose_weights: list[float] = field(
-        default_factory=lambda: [1.0] * 10 + [5.0] * 12
-    )
+    close_feet_threshold: float = 0.15
+    pose_weights: list[float] = field(default_factory=lambda: list(K1_G1_ALIGNED_POSE_WEIGHTS))
 
 
 @dataclass
@@ -89,20 +99,26 @@ class K1WalkEnvCfg(K1BaseCfg):
     commands: Commands = field(
         default_factory=lambda: Commands(
             vel_limit=[
-                [-0.35, -0.25, -0.8],
-                [0.35, 0.25, 0.8],
+                [0.4, 0.0, 0.0],
+                [0.7, 0.0, 0.0],
             ],
-            rel_standing_envs=0.1,
         )
     )
     reward_config: K1RewardConfig | None = None
-    domain_rand: DomainRandConfig = field(default_factory=DomainRandConfig)
+    domain_rand: K1DomainRandConfig = field(default_factory=K1DomainRandConfig)
     gait_phase_init_mode: str = "offset_phase"
     reset_base_qvel_limit: float = 0.05
-    obs_frame_stack: int = K1_OBS_FRAME_STACK
+    curriculum: CurriculumConfig = field(default_factory=CurriculumConfig)
 
 
 class K1WalkDomainRandomizationProvider(LocomotionDRProvider):
+    def __init__(self, *, base_kp: np.ndarray | None = None, base_kd: np.ndarray | None = None):
+        self._base_kp = base_kp
+        self._base_kd = base_kd
+
+    def _get_base_actuator_gains(self, env: Any) -> tuple[np.ndarray | None, np.ndarray | None]:
+        return self._base_kp, self._base_kd
+
     def _get_qvel_limit(self, env: Any) -> float:
         return float(env.cfg.reset_base_qvel_limit)
 
@@ -116,7 +132,7 @@ class K1WalkDomainRandomizationProvider(LocomotionDRProvider):
 
     def _sample_commands(self, env: Any, num_reset: int) -> np.ndarray:
         commands = super()._sample_commands(env, num_reset)
-        zero_small_xy_commands(commands, threshold=0.05)
+        zero_small_xy_commands(commands)
         standing_prob = float(getattr(env.cfg.commands, "rel_standing_envs", 0.0))
         if standing_prob > 0.0:
             standing = np.random.uniform(size=(num_reset,)) < min(standing_prob, 1.0)
@@ -147,15 +163,14 @@ class K1WalkDomainRandomizationProvider(LocomotionDRProvider):
         dof_vel: Any,
     ) -> dict[str, np.ndarray]:
         return env._compute_obs(  # type: ignore[no-any-return]
-            info_updates,
-            linvel,
-            gyro,
-            gravity,
-            dof_pos,
-            dof_vel,
-            env_ids=np.asarray(env_ids, dtype=np.intp),
-            is_reset=True,
+            info_updates, linvel, gyro, gravity, dof_pos, dof_vel
         )
+
+
+def build_k1_upper_body_pose_weights(pose_weights: list[float]) -> np.ndarray:
+    weights = np.asarray(pose_weights, dtype=get_global_dtype()).copy()
+    weights[:K1_UPPER_BODY_JOINTS] = 0.0
+    return np.asarray(weights, dtype=get_global_dtype())
 
 
 class K1WalkEnv(K1BaseEnv):
@@ -186,17 +201,36 @@ class K1WalkEnv(K1BaseEnv):
             raise ValueError("pose_weights length mismatch")
         if self._num_action != K1_NUM_ACTION:
             raise ValueError(f"expected {K1_NUM_ACTION} actuators, got {self._num_action}")
-
-        stack = cfg.obs_frame_stack
-        self._obs_history = np.zeros((num_envs, stack, K1_OBS_SINGLE_DIM), dtype=np.float32)
-        self._critic_obs_history = np.zeros((num_envs, stack, K1_OBS_SINGLE_DIM), dtype=np.float32)
+        self._upper_body_pose_weights = build_k1_upper_body_pose_weights(self._reward_cfg.pose_weights)
+        self._episode_tracker: EpisodeLengthTracker | None = None
+        self._penalty_curriculum: PenaltyCurriculum | None = None
+        if cfg.curriculum.enabled:
+            self._episode_tracker = EpisodeLengthTracker(num_envs)
+            self._penalty_curriculum = PenaltyCurriculum(
+                self,
+                enabled=True,
+                initial_scale=cfg.curriculum.initial_scale,
+                min_scale=cfg.curriculum.min_scale,
+                max_scale=cfg.curriculum.max_scale,
+                level_down_threshold=cfg.curriculum.level_down_threshold,
+                level_up_threshold=cfg.curriculum.level_up_threshold,
+                degree=cfg.curriculum.degree,
+            )
 
         self._init_reward_functions()
-        self._init_domain_randomization(K1WalkDomainRandomizationProvider())
+        if cfg.domain_rand.randomize_kp or cfg.domain_rand.randomize_kd:
+            base_kp, base_kd = backend.get_actuator_gains()
+            dr_provider = K1WalkDomainRandomizationProvider(base_kp=base_kp, base_kd=base_kd)
+        else:
+            dr_provider = K1WalkDomainRandomizationProvider()
+        self._init_domain_randomization(dr_provider)
 
     @property
     def obs_groups_spec(self) -> dict[str, int]:
-        return {"obs": K1_OBS_STACKED_DIM, "critic": K1_OBS_STACKED_DIM + 3}
+        return {
+            "obs": k1_walk_actor_obs_dim(self._num_action),
+            "critic": k1_walk_critic_obs_dim(self._num_action),
+        }
 
     def _init_reward_functions(self) -> None:
         self._reward_fns: dict[str, Any] = {
@@ -206,117 +240,71 @@ class K1WalkEnv(K1BaseEnv):
             "under_speed": rewards.under_speed,
             "lin_vel_z": rewards.lin_vel_z,
             "orientation": rewards.orientation,
+            "penalty_orientation": rewards.orientation,
             "ang_vel_xy": rewards.ang_vel_xy,
+            "penalty_ang_vel_xy": rewards.ang_vel_xy,
             "action_rate": rewards.action_rate,
+            "penalty_action_rate": rewards.action_rate,
             "base_height": rewards.base_height,
             "pose": rewards.weighted_pose,
+            "upper_body_pose": self._reward_upper_body_pose,
+            "penalty_close_feet_xy": self._reward_close_feet_xy,
+            "penalty_feet_ori": self._reward_feet_ori,
             "feet_phase": self._reward_feet_phase,
             "feet_phase_contrast": self._reward_feet_phase_contrast,
             "feet_phase_contact": self._reward_feet_phase_contact,
             "feet_double_stance": self._reward_feet_double_stance,
-            "penalty_close_feet_xy": self._reward_close_feet_xy,
+            "feet_air_time": self._reward_feet_air_time,
             "alive": rewards.alive,
         }
 
-    def _history_slice(self, env_ids: np.ndarray | None) -> slice | np.ndarray:
-        return slice(None) if env_ids is None else env_ids
-
-    def _update_obs_history(
-        self,
-        *,
-        env_ids: np.ndarray | None,
-        single_actor: np.ndarray,
-        single_critic: np.ndarray,
-        is_reset: bool,
-    ) -> tuple[np.ndarray, np.ndarray]:
-        sel = self._history_slice(env_ids)
-        num_rows = single_actor.shape[0]
-        if is_reset:
-            self._obs_history[sel, :] = single_actor[:, None, :]
-            self._critic_obs_history[sel, :] = single_critic[:, None, :]
-        else:
-            self._obs_history[sel, :-1] = self._obs_history[sel, 1:]
-            self._obs_history[sel, -1] = single_actor
-            self._critic_obs_history[sel, :-1] = self._critic_obs_history[sel, 1:]
-            self._critic_obs_history[sel, -1] = single_critic
-        actor = self._obs_history[sel].reshape(num_rows, K1_OBS_STACKED_DIM)
-        critic_base = self._critic_obs_history[sel].reshape(num_rows, K1_OBS_STACKED_DIM)
-        return actor, critic_base
-
-    def _build_single_frame_obs(
-        self,
-        *,
-        command: np.ndarray,
-        gravity: np.ndarray,
-        gyro: np.ndarray,
-        joint_diff: np.ndarray,
-        dof_vel: np.ndarray,
-        last_actions: np.ndarray,
-        noisy: bool,
-    ) -> np.ndarray:
-        noise_cfg = self._cfg.noise_config
-        cmd_obs = commands_to_amp_obs(command)
-        if noisy:
-            gyro_obs = self._obs_noise(gyro, noise_cfg.scale_gyro) * 0.25
-            gravity_obs = self._obs_noise(gravity, noise_cfg.scale_gravity)
-            diff_obs = self._obs_noise(joint_diff, noise_cfg.scale_joint_angle)
-            vel_obs = self._obs_noise(dof_vel, noise_cfg.scale_joint_vel) * 0.05
-        else:
-            gyro_obs = gyro * 0.25
-            gravity_obs = gravity
-            diff_obs = joint_diff
-            vel_obs = dof_vel * 0.05
-
-        return np.concatenate(
-            (cmd_obs, gravity_obs, gyro_obs, diff_obs, vel_obs, last_actions),
-            axis=1,
-            dtype=np.float32,
-        )
-
     def _compute_obs(
-        self,
-        info: dict,
-        linvel,
-        gyro,
-        gravity,
-        dof_pos,
-        dof_vel,
-        *,
-        env_ids: np.ndarray | None = None,
-        is_reset: bool = False,
+        self, info: dict, linvel, gyro, gravity, dof_pos, dof_vel
     ) -> dict[str, np.ndarray]:
-        num_rows = linvel.shape[0]
+        noise_cfg = self._cfg.noise_config
         diff = dof_pos - self.default_angles
         command = info["commands"]
-        last_actions = info.get("current_actions", np.zeros((num_rows, self._num_action)))
-        single_actor = self._build_single_frame_obs(
-            command=command,
-            gravity=-gravity,
-            gyro=gyro,
-            joint_diff=diff,
-            dof_vel=dof_vel,
-            last_actions=last_actions,
-            noisy=True,
+        last_actions = info.get("current_actions", np.zeros_like(diff))
+        gait_phase = info.get("gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype()))
+
+        noisy_gyro = self._obs_noise(gyro, noise_cfg.scale_gyro)
+        noisy_gravity = self._obs_noise(gravity, noise_cfg.scale_gravity)
+        noisy_diff = self._obs_noise(diff, noise_cfg.scale_joint_angle)
+        noisy_dof_vel = self._obs_noise(dof_vel, noise_cfg.scale_joint_vel)
+
+        actor = np.concatenate(
+            [
+                noisy_gyro * 0.25,
+                -noisy_gravity,
+                noisy_diff,
+                noisy_dof_vel * 0.05,
+                last_actions,
+                command,
+                gait_phase,
+            ],
+            axis=1,
+            dtype=get_global_dtype(),
         )
-        single_critic = self._build_single_frame_obs(
-            command=command,
-            gravity=-gravity,
-            gyro=gyro,
-            joint_diff=diff,
-            dof_vel=dof_vel,
-            last_actions=last_actions,
-            noisy=False,
-        )
-        actor, critic_base = self._update_obs_history(
-            env_ids=env_ids,
-            single_actor=single_actor,
-            single_critic=single_critic,
-            is_reset=is_reset,
+        critic_base = np.concatenate(
+            [
+                gyro * 0.25,
+                -gravity,
+                diff,
+                dof_vel * 0.05,
+                last_actions,
+                command,
+                gait_phase,
+            ],
+            axis=1,
+            dtype=get_global_dtype(),
         )
         critic = np.concatenate(
-            (critic_base, np.asarray(linvel * 2.0, dtype=np.float32)),
+            [
+                critic_base,
+                np.asarray(linvel * 2.0, dtype=get_global_dtype()),
+            ],
             axis=1,
-            dtype=np.float32,
+            dtype=get_global_dtype(),
         )
         return {"obs": actor, "critic": critic}
 
@@ -336,7 +324,26 @@ class K1WalkEnv(K1BaseEnv):
 
         reward = self._compute_reward(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
         obs = self._compute_obs(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
-        return state.replace(obs=obs, reward=reward, terminated=terminated)
+        state = state.replace(obs=obs, reward=reward, terminated=terminated)
+
+        done = state.terminated | state.truncated
+        if self._episode_tracker is None or self._penalty_curriculum is None or not np.any(done):
+            return state
+
+        done_indices = np.where(done)[0]
+        episode_lengths = state.info["steps"][done_indices] + 1
+        self._episode_tracker.update(episode_lengths)
+        self._penalty_curriculum.update(self._episode_tracker.average_length)
+
+        if "log" not in state.info:
+            state.info["log"] = {}
+        state.info["log"]["curriculum/average_episode_length"] = float(
+            self._episode_tracker.average_length
+        )
+        state.info["log"]["curriculum/penalty_scale"] = float(
+            self._penalty_curriculum.current_scale
+        )
+        return state
 
     def _build_reward_context(
         self, info: dict, linvel, gyro, gravity, dof_pos, dof_vel
@@ -431,6 +438,30 @@ class K1WalkEnv(K1BaseEnv):
             feet_dist < self._reward_cfg.close_feet_threshold,
             np.square(feet_dist - self._reward_cfg.close_feet_threshold),
             0.0,
+        )
+
+    def _reward_feet_ori(self, ctx: RewardContext):
+        left_foot_quat = self._backend.get_sensor_data("left_foot_quat")
+        right_foot_quat = self._backend.get_sensor_data("right_foot_quat")
+        return (
+            np.square(left_foot_quat[:, 1])
+            + np.square(left_foot_quat[:, 2])
+            + np.square(right_foot_quat[:, 1])
+            + np.square(right_foot_quat[:, 2])
+        )
+
+    def _reward_feet_air_time(self, ctx: RewardContext):
+        air_time = ctx.info.get(
+            "feet_air_time", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        in_range = (air_time > 0.05) & (air_time < 0.5)
+        return np.sum(in_range.astype(float), axis=1)
+
+    def _reward_upper_body_pose(self, ctx: RewardContext):
+        diff = ctx.dof_pos - self.default_angles
+        return np.asarray(
+            np.sum(self._upper_body_pose_weights * np.square(diff), axis=1),
+            dtype=get_global_dtype(),
         )
 
     def apply_action(self, actions: np.ndarray, state: NpEnvState) -> np.ndarray:

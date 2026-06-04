@@ -3,6 +3,9 @@
 
   <default>
     <geom solimp="0.90 0.95 0.001" solref="0.001 1"/>
+    <default class="foot">
+      <geom type="sphere" size="0.005" friction="0.6" condim="3" priority="1" rgba="0 0 0 0"/>
+    </default>
     <default class="k1_motor">
       <position forcerange="-40 40"/>
     </default>
@@ -131,8 +134,13 @@
                   <inertial pos="0.011662 0.000244 -0.014364" quat="-0.00144487 0.663983 -0.00148176 0.747745" mass="0.494" diaginertia="0.0012267 0.00117 0.000247305"/>
                   <joint name="Left_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" armature="0.0565"/>
                   <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.75294 0.75294 0.75294 1.0" mesh="Left_Foot"/>
-                  <geom name="left_foot_contact_0_geom" type="box" pos="0.026 0 -0.02" size="0.09 0.035 0.018" rgba="0.75294 0.75294 0.75294 0.0"/>
-                  <site name="left_foot" pos="0.026 0 -0.02" size="0.01"/>
+                  <!-- Sole box: collision footprint; contact spheres sit on bottom corners (G1-relative layout). -->
+                  <geom name="left_foot_sole_geom" type="box" pos="0.026 0 -0.02" size="0.09 0.035 0.018" rgba="0 0 0 0"/>
+                  <site name="left_foot" pos="0.026 0 -0.038" size="0.01"/>
+                  <geom name="left_foot_contact_0_geom" class="foot" pos="-0.064 0.025 -0.033"/>
+                  <geom name="left_foot_contact_1_geom" class="foot" pos="-0.064 -0.025 -0.033"/>
+                  <geom name="left_foot_contact_2_geom" class="foot" pos="0.106 0.03 -0.033"/>
+                  <geom name="left_foot_contact_3_geom" class="foot" pos="0.106 -0.03 -0.033"/>
                 </body>
               </body>
             </body>
@@ -167,8 +175,12 @@
                   <inertial pos="0.011662 -0.000244 -0.014364" quat="0.00144487 0.663983 0.00148176 0.747745" mass="0.494" diaginertia="0.0012267 0.00117 0.000247305"/>
                   <joint name="Right_Ankle_Roll" pos="0 0 0" axis="1 0 0" range="-0.345 0.345" armature="0.0565"/>
                   <geom type="mesh" contype="0" conaffinity="0" group="1" density="0" rgba="0.75294 0.75294 0.75294 1.0" mesh="Right_Foot"/>
-                  <geom name="right_foot_contact_0_geom" type="box" pos="0.026 0 -0.02" size="0.09 0.035 0.018" rgba="0.75294 0.75294 0.75294 0.0"/>
-                  <site name="right_foot" pos="0.026 0 -0.02" size="0.01"/>
+                  <geom name="right_foot_sole_geom" type="box" pos="0.026 0 -0.02" size="0.09 0.035 0.018" rgba="0 0 0 0"/>
+                  <site name="right_foot" pos="0.026 0 -0.038" size="0.01"/>
+                  <geom name="right_foot_contact_0_geom" class="foot" pos="-0.064 0.025 -0.033"/>
+                  <geom name="right_foot_contact_1_geom" class="foot" pos="-0.064 -0.025 -0.033"/>
+                  <geom name="right_foot_contact_2_geom" class="foot" pos="0.106 0.03 -0.033"/>
+                  <geom name="right_foot_contact_3_geom" class="foot" pos="0.106 -0.03 -0.033"/>
                 </body>
               </body>
             </body>

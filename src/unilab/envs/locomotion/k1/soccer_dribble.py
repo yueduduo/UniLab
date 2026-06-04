@@ -19,16 +19,14 @@ from unilab.envs.locomotion.common.rewards import RewardContext
 from unilab.dr import ResetPlan
 from unilab.dr.dr_utils import zero_actions
 from unilab.envs.locomotion.k1.base import NoiseConfig
+from unilab.envs.locomotion.k1.constants import K1_ACTUATOR_JOINT_ORDER, K1_NUM_ACTION, K1_OBS_SINGLE_DIM
 from unilab.envs.locomotion.k1.joystick import (
-    K1_NUM_ACTION,
-    K1_OBS_SINGLE_DIM,
     K1RewardConfig,
     K1WalkDomainRandomizationProvider,
     K1WalkEnv,
     K1WalkEnvCfg,
     commands_to_amp_obs,
 )
-from unilab.envs.locomotion.k1.constants import K1_ACTUATOR_JOINT_ORDER
 
 _LEFT_HIP_YAW_IDX = K1_ACTUATOR_JOINT_ORDER.index("Left_Hip_Yaw")
 _RIGHT_HIP_YAW_IDX = K1_ACTUATOR_JOINT_ORDER.index("Right_Hip_Yaw")

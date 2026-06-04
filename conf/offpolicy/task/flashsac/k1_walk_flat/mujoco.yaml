@@ -5,15 +5,15 @@ defaults:
 
 training:
   task_name: K1WalkFlat
-  sim_backend: motrix
+  sim_backend: mujoco
 algo:
-  num_envs: 1024
+  num_envs: 4096
   learning_starts: 50
-  max_iterations: 20000
+  max_iterations: 5000
   save_interval: 1000
-  updates_per_step: 2
+  updates_per_step: 8
   batch_size: 2048
-  replay_buffer_n: 4096
+  replay_buffer_n: 256
   tau: 0.05
 env:
   control_config:
@@ -34,7 +34,7 @@ env:
     scale_joint_vel: 0.1
     scale_linvel: 0.0
 reward:
-  # Gait tuning trial — see 奖励函数分析.md §8 (same as mujoco owner)
+  # Gait tuning trial — see 奖励函数分析.md §8
   scales:
     penalty_orientation: -15.0
     penalty_ang_vel_xy: -1.5
@@ -44,6 +44,7 @@ reward:
   feet_phase_tracking_sigma: 0.008
   base_height_target: 0.55
   min_base_height: 0.35
+  # idx 10–21 legs: ↑ Hip_Roll(11,17) Ankle_Roll(15,21); ↓ knee(13,19) for swing flex
   pose_weights: [
     0.01, 2.0, 5.0, 0.01, 5.0, 5.0, 0.01, 2.0, 5.0, 0.01,
     40.0, 200.0, 80.0, 25.0, 40.0, 120.0,

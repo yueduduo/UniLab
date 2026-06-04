@@ -5,7 +5,7 @@ from collections.abc import Sequence
 from concurrent.futures import ProcessPoolExecutor
 from dataclasses import dataclass
 from multiprocessing import cpu_count, current_process, get_context
-from typing import Any, Optional, cast
+from typing import Any, Callable, Optional, cast
 
 import mujoco
 import numpy as np
