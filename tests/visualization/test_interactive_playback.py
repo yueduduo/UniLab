@@ -8,6 +8,7 @@ from typing import Any
 import numpy as np
 import pytest
 import torch
+from tensordict import TensorDict
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _SCRIPTS_DIR = _REPO_ROOT / "scripts"
@@ -99,7 +100,7 @@ def test_playback_session_advance_respects_pause_and_single_step() -> None:
     assert session.advance(controls) is False
 
 
-def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() -> None:
+def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir(tmp_path: Path) -> None:
     env = SimpleNamespace(
         obs_groups_spec={"obs": 5},
         action_space=SimpleNamespace(
@@ -110,6 +111,8 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
         get_physics_state_snapshot=lambda: np.zeros((1, 4), dtype=np.float32),
     )
     captured: dict[str, Any] = {}
+    checkpoint_path = tmp_path / "model_10.pt"
+    torch.save({"actor_state_dict": {"mlp.0.weight": torch.zeros((4, 5))}}, checkpoint_path)
 
     class Wrapper:
         def __init__(self, wrapped_env, *, device, policy_obs_mode):
@@ -152,7 +155,7 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
         algo_config={"runner": {"logger": "tensorboard"}},
         root_dir=Path("/repo"),
         device="cpu",
-        checkpoint_resolver=lambda *args: "/tmp/model_10.pt",
+        checkpoint_resolver=lambda *args: str(checkpoint_path),
         checkpoint_input_dim_reader=lambda path: 5,
         entrypoint_log_root=lambda root_dir, *, algo_log_name, log_root=None: (
             Path("/tmp") / algo_log_name
@@ -166,9 +169,9 @@ def test_create_rsl_rl_playback_session_loads_checkpoint_and_runner_log_dir() ->
 
     assert session.env is env
     assert policy_obs_mode == "actor"
-    assert checkpoint == "/tmp/model_10.pt"
+    assert checkpoint == str(checkpoint_path)
     assert captured["runner_log_dir"] == "/tmp/custom_ppo/MyTask/play_temp"
-    assert captured["checkpoint"] == "/tmp/model_10.pt"
+    assert captured["checkpoint"] == str(checkpoint_path)
     assert captured["train_cfg"]["runner"]["logger"] == "none"
 
 
@@ -424,6 +427,37 @@ def test_keyboard_commander_nudges_stack_and_clamp_to_vel_limit() -> None:
 def test_keyboard_commander_rejects_bad_vel_limit_shape() -> None:
     with pytest.raises(ValueError, match=r"shape \(2, 3\)"):
         KeyboardCommander.from_vel_limit([[0.0, 0.0], [1.0, 1.0]])
+
+
+def test_poll_motrix_nudge_keyboard_applies_arrow_and_enter() -> None:
+    from unilab.visualization.interactive_playback import poll_motrix_nudge_keyboard
+
+    class _Input:
+        def __init__(self, just_pressed: set[str]):
+            self._just_pressed = just_pressed
+
+        def is_key_just_pressed(self, key: str) -> bool:
+            return key in self._just_pressed
+
+    commander = KeyboardCommander.from_vel_limit(_VEL_LIMIT, step_lin=0.1, step_ang=0.2)
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"up"})) is True
+    assert commander.command.tolist() == pytest.approx([0.1, 0.0, 0.0])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"down"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.0])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"left"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.2])
+
+    assert poll_motrix_nudge_keyboard(commander, _Input({"right"})) is True
+    assert commander.command.tolist() == pytest.approx([0.0, 0.0, 0.0])
+
+    commander.nudge(KeyboardCommander.AXIS_VX, +1.0)
+    assert poll_motrix_nudge_keyboard(commander, _Input({"enter"})) is True
+    assert commander.command.tolist() == [0.0, 0.0, 0.0]
+
+    assert poll_motrix_nudge_keyboard(commander, _Input(set())) is False
 
 
 def test_prepare_motion_overlay_selection_filters_body_names() -> None:

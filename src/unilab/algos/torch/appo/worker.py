@@ -17,7 +17,7 @@ import torch
 from rsl_rl.utils import resolve_callable
 
 from unilab.base.final_observation import resolve_terminal_observation_contract
-from unilab.base.observations import split_obs_dict
+from unilab.base.observations import get_critic_obs_group_key, split_obs_dict
 from unilab.base.registry import ensure_registries
 from unilab.training.seed import apply_training_seed
 
@@ -59,6 +59,8 @@ def compute_timeout_bootstrap_correction(
     timeout_mask: np.ndarray,
     final_obs: np.ndarray,
     final_critic: np.ndarray,
+    *,
+    critic_obs_key: str = "policy",
 ) -> np.ndarray:
     """Compute gamma * V(final_observation) for current timeout envs."""
     corrections = np.zeros(timeout_mask.shape, dtype=np.float32)
@@ -70,7 +72,7 @@ def compute_timeout_bootstrap_correction(
     critic_input_np = final_critic
     critic_input = torch.from_numpy(critic_input_np[timeout_mask]).to(collector_device)
     critic_td = TensorDict(
-        {"policy": critic_input},
+        {critic_obs_key: critic_input},
         batch_size=critic_input.shape[0],
         device=collector_device,
     )
@@ -161,9 +163,11 @@ def appo_collector_fn(
     actor = actor.to(collector_device)
     actor.eval()
 
+    obs_groups_cfg = cfg.get("obs_groups", {"actor": {"policy": obs_dim}})
+    critic_obs_key = get_critic_obs_group_key(obs_groups_cfg)
     critic_obs_dim = critic_dim if critic_dim > 0 else obs_dim
     critic_obs_example = torch.zeros((num_envs, critic_obs_dim), device=collector_device)
-    critic_td_example = TensorDict({"policy": critic_obs_example}, batch_size=num_envs)
+    critic_td_example = TensorDict({critic_obs_key: critic_obs_example}, batch_size=num_envs)
     critic_cfg = deepcopy(cfg.get("critic") or cfg.get("actor") or {})
     critic_cls = resolve_callable(critic_cfg.pop("class_name", "rsl_rl.models.MLPModel"))
     critic_cfg.pop("num_actions", None)
@@ -297,6 +301,7 @@ def appo_collector_fn(
                         if terminal_contract.terminal_critic is not None
                         else next_critic_np
                     ),
+                    critic_obs_key=critic_obs_key,
                 )
 
                 write_buf["rewards"][:, step] = reward_raw

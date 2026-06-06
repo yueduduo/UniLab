@@ -1,0 +1,488 @@
+"""K1 joystick flat locomotion (G1-walk-aligned obs/reward by default)."""
+
+from __future__ import annotations
+
+import math
+from dataclasses import dataclass, field
+from typing import Any
+
+import numpy as np
+
+from unilab.assets import ASSETS_ROOT_PATH
+from unilab.base import registry
+from unilab.base.backend import create_backend
+from unilab.base.curriculum import EpisodeLengthTracker, PenaltyCurriculum
+from unilab.base.np_env import NpEnvState
+from unilab.base.scene import SceneCfg
+from unilab.dtype_config import get_global_dtype
+from unilab.envs.locomotion.common import rewards
+from unilab.envs.locomotion.common.commands import (
+    Commands,
+    sample_heading_commands,
+    zero_small_xy_commands,
+)
+from unilab.envs.locomotion.common.domain_rand import DomainRandConfig
+from unilab.envs.locomotion.common.dr_provider import LocomotionDRProvider
+
+
+@dataclass
+class K1DomainRandConfig(DomainRandConfig):
+    randomize_kp: bool = True
+    kp_multiplier_range: list[float] = field(default_factory=lambda: [0.9, 1.1])
+
+    randomize_kd: bool = True
+    kd_multiplier_range: list[float] = field(default_factory=lambda: [0.9, 1.1])
+
+from unilab.envs.locomotion.common.rewards import RewardContext
+from unilab.envs.locomotion.g1.joystick import (
+    LEFT_FOOT_CONTACT_SENSORS,
+    RIGHT_FOOT_CONTACT_SENSORS,
+    CurriculumConfig,
+    compute_aggregated_foot_contact,
+    compute_feet_phase_contact_targets,
+    compute_feet_phase_height_targets,
+    compute_forward_command_mask,
+    compute_forward_speed_gate,
+)
+from unilab.envs.locomotion.k1.base import K1BaseCfg, K1BaseEnv
+from unilab.envs.locomotion.k1.constants import (
+    K1_G1_ALIGNED_POSE_WEIGHTS,
+    K1_NUM_ACTION,
+    K1_UPPER_BODY_JOINTS,
+    k1_walk_actor_obs_dim,
+    k1_walk_critic_obs_dim,
+)
+
+
+@dataclass
+class InitState:
+    pos = [0.0, 0.0, 0.55]
+
+
+def commands_to_amp_obs(commands: np.ndarray) -> np.ndarray:
+    """Map physical velocity commands to AMP deploy obs (soccer / legacy stack only)."""
+    return np.stack(
+        (
+            -commands[:, 0],
+            -commands[:, 1],
+            -commands[:, 2] * 0.25,
+        ),
+        axis=1,
+        dtype=get_global_dtype(),
+    )
+
+
+@dataclass
+class K1RewardConfig:
+    scales: dict[str, float]
+    tracking_sigma: float
+    gait_frequency: float
+    feet_phase_swing_height: float
+    feet_phase_tracking_sigma: float
+    base_height_target: float
+    min_base_height: float
+    max_tilt_deg: float
+    min_forward_speed_for_gait_reward: float = 0.05
+    close_feet_threshold: float = 0.15
+    pose_weights: list[float] = field(default_factory=lambda: list(K1_G1_ALIGNED_POSE_WEIGHTS))
+
+
+@dataclass
+class K1WalkEnvCfg(K1BaseCfg):
+    scene: SceneCfg = field(
+        default_factory=lambda: SceneCfg(
+            model_file=str(ASSETS_ROOT_PATH / "robots" / "k1" / "scene_flat.xml")
+        )
+    )
+    max_episode_seconds: float = 20.0
+    init_state: InitState = field(default_factory=InitState)
+    commands: Commands = field(
+        default_factory=lambda: Commands(
+            vel_limit=[
+                [0.4, 0.0, 0.0],
+                [0.7, 0.0, 0.0],
+            ],
+        )
+    )
+    reward_config: K1RewardConfig | None = None
+    domain_rand: K1DomainRandConfig = field(default_factory=K1DomainRandConfig)
+    gait_phase_init_mode: str = "offset_phase"
+    reset_base_qvel_limit: float = 0.05
+    curriculum: CurriculumConfig = field(default_factory=CurriculumConfig)
+
+
+class K1WalkDomainRandomizationProvider(LocomotionDRProvider):
+    def __init__(self, *, base_kp: np.ndarray | None = None, base_kd: np.ndarray | None = None):
+        self._base_kp = base_kp
+        self._base_kd = base_kd
+
+    def _get_base_actuator_gains(self, env: Any) -> tuple[np.ndarray | None, np.ndarray | None]:
+        return self._base_kp, self._base_kd
+
+    def _get_qvel_limit(self, env: Any) -> float:
+        return float(env.cfg.reset_base_qvel_limit)
+
+    def _build_extra_info_updates(self, env: Any, num_reset: int) -> dict[str, np.ndarray]:
+        updates: dict[str, np.ndarray] = {
+            "gait_phase": self._sample_gait_phase(env, num_reset),
+        }
+        if getattr(env.cfg.commands, "heading_command", False):
+            updates["heading_commands"] = sample_heading_commands(env, num_reset)
+        return updates
+
+    def _sample_commands(self, env: Any, num_reset: int) -> np.ndarray:
+        commands = super()._sample_commands(env, num_reset)
+        zero_small_xy_commands(commands)
+        standing_prob = float(getattr(env.cfg.commands, "rel_standing_envs", 0.0))
+        if standing_prob > 0.0:
+            standing = np.random.uniform(size=(num_reset,)) < min(standing_prob, 1.0)
+            commands[standing] = 0.0
+        if getattr(env.cfg.commands, "heading_command", False):
+            commands[:, 2] = 0.0
+        return commands
+
+    def _sample_gait_phase(self, env: Any, num_reset: int) -> np.ndarray:
+        mode = env.cfg.gait_phase_init_mode
+        if mode == "independent":
+            left = np.random.uniform(0.0, 2.0 * np.pi, size=(num_reset,))
+            right = np.random.uniform(0.0, 2.0 * np.pi, size=(num_reset,))
+            return np.asarray(np.column_stack([left, right]), dtype=get_global_dtype())
+
+        phase = np.random.uniform(0.0, 2.0 * np.pi, size=(num_reset,))
+        return np.asarray(np.column_stack([phase, phase + np.pi]), dtype=get_global_dtype())
+
+    def _compute_reset_obs(
+        self,
+        env: Any,
+        env_ids: Any,
+        info_updates: Any,
+        linvel: Any,
+        gyro: Any,
+        gravity: Any,
+        dof_pos: Any,
+        dof_vel: Any,
+    ) -> dict[str, np.ndarray]:
+        return env._compute_obs(  # type: ignore[no-any-return]
+            info_updates, linvel, gyro, gravity, dof_pos, dof_vel
+        )
+
+
+def build_k1_upper_body_pose_weights(pose_weights: list[float]) -> np.ndarray:
+    weights = np.asarray(pose_weights, dtype=get_global_dtype()).copy()
+    weights[:K1_UPPER_BODY_JOINTS] = 0.0
+    return np.asarray(weights, dtype=get_global_dtype())
+
+
+class K1WalkEnv(K1BaseEnv):
+    _cfg: K1WalkEnvCfg
+    _reward_cfg: K1RewardConfig
+
+    def __init__(self, cfg: K1WalkEnvCfg, num_envs=1, backend_type="mujoco"):
+        if cfg.reward_config is None:
+            raise ValueError("reward_config must be provided via Hydra configuration")
+        backend = create_backend(
+            backend_type,
+            cfg.scene,
+            num_envs,
+            cfg.sim_dt,
+            base_name=cfg.asset.base_name,
+            push_body_name=cfg.domain_rand.push_body_name,
+            motrix_max_iterations=cfg.motrix_max_iterations,
+            post_step_forward_sensor=cfg.post_step_forward_sensor,
+        )
+        super().__init__(cfg, backend, num_envs)
+        self._enable_reward_log = True
+        self._reward_cfg = cfg.reward_config
+        self._gait_phase_delta = float(
+            2.0 * math.pi * self._reward_cfg.gait_frequency * cfg.ctrl_dt
+        )
+        self._pose_weights = np.asarray(self._reward_cfg.pose_weights, dtype=np.float32)
+        if self._pose_weights.shape[0] != self._num_action:
+            raise ValueError("pose_weights length mismatch")
+        if self._num_action != K1_NUM_ACTION:
+            raise ValueError(f"expected {K1_NUM_ACTION} actuators, got {self._num_action}")
+        self._upper_body_pose_weights = build_k1_upper_body_pose_weights(self._reward_cfg.pose_weights)
+        self._episode_tracker: EpisodeLengthTracker | None = None
+        self._penalty_curriculum: PenaltyCurriculum | None = None
+        if cfg.curriculum.enabled:
+            self._episode_tracker = EpisodeLengthTracker(num_envs)
+            self._penalty_curriculum = PenaltyCurriculum(
+                self,
+                enabled=True,
+                initial_scale=cfg.curriculum.initial_scale,
+                min_scale=cfg.curriculum.min_scale,
+                max_scale=cfg.curriculum.max_scale,
+                level_down_threshold=cfg.curriculum.level_down_threshold,
+                level_up_threshold=cfg.curriculum.level_up_threshold,
+                degree=cfg.curriculum.degree,
+            )
+
+        self._init_reward_functions()
+        if cfg.domain_rand.randomize_kp or cfg.domain_rand.randomize_kd:
+            base_kp, base_kd = backend.get_actuator_gains()
+            dr_provider = K1WalkDomainRandomizationProvider(base_kp=base_kp, base_kd=base_kd)
+        else:
+            dr_provider = K1WalkDomainRandomizationProvider()
+        self._init_domain_randomization(dr_provider)
+
+    @property
+    def obs_groups_spec(self) -> dict[str, int]:
+        return {
+            "obs": k1_walk_actor_obs_dim(self._num_action),
+            "critic": k1_walk_critic_obs_dim(self._num_action),
+        }
+
+    def _init_reward_functions(self) -> None:
+        self._reward_fns: dict[str, Any] = {
+            "tracking_lin_vel": rewards.tracking_lin_vel,
+            "tracking_ang_vel": rewards.tracking_ang_vel,
+            "forward_progress": rewards.forward_progress,
+            "under_speed": rewards.under_speed,
+            "lin_vel_z": rewards.lin_vel_z,
+            "orientation": rewards.orientation,
+            "penalty_orientation": rewards.orientation,
+            "ang_vel_xy": rewards.ang_vel_xy,
+            "penalty_ang_vel_xy": rewards.ang_vel_xy,
+            "action_rate": rewards.action_rate,
+            "penalty_action_rate": rewards.action_rate,
+            "base_height": rewards.base_height,
+            "pose": rewards.weighted_pose,
+            "upper_body_pose": self._reward_upper_body_pose,
+            "penalty_close_feet_xy": self._reward_close_feet_xy,
+            "penalty_feet_ori": self._reward_feet_ori,
+            "feet_phase": self._reward_feet_phase,
+            "feet_phase_contrast": self._reward_feet_phase_contrast,
+            "feet_phase_contact": self._reward_feet_phase_contact,
+            "feet_double_stance": self._reward_feet_double_stance,
+            "feet_air_time": self._reward_feet_air_time,
+            "alive": rewards.alive,
+        }
+
+    def _compute_obs(
+        self, info: dict, linvel, gyro, gravity, dof_pos, dof_vel
+    ) -> dict[str, np.ndarray]:
+        noise_cfg = self._cfg.noise_config
+        diff = dof_pos - self.default_angles
+        command = info["commands"]
+        last_actions = info.get("current_actions", np.zeros_like(diff))
+        gait_phase = info.get("gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype()))
+
+        noisy_gyro = self._obs_noise(gyro, noise_cfg.scale_gyro)
+        noisy_gravity = self._obs_noise(gravity, noise_cfg.scale_gravity)
+        noisy_diff = self._obs_noise(diff, noise_cfg.scale_joint_angle)
+        noisy_dof_vel = self._obs_noise(dof_vel, noise_cfg.scale_joint_vel)
+
+        actor = np.concatenate(
+            [
+                noisy_gyro * 0.25,
+                -noisy_gravity,
+                noisy_diff,
+                noisy_dof_vel * 0.05,
+                last_actions,
+                command,
+                gait_phase,
+            ],
+            axis=1,
+            dtype=get_global_dtype(),
+        )
+        critic_base = np.concatenate(
+            [
+                gyro * 0.25,
+                -gravity,
+                diff,
+                dof_vel * 0.05,
+                last_actions,
+                command,
+                gait_phase,
+            ],
+            axis=1,
+            dtype=get_global_dtype(),
+        )
+        critic = np.concatenate(
+            [
+                critic_base,
+                np.asarray(linvel * 2.0, dtype=get_global_dtype()),
+            ],
+            axis=1,
+            dtype=get_global_dtype(),
+        )
+        return {"obs": actor, "critic": critic}
+
+    def update_state(self, state: NpEnvState) -> NpEnvState:
+        linvel = self.get_local_linvel()
+        gyro = self.get_gyro()
+        gravity = self._backend.get_sensor_data(self._cfg.sensor.upvector)
+        dof_pos = self.get_dof_pos()
+        dof_vel = self.get_dof_vel()
+
+        max_tilt_rad = np.deg2rad(self._reward_cfg.max_tilt_deg)
+        tilt = np.arccos(np.clip(gravity[:, 2], -1, 1))
+        terminated = np.logical_or(
+            tilt > max_tilt_rad,
+            self._backend.get_base_pos()[:, 2] < self._reward_cfg.min_base_height,
+        )
+
+        reward = self._compute_reward(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
+        obs = self._compute_obs(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
+        state = state.replace(obs=obs, reward=reward, terminated=terminated)
+
+        done = state.terminated | state.truncated
+        if self._episode_tracker is None or self._penalty_curriculum is None or not np.any(done):
+            return state
+
+        done_indices = np.where(done)[0]
+        episode_lengths = state.info["steps"][done_indices] + 1
+        self._episode_tracker.update(episode_lengths)
+        self._penalty_curriculum.update(self._episode_tracker.average_length)
+
+        if "log" not in state.info:
+            state.info["log"] = {}
+        state.info["log"]["curriculum/average_episode_length"] = float(
+            self._episode_tracker.average_length
+        )
+        state.info["log"]["curriculum/penalty_scale"] = float(
+            self._penalty_curriculum.current_scale
+        )
+        return state
+
+    def _build_reward_context(
+        self, info: dict, linvel, gyro, gravity, dof_pos, dof_vel
+    ) -> RewardContext:
+        return RewardContext(
+            info=info,
+            linvel=linvel,
+            gyro=gyro,
+            dof_pos=dof_pos,
+            num_envs=self._num_envs,
+            default_angles=self.default_angles,
+            tracking_sigma=self._reward_cfg.tracking_sigma,
+            base_height_target=self._reward_cfg.base_height_target,
+            base_height=self._backend.get_base_pos()[:, 2],
+            gravity=gravity,
+            dof_vel=dof_vel,
+            pose_weights=self._pose_weights,
+        )
+
+    def _compute_reward(self, info: dict, linvel, gyro, gravity, dof_pos, dof_vel) -> np.ndarray:
+        ctx = self._build_reward_context(info, linvel, gyro, gravity, dof_pos, dof_vel)
+        return rewards.run_reward_dispatch(
+            scales=self._reward_cfg.scales,
+            fns=self._reward_fns,
+            ctx=ctx,
+            info=info,
+            enable_log=self._enable_reward_log,
+            ctrl_dt=self._cfg.ctrl_dt,
+        )
+
+    def _gait_reward_gate(self, linvel: np.ndarray) -> np.ndarray:
+        return compute_forward_speed_gate(linvel, self._reward_cfg.min_forward_speed_for_gait_reward)
+
+    def _reward_feet_phase(self, ctx: RewardContext):
+        left_foot = self._backend.get_sensor_data("left_foot_pos")
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        gait_phase = ctx.info.get(
+            "gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        swing_height = self._reward_cfg.feet_phase_swing_height
+        left_target, right_target = compute_feet_phase_height_targets(gait_phase, swing_height)
+        left_error = np.square(left_foot[:, 2] - left_target)
+        right_error = np.square(right_foot[:, 2] - right_target)
+        reward = np.exp(-(left_error + right_error) / self._reward_cfg.feet_phase_tracking_sigma)
+        return np.asarray(reward * self._gait_reward_gate(ctx.linvel), dtype=get_global_dtype())
+
+    def _reward_feet_phase_contrast(self, ctx: RewardContext):
+        left_foot = self._backend.get_sensor_data("left_foot_pos")
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        gait_phase = ctx.info.get(
+            "gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        swing_height = self._reward_cfg.feet_phase_swing_height
+        left_target, right_target = compute_feet_phase_height_targets(gait_phase, swing_height)
+        actual_delta = left_foot[:, 2] - right_foot[:, 2]
+        target_delta = left_target - right_target
+        error = np.square(actual_delta - target_delta)
+        reward = np.exp(-error / self._reward_cfg.feet_phase_tracking_sigma)
+        return np.asarray(reward * self._gait_reward_gate(ctx.linvel), dtype=get_global_dtype())
+
+    def _reward_feet_phase_contact(self, ctx: RewardContext):
+        gait_phase = ctx.info.get(
+            "gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        swing_height = self._reward_cfg.feet_phase_swing_height
+        left_target_contact, right_target_contact = compute_feet_phase_contact_targets(
+            gait_phase, swing_height
+        )
+        left_contact = compute_aggregated_foot_contact(self._backend, LEFT_FOOT_CONTACT_SENSORS)
+        right_contact = compute_aggregated_foot_contact(self._backend, RIGHT_FOOT_CONTACT_SENSORS)
+        left_match = np.asarray(left_contact == left_target_contact, dtype=get_global_dtype())
+        right_match = np.asarray(right_contact == right_target_contact, dtype=get_global_dtype())
+        reward = np.asarray(0.5 * (left_match + right_match), dtype=get_global_dtype())
+        return np.asarray(reward * self._gait_reward_gate(ctx.linvel), dtype=get_global_dtype())
+
+    def _reward_feet_double_stance(self, ctx: RewardContext):
+        commands = ctx.info.get("commands", np.zeros((self._num_envs, 3), dtype=get_global_dtype()))
+        left_contact = compute_aggregated_foot_contact(self._backend, LEFT_FOOT_CONTACT_SENSORS)
+        right_contact = compute_aggregated_foot_contact(self._backend, RIGHT_FOOT_CONTACT_SENSORS)
+        double_stance = np.asarray(
+            np.logical_and(left_contact, right_contact), dtype=get_global_dtype()
+        )
+        return np.asarray(
+            double_stance * compute_forward_command_mask(commands), dtype=get_global_dtype()
+        )
+
+    def _reward_close_feet_xy(self, ctx: RewardContext):
+        left_foot = self._backend.get_sensor_data("left_foot_pos")
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        feet_dist = np.linalg.norm(left_foot[:, :2] - right_foot[:, :2], axis=1)
+        return np.where(
+            feet_dist < self._reward_cfg.close_feet_threshold,
+            np.square(feet_dist - self._reward_cfg.close_feet_threshold),
+            0.0,
+        )
+
+    def _reward_feet_ori(self, ctx: RewardContext):
+        left_foot_quat = self._backend.get_sensor_data("left_foot_quat")
+        right_foot_quat = self._backend.get_sensor_data("right_foot_quat")
+        return (
+            np.square(left_foot_quat[:, 1])
+            + np.square(left_foot_quat[:, 2])
+            + np.square(right_foot_quat[:, 1])
+            + np.square(right_foot_quat[:, 2])
+        )
+
+    def _reward_feet_air_time(self, ctx: RewardContext):
+        air_time = ctx.info.get(
+            "feet_air_time", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        in_range = (air_time > 0.05) & (air_time < 0.5)
+        return np.sum(in_range.astype(float), axis=1)
+
+    def _reward_upper_body_pose(self, ctx: RewardContext):
+        diff = ctx.dof_pos - self.default_angles
+        return np.asarray(
+            np.sum(self._upper_body_pose_weights * np.square(diff), axis=1),
+            dtype=get_global_dtype(),
+        )
+
+    def apply_action(self, actions: np.ndarray, state: NpEnvState) -> np.ndarray:
+        state.info["last_actions"] = state.info.get("current_actions", np.zeros_like(actions))
+        state.info["current_actions"] = actions
+
+        gait_phase = state.info.get(
+            "gait_phase", np.zeros((self._num_envs, 2), dtype=get_global_dtype())
+        )
+        gait_phase[:, 0] = (gait_phase[:, 0] + self._gait_phase_delta) % (2 * np.pi)
+        gait_phase[:, 1] = (gait_phase[:, 1] + self._gait_phase_delta) % (2 * np.pi)
+        state.info["gait_phase"] = gait_phase
+
+        return actions * self._cfg.control_config.action_scale + self.default_angles
+
+
+@registry.envcfg("K1WalkFlat")
+@dataclass
+class K1WalkFlatCfg(K1WalkEnvCfg):
+    reward_config: K1RewardConfig | None = None
+
+
+registry.register_env("K1WalkFlat", K1WalkEnv, sim_backend="mujoco")
+registry.register_env("K1WalkFlat", K1WalkEnv, sim_backend="motrix")

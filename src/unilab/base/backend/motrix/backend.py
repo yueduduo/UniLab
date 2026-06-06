@@ -2,7 +2,7 @@ import os
 import time
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Any, TypeVar, cast
+from typing import Any, Callable, TypeVar, cast
 
 import numpy as np
 
@@ -257,6 +257,7 @@ class MotrixBackend(SimBackend):
         self._render_capture_enabled = False
         self._render_offsets_np: np.ndarray | None = None
         self._render_tracking_camera: MotrixTrackingCamera | None = None
+        self._before_sync_hook: Callable[[], None] | None = None
         self.backend_type = "motrix"
         self._link_velocity_cache: np.ndarray | None = None
 
@@ -726,6 +727,7 @@ class MotrixBackend(SimBackend):
         frame_state_getter=None,
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter=None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
         del frame_state_getter, extra_data_getter
         should_record_video = (
@@ -745,6 +747,7 @@ class MotrixBackend(SimBackend):
                 headless=should_run_headless,
                 record_video=should_record_video,
                 camera_kwargs=camera_kwargs,
+                before_step=before_step,
             )
         except Exception as e:
             if (
@@ -1246,6 +1249,12 @@ class MotrixBackend(SimBackend):
         self._render_capture_enabled = capture
         self._render_tracking_camera = tracking_camera
 
+    def get_render_app(self) -> "RenderApp | None":
+        return self._render_app
+
+    def set_before_sync_hook(self, hook: Callable[[], None] | None) -> None:
+        self._before_sync_hook = hook
+
     def render(self):
         """Render current state (interactive visualization)"""
         if self._render_app is None:
@@ -1253,7 +1262,15 @@ class MotrixBackend(SimBackend):
         self._assert_render_context_available(headless=False, capture=False)
         assert self._render_app is not None
         self._update_tracking_camera_view()
+        if self._before_sync_hook is not None:
+            self._before_sync_hook()
         self._render_app.sync(data=self._data)
+
+    def get_render_input(self) -> Any | None:
+        """Return Motrix render input when the native window is active."""
+        if self._render_app is None or self._render_headless:
+            return None
+        return getattr(self._render_app, "input", None)
 
     def capture_video_frame(self) -> np.ndarray:
         """Capture one RGB frame from Motrix's system camera."""

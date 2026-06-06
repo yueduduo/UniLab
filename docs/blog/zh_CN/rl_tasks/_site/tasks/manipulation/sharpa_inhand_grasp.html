@@ -1,0 +1,653 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sharpa In-Hand Grasp · UniLab RL Tasks</title>
+  <link rel="stylesheet" href="../../site.css">
+</head>
+<body class="page-task">
+  <div class="ambient ambient-a"></div>
+  <div class="ambient ambient-b"></div>
+  <aside class="sidebar">
+    <a class="brand" href="../../index.html">
+      <span class="brand-mark">RL</span>
+      <span><strong>UniLab</strong><small>Task Atlas</small></span>
+    </a>
+    <div class="sidebar-card">
+      <span>Contract driven</span>
+      <strong>Robot Learning Docs</strong>
+      <p>任务、资产、源码和配置的一站式索引。</p>
+    </div>
+    <label class="search-label" for="search">快速搜索</label>
+    <input id="search" type="search" placeholder="例如 G1、reward、action..." autocomplete="off">
+    <div id="search-results" class="search-results"></div>
+    <nav><section><h3>总览</h3><ul>
+<li><a href="../../index.html">UniLab 强化学习任务与机器人资产文档</a></li>
+</ul></section>
+<section><h3>机器人</h3><ul>
+<li><a href="../../robots/allegro_hand/index.html">Allegro Hand 机器人资产与关节说明</a></li>
+<li><a href="../../robots/g1/index.html">Unitree G1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go1/index.html">Unitree Go1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2/index.html">Unitree Go2 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2_arm/index.html">Go2 + Airbot Arm 机器人资产与关节说明</a></li>
+<li><a href="../../robots/go2w/index.html">Unitree Go2W 机器人资产与关节说明</a></li>
+<li><a href="../../robots/k1/index.html">Booster K1 机器人资产与关节说明</a></li>
+<li><a href="../../robots/sharpa_wave/index.html">Sharpa Wave Hand 机器人资产与关节说明</a></li>
+</ul></section>
+<section><h3>运动控制</h3><ul>
+<li><a href="../../tasks/locomotion/index.html">运动控制任务</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_flat.html">G1 Walk Flat</a></li>
+<li><a href="../../tasks/locomotion/g1_walk_rough.html">G1 Walk Rough</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_flat.html">Go1 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go1_joystick_rough.html">Go1 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2_footstand.html">Go2 FootStand</a></li>
+<li><a href="../../tasks/locomotion/go2_handstand.html">Go2 HandStand</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_flat.html">Go2 Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2_joystick_rough.html">Go2 Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_flat.html">Go2W Joystick Flat</a></li>
+<li><a href="../../tasks/locomotion/go2w_joystick_rough.html">Go2W Joystick Rough</a></li>
+<li><a href="../../tasks/locomotion/k1_soccer_dribble.html">K1 Soccer Dribble</a></li>
+<li><a href="../../tasks/locomotion/k1_walk_flat.html">K1 Walk Flat</a></li>
+</ul></section>
+<section><h3>移动操作</h3><ul>
+<li><a href="../../tasks/manip_loco/index.html">移动操作任务</a></li>
+<li><a href="../../tasks/manip_loco/go2_arm_manip_loco.html">Go2 Arm Manip-Loco</a></li>
+</ul></section>
+<section><h3>灵巧操作</h3><ul>
+<li><a href="index.html">灵巧操作任务</a></li>
+<li><a href="allegro_inhand.html">Allegro In-Hand Rotation</a></li>
+<li><a href="allegro_inhand_grasp.html">Allegro In-Hand Grasp</a></li>
+<li><a href="sharpa_inhand.html">Sharpa In-Hand Rotation</a></li>
+<li class="active">Sharpa In-Hand Grasp</li>
+</ul></section>
+<section><h3>动作追踪</h3><ul>
+<li><a href="../../tasks/motion_tracking/index.html">动作追踪任务</a></li>
+<li><a href="../../tasks/motion_tracking/g1_box_tracking.html">G1 Box Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_climb_tracking.html">G1 Climb Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_flip_tracking.html">G1 Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking.html">G1 Motion Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_motion_tracking_deploy.html">G1 Motion Tracking Deploy</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wall_flip_tracking.html">G1 Wall Flip Tracking</a></li>
+<li><a href="../../tasks/motion_tracking/g1_wbt_obs.html">G1 WBT Obs</a></li>
+</ul></section></nav>
+  </aside>
+  <main class="main-stage">
+    
+    <header class="hero hero-task">
+      <div class="hero-copy">
+        <div class="eyebrow">灵巧操作 · UniLab RL Tasks</div>
+        <h1>Sharpa In-Hand Grasp</h1>
+        <p>从 agent、env、obs、action、reward、初始状态、终止条件和域随机化八个角度拆解任务实现。</p>
+        
+      </div>
+      <div class="hero-orbit" aria-hidden="true">
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    </header>
+
+    
+    <aside class="page-toc" aria-label="本页目录">
+      <div class="page-toc-title">本页目录</div>
+      <nav>
+        <a class="toc-level-2" href="#任务目标">任务目标</a><a class="toc-level-2" href="#证据索引">证据索引</a><a class="toc-level-3" href="#registry-与-owner">Registry 与 Owner</a><a class="toc-level-2" href="#代码级执行流">代码级执行流</a><a class="toc-level-3" href="#本任务阅读重点">本任务阅读重点</a><a class="toc-level-3" href="#本任务注册入口">本任务注册入口</a><a class="toc-level-3" href="#本任务源码锚点">本任务源码锚点</a><a class="toc-level-2" href="#关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</a><a class="toc-level-3" href="#配置-sharpa-grasp">配置：Sharpa grasp</a><a class="toc-level-3" href="#reset-grasp-cache">Reset：grasp cache</a><a class="toc-level-3" href="#obs-抓取质量输入">Obs：抓取质量输入</a><a class="toc-level-3" href="#action-抓取生成动作">Action：抓取生成动作</a><a class="toc-level-3" href="#reward-termination">Reward/Termination</a><a class="toc-level-2" href="#agent">Agent</a><a class="toc-level-2" href="#env">Env</a><a class="toc-level-2" href="#obs">Obs</a><a class="toc-level-3" href="#obs-字段级拆解">Obs 字段级拆解</a><a class="toc-level-2" href="#action">Action</a><a class="toc-level-3" href="#action-逐维拆解">Action 逐维拆解</a><a class="toc-level-2" href="#reward">Reward</a><a class="toc-level-3" href="#reward-逐项拆解">Reward 逐项拆解</a><a class="toc-level-2" href="#初始状态">初始状态</a><a class="toc-level-2" href="#终止条件">终止条件</a><a class="toc-level-2" href="#域随机化">域随机化</a><a class="toc-level-3" href="#域随机化字段拆解">域随机化字段拆解</a>
+      </nav>
+    </aside>
+
+    <article class="doc-article">
+      <h1 id="sharpa-in-hand-grasp">Sharpa In-Hand Grasp</h1>
+<h2 id="任务目标">任务目标</h2>
+<p>为 Sharpa Wave 生成稳定抓取状态，使后续旋转任务能从可控接触构型开始。</p>
+<p><img src="../../images/tasks/sharpa_inhand_grasp.png" alt="Sharpa In-Hand Grasp 场景渲染" loading="lazy"></p>
+<blockquote>
+<p>图片由 <code>_tools/render_static_images.py</code> 使用 <code>src/unilab/assets/robots/sharpa_wave/scene.xml</code> 的 MuJoCo scene 离屏渲染生成；如果当前环境无法启用 EGL/OSMesa，生成 manifest 会记录失败原因。</p>
+</blockquote>
+<h2 id="证据索引">证据索引</h2>
+<div class="table-wrap"><table><thead><tr><th>项目</th><th>内容</th></tr></thead><tbody><tr><td>任务类别</td><td>灵巧操作</td></tr><tr><td>机器人</td><td>sharpa_wave</td></tr><tr><td>代表 scene</td><td>src/unilab/assets/robots/sharpa_wave/scene.xml</td></tr><tr><td>代表源码</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td></tr><tr><td>代表 owner YAML</td><td>conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</td></tr><tr><td>动作维度</td><td>22</td></tr></tbody></table></div>
+<h3 id="registry-与-owner">Registry 与 Owner</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>后端</th><th>配置类</th><th>配置源码</th></tr></thead><tbody><tr><td>SharpaInhandRotationGrasp</td><td>motrix, mujoco</td><td>SharpaInhandGraspEnvCfg</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td></tr></tbody></table></div>
+<div class="table-wrap"><table><thead><tr><th>算法组</th><th>后端</th><th>training.task_name</th><th>owner YAML</th></tr></thead><tbody><tr><td>ppo</td><td>motrix</td><td>SharpaInhandRotationGrasp</td><td>conf/ppo/task/sharpa_inhand_grasp/motrix.yaml</td></tr><tr><td>ppo</td><td>mujoco</td><td>SharpaInhandRotationGrasp</td><td>conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</td></tr></tbody></table></div>
+<h2 id="代码级执行流">代码级执行流</h2>
+<p>这部分不再用通用关键词套模板，而是为 <code>sharpa_inhand_grasp</code> 单独写源码导读。源码片段只负责提供证据；每节说明都围绕本任务自己的配置、状态、观测、动作和 reward 语义展开。</p>
+<div class="table-wrap"><table><thead><tr><th>阶段</th><th>证据位置</th><th>代码级说明</th></tr></thead><tbody><tr><td>1. Hydra owner</td><td>conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</td><td>训练命令先 compose owner YAML。这里确定 <code>training.task_name</code>、后端身份、obs_groups、reward scale 和 env override。</td></tr><tr><td>2. Registry 构造 Env</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td><code>@registry.envcfg</code> 注册配置类，<code>@registry.env</code> 注册后端实现类；训练脚本只调用 registry，不直接 new 任务类。</td></tr><tr><td>3. Reset/初始状态</td><td>src/unilab/assets/robots/sharpa_wave/scene.xml</td><td>env 从 scene keyframe 或 motion/grasp cache 取初态，再通过 reset randomization 改写 qpos/qvel/info。</td></tr><tr><td>4. Obs dict</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>env 读取 backend 传感器和 info，返回 dict；learner 根据 <code>obs_groups_spec</code> 和 owner <code>algo.obs_groups</code> 选择 actor/critic 输入。</td></tr><tr><td>5. Action 到控制目标</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>policy 输出先按 action scale / 控制顺序映射到 actuator，再由 backend step 推进仿真。</td></tr><tr><td>6. Reward dispatch</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>源码把 reward key 映射到函数，owner YAML 的 scale 决定每项奖励/惩罚是否启用以及权重。</td></tr><tr><td>7. Termination</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>env 根据高度、姿态、接触、参考轨迹误差、物体状态或能量阈值生成 done/terminated。</td></tr></tbody></table></div>
+<h3 id="本任务阅读重点">本任务阅读重点</h3>
+<div class="table-wrap"><table><thead><tr><th>阅读重点</th></tr></thead><tbody><tr><td>Sharpa grasp generation 的目标是收集/保持稳定抓取状态，为 rotation 提供可用初态。</td></tr><tr><td>它有自己的 grasp DR provider 和 apply_action/update_state 覆盖，不能只沿用 rotation 文案。</td></tr><tr><td>文档应强调 cache 收集、物体保持和接触稳定，而不是旋转速度。</td></tr></tbody></table></div>
+<h3 id="本任务注册入口">本任务注册入口</h3>
+<div class="table-wrap"><table><thead><tr><th>注册名</th><th>配置类</th><th>可用后端</th></tr></thead><tbody><tr><td>SharpaInhandRotationGrasp</td><td>SharpaInhandGraspEnvCfg</td><td>motrix, mujoco</td></tr></tbody></table></div>
+<h3 id="本任务源码锚点">本任务源码锚点</h3>
+<div class="table-wrap"><table><thead><tr><th>小节</th><th>源码文件</th><th>明确锚点</th></tr></thead><tbody><tr><td>配置：Sharpa grasp</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>SharpaInhandGraspEnvCfg, SharpaInhandRotationGraspCfg</td></tr><tr><td>Reset：grasp cache</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>build_reset_plan, SharpaInhandGraspDRProvider</td></tr><tr><td>Obs：抓取质量输入</td><td>src/unilab/envs/manipulation/sharpa_inhand/rotation.py</td><td>obs_groups_spec, _compute_obs_from_inputs</td></tr><tr><td>Action：抓取生成动作</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>apply_action, Grasp-cache</td></tr><tr><td>Reward/Termination</td><td>src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</td><td>update_state, success</td></tr></tbody></table></div>
+<h2 id="关键源码逐段解释-按本任务手写">关键源码逐段解释（按本任务手写）</h2>
+<h3 id="配置-sharpa-grasp">配置：Sharpa grasp</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>grasp cfg 缩短 episode 并调整抓取生成参数。</td></tr><tr><td>注册名 SharpaInhandRotationGrasp 指向抓取任务。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+<span class="tok-comment"># Sharpa 抓取生成任务用独立注册名选择。</span>
+<span class="tok-op">@</span>registry<span class="tok-op">.</span>envcfg<span class="tok-op">(</span><span class="tok-str">&quot;SharpaInhandRotationGrasp&quot;</span><span class="tok-op">)</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> SharpaInhandGraspEnvCfg<span class="tok-op">(</span>SharpaInhandRotationGraspCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-comment"># 注册类本身不改字段，具体抓取参数来自父类 SharpaInhandRotationGraspCfg。</span>
+    <span class="tok-kw">pass</span>
+</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> SharpaInhandRotationGraspCfg<span class="tok-op">(</span>SharpaInhandRotationCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-comment"># 抓取采集 episode 较短，主要验证初态是否能稳定保持。</span>
+    max_episode_seconds<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">3.0</span>  <span class="tok-comment"># 12.0</span>
+
+    <span class="tok-comment"># 物体高度终止窗口很窄，用于过滤掉落或抬离手心的抓取。</span>
+    reset_height_lower<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.61406</span>
+    reset_height_upper<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">0.62406</span>
+    <span class="tok-comment"># 物体姿态偏差超过该角度时认为抓取不稳定。</span>
+    reset_angle_diff<span class="tok-op">:</span> <span class="tok-builtin">float</span> <span class="tok-op">=</span> <span class="tok-num">30.0</span> <span class="tok-op">/</span> <span class="tok-num">180.0</span> <span class="tok-op">*</span> np<span class="tok-op">.</span>pi
+
+    <span class="tok-comment"># grasp 生成从默认姿态随机扰动采集，因此不要求已有 cache。</span>
+    grasp_cache_path<span class="tok-op">:</span> <span class="tok-builtin">str</span> <span class="tok-op">=</span> <span class="tok-str">&quot;&quot;</span>
+    <span class="tok-comment"># 使用抓取任务专用 DR，避免 rotation 训练的 scale cache 依赖。</span>
+    domain_rand<span class="tok-op">:</span> SharpaDomainRandConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>default_factory<span class="tok-op">=</span>_default_sharpa_grasp_domain_rand<span class="tok-op">)</span>
+
+    reward_config<span class="tok-op">:</span> RewardConfig <span class="tok-op">=</span> field<span class="tok-op">(</span>
+        default_factory<span class="tok-op">=</span><span class="tok-kw">lambda</span><span class="tok-op">:</span> RewardConfig<span class="tok-op">(</span>
+            scales<span class="tok-op">=</span><span class="tok-op">{</span>
+                <span class="tok-comment"># 抓取采集不优化旋转/能耗 reward，成功与否由质量条件和 termination 决定。</span>
+                <span class="tok-str">&quot;rotate&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+                <span class="tok-str">&quot;obj_linvel&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+                <span class="tok-str">&quot;pose_diff&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+                <span class="tok-str">&quot;torque&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+                <span class="tok-str">&quot;work&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+                <span class="tok-str">&quot;object_pos&quot;</span><span class="tok-op">:</span> <span class="tok-num">0.0</span><span class="tok-op">,</span>
+            <span class="tok-op">}</span>
+        <span class="tok-op">)</span>
+    <span class="tok-op">)</span>
+
+    <span class="tok-comment"># 成功抓取 cache 的目标样本数和自动保存开关。</span>
+    grasp_collection_target<span class="tok-op">:</span> <span class="tok-builtin">int</span> <span class="tok-op">=</span> <span class="tok-num">50_000</span>
+    grasp_auto_save<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">True</span>
+</code></pre>
+<h3 id="reset-grasp-cache">Reset：grasp cache</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>reset provider 会保留原抓取任务行为并收集成功 pre-reset 状态。</td></tr><tr><td>这和 rotation 的普通随机初态不同。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+    <span class="tok-kw">def</span> build_reset_plan<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> env<span class="tok-op">:</span> <span class="tok-builtin">Any</span><span class="tok-op">,</span> env_ids<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> ResetPlan<span class="tok-op">:</span>
+        <span class="tok-comment"># Keep original grasp task behavior: collect successful pre-reset states on each reset.</span>
+        <span class="tok-comment"># reset 前先收集刚结束 episode 中满足成功条件的手/物体状态。</span>
+        env<span class="tok-op">.</span>_collect_successful_grasps<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+
+        num_reset <span class="tok-op">=</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-kw">if</span> num_reset <span class="tok-op">==</span> <span class="tok-num">0</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 没有 env 需要 reset 时返回空计划，保持 DR contract。</span>
+            <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+                env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+                qpos<span class="tok-op">=</span>np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-num">0</span><span class="tok-op">,</span> env<span class="tok-op">.</span>nq<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+                qvel<span class="tok-op">=</span>np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-num">0</span><span class="tok-op">,</span> env<span class="tok-op">.</span>nv<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+                info_updates<span class="tok-op">=</span><span class="tok-op">{</span><span class="tok-op">}</span><span class="tok-op">,</span>
+                randomization<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            <span class="tok-op">)</span>
+
+        <span class="tok-comment"># 围绕抓取默认手型随机扰动 22 个手部关节，生成候选初态。</span>
+        rand <span class="tok-op">=</span> <span class="tok-num">2.0</span> <span class="tok-op">*</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>rand<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span> <span class="tok-op">-</span> <span class="tok-num">1.0</span>
+        hand_qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_grasp_default_angles<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+        hand_qpos <span class="tok-op">+=</span> <span class="tok-num">0.15</span> <span class="tok-op">*</span> rand
+        <span class="tok-comment"># 候选手型裁剪到 actuator 合法控制范围。</span>
+        hand_qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>clip<span class="tok-op">(</span>hand_qpos<span class="tok-op">,</span> env<span class="tok-op">.</span>_ctrl_lower<span class="tok-op">,</span> env<span class="tok-op">.</span>_ctrl_upper<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 物体位置/姿态使用 scene keyframe 的初始 free-joint pose。</span>
+        object_pos <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qpos<span class="tok-op">[</span>env<span class="tok-op">.</span>_obj_pos_slice<span class="tok-op">]</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+        object_quat <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qpos<span class="tok-op">[</span>env<span class="tok-op">.</span>_obj_quat_slice<span class="tok-op">]</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">4</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># qpos 分别写入手部关节、物体位置和物体四元数 slice。</span>
+        qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>nq<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">]</span> <span class="tok-op">=</span> hand_qpos
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> env<span class="tok-op">.</span>_obj_pos_slice<span class="tok-op">]</span> <span class="tok-op">=</span> object_pos
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> env<span class="tok-op">.</span>_obj_quat_slice<span class="tok-op">]</span> <span class="tok-op">=</span> object_quat
+
+        qvel <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>nv<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span>
+        <span class="tok-comment"># 抓取任务仍可随机化 PD 增益，并写入 info/ResetPlan。</span>
+        p_gain<span class="tok-op">,</span> d_gain <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_sample_reset_pd_gains<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">,</span> dtype<span class="tok-op">=</span>env<span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 初始化 obs history、critic info、终止高度窗口和默认物体姿态。</span>
+        info_updates <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_build_info_updates<span class="tok-op">(</span>
+            env<span class="tok-op">,</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            hand_qpos<span class="tok-op">=</span>hand_qpos<span class="tok-op">,</span>
+            object_pos<span class="tok-op">=</span>object_pos<span class="tok-op">,</span>
+            object_quat<span class="tok-op">=</span>object_quat<span class="tok-op">,</span>
+            reset_height_lower<span class="tok-op">=</span>np<span class="tok-op">.</span>full<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>reset_height_lower<span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            reset_height_upper<span class="tok-op">=</span>np<span class="tok-op">.</span>full<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>reset_height_upper<span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            rot_axis<span class="tok-op">=</span>np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_rot_axis<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            p_gain<span class="tok-op">=</span>p_gain<span class="tok-op">,</span>
+            d_gain<span class="tok-op">=</span>d_gain<span class="tok-op">,</span>
+            friction_scale<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            randomized_mass<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            randomized_com_offset<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            gravity<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+        <span class="tok-comment"># 触觉 history 清空，保证新候选抓取从无旧接触状态开始。</span>
+        env<span class="tok-op">.</span>_clear_tactile_history<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 这里使用 common reset randomization，不加载 rotation 的 scale grasp cache。</span>
+        <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            qpos<span class="tok-op">=</span>qpos<span class="tok-op">,</span>
+            qvel<span class="tok-op">=</span>qvel<span class="tok-op">,</span>
+            info_updates<span class="tok-op">=</span>info_updates<span class="tok-op">,</span>
+            randomization<span class="tok-op">=</span>build_common_reset_randomization<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+<span class="tok-kw">class</span> SharpaInhandGraspDRProvider<span class="tok-op">(</span>SharpaInhandRotationDRProvider<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-kw">def</span> build_reset_plan<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> env<span class="tok-op">:</span> <span class="tok-builtin">Any</span><span class="tok-op">,</span> env_ids<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> ResetPlan<span class="tok-op">:</span>
+        <span class="tok-comment"># Keep original grasp task behavior: collect successful pre-reset states on each reset.</span>
+        <span class="tok-comment"># DR provider 覆盖 reset：每次 reset 前先把成功抓取写入 cache。</span>
+        env<span class="tok-op">.</span>_collect_successful_grasps<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+
+        num_reset <span class="tok-op">=</span> <span class="tok-builtin">len</span><span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+        <span class="tok-kw">if</span> num_reset <span class="tok-op">==</span> <span class="tok-num">0</span><span class="tok-op">:</span>
+            <span class="tok-comment"># 空 reset 分支返回形状正确的空 qpos/qvel。</span>
+            <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+                env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+                qpos<span class="tok-op">=</span>np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-num">0</span><span class="tok-op">,</span> env<span class="tok-op">.</span>nq<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+                qvel<span class="tok-op">=</span>np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-num">0</span><span class="tok-op">,</span> env<span class="tok-op">.</span>nv<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+                info_updates<span class="tok-op">=</span><span class="tok-op">{</span><span class="tok-op">}</span><span class="tok-op">,</span>
+                randomization<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            <span class="tok-op">)</span>
+
+        <span class="tok-comment"># 从抓取默认角加随机扰动生成候选手型。</span>
+        rand <span class="tok-op">=</span> <span class="tok-num">2.0</span> <span class="tok-op">*</span> np<span class="tok-op">.</span>random<span class="tok-op">.</span>rand<span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span> <span class="tok-op">-</span> <span class="tok-num">1.0</span>
+        hand_qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_grasp_default_angles<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+        hand_qpos <span class="tok-op">+=</span> <span class="tok-num">0.15</span> <span class="tok-op">*</span> rand
+        hand_qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>clip<span class="tok-op">(</span>hand_qpos<span class="tok-op">,</span> env<span class="tok-op">.</span>_ctrl_lower<span class="tok-op">,</span> env<span class="tok-op">.</span>_ctrl_upper<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 物体初态固定在 scene keyframe 的位置/姿态，便于比较抓取稳定性。</span>
+        object_pos <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qpos<span class="tok-op">[</span>env<span class="tok-op">.</span>_obj_pos_slice<span class="tok-op">]</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+        object_quat <span class="tok-op">=</span> np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_init_qpos<span class="tok-op">[</span>env<span class="tok-op">.</span>_obj_quat_slice<span class="tok-op">]</span><span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">4</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>copy<span class="tok-op">(</span><span class="tok-op">)</span>
+
+        qpos <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>nq<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span>
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span> env<span class="tok-op">.</span>_num_action<span class="tok-op">]</span> <span class="tok-op">=</span> hand_qpos
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> env<span class="tok-op">.</span>_obj_pos_slice<span class="tok-op">]</span> <span class="tok-op">=</span> object_pos
+        qpos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> env<span class="tok-op">.</span>_obj_quat_slice<span class="tok-op">]</span> <span class="tok-op">=</span> object_quat
+
+        qvel <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span> env<span class="tok-op">.</span>nv<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span>
+        <span class="tok-comment"># 采样 reset-time PD 增益，后续虚拟 torque reward/诊断读取同一组增益。</span>
+        p_gain<span class="tok-op">,</span> d_gain <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_sample_reset_pd_gains<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">,</span> dtype<span class="tok-op">=</span>env<span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+
+        <span class="tok-comment"># info 中记录目标、history、reset 高度窗口和物体默认 pose。</span>
+        info_updates <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_build_info_updates<span class="tok-op">(</span>
+            env<span class="tok-op">,</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            hand_qpos<span class="tok-op">=</span>hand_qpos<span class="tok-op">,</span>
+            object_pos<span class="tok-op">=</span>object_pos<span class="tok-op">,</span>
+            object_quat<span class="tok-op">=</span>object_quat<span class="tok-op">,</span>
+            reset_height_lower<span class="tok-op">=</span>np<span class="tok-op">.</span>full<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>reset_height_lower<span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            reset_height_upper<span class="tok-op">=</span>np<span class="tok-op">.</span>full<span class="tok-op">(</span><span class="tok-op">(</span>num_reset<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> env<span class="tok-op">.</span>cfg<span class="tok-op">.</span>reset_height_upper<span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            rot_axis<span class="tok-op">=</span>np<span class="tok-op">.</span>broadcast_to<span class="tok-op">(</span>env<span class="tok-op">.</span>_rot_axis<span class="tok-op">,</span> <span class="tok-op">(</span>num_reset<span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float64<span class="tok-op">)</span><span class="tok-op">,</span>
+            p_gain<span class="tok-op">=</span>p_gain<span class="tok-op">,</span>
+            d_gain<span class="tok-op">=</span>d_gain<span class="tok-op">,</span>
+            friction_scale<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            randomized_mass<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            randomized_com_offset<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+            gravity<span class="tok-op">=</span><span class="tok-kw">None</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+        env<span class="tok-op">.</span>_clear_tactile_history<span class="tok-op">(</span>env_ids<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 返回候选抓取初态；成功与否由 update_state 的质量条件判断。</span>
+        <span class="tok-kw">return</span> ResetPlan<span class="tok-op">(</span>
+            env_ids<span class="tok-op">=</span>env_ids<span class="tok-op">,</span>
+            qpos<span class="tok-op">=</span>qpos<span class="tok-op">,</span>
+            qvel<span class="tok-op">=</span>qvel<span class="tok-op">,</span>
+            info_updates<span class="tok-op">=</span>info_updates<span class="tok-op">,</span>
+            randomization<span class="tok-op">=</span>build_common_reset_randomization<span class="tok-op">(</span>env<span class="tok-op">,</span> num_reset<span class="tok-op">)</span><span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+</code></pre>
+<h3 id="obs-抓取质量输入">Obs：抓取质量输入</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>obs 沿用 Sharpa 手/物体/history 结构。</td></tr><tr><td>抓取任务更关注物体是否在稳定接触区域。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/rotation.py</span>
+    <span class="tok-op">@</span>property
+    <span class="tok-kw">def</span> obs_groups_spec<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">int</span><span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># 抓取任务沿用 Sharpa rotation 的 obs/history 结构。</span>
+        policy_obs_dim <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>obs_lag_steps <span class="tok-op">*</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_policy_frame_dim<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-kw">if</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_observation_mode <span class="tok-op">==</span> <span class="tok-str">&quot;flattened&quot;</span><span class="tok-op">:</span>
+            <span class="tok-comment"># flattened 模式把 critic 信息并入 obs 单组。</span>
+            <span class="tok-kw">return</span> <span class="tok-op">{</span><span class="tok-str">&quot;obs&quot;</span><span class="tok-op">:</span> policy_obs_dim <span class="tok-op">+</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>critic_info_dim<span class="tok-op">}</span>
+        <span class="tok-comment"># separated 模式保留 actor obs 和 critic 特权组。</span>
+        <span class="tok-kw">return</span> <span class="tok-op">{</span><span class="tok-str">&quot;obs&quot;</span><span class="tok-op">:</span> policy_obs_dim<span class="tok-op">,</span> <span class="tok-str">&quot;critic&quot;</span><span class="tok-op">:</span> policy_obs_dim <span class="tok-op">+</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>critic_info_dim<span class="tok-op">}</span></code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/rotation.py</span>
+    <span class="tok-kw">def</span> _compute_obs_from_inputs<span class="tok-op">(</span>
+        <span class="tok-builtin">self</span><span class="tok-op">,</span>
+        info<span class="tok-op">:</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> <span class="tok-builtin">Any</span><span class="tok-op">]</span><span class="tok-op">,</span>
+        dof_pos<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        object_pos<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        tactile<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+        contact_pos<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span>
+    <span class="tok-op">)</span> <span class="tok-op">-&gt;</span> <span class="tok-builtin">dict</span><span class="tok-op">[</span><span class="tok-builtin">str</span><span class="tok-op">,</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">]</span><span class="tok-op">:</span>
+        <span class="tok-comment"># prev_targets 是抓取时保持的手部 position target。</span>
+        targets <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;prev_targets&quot;</span><span class="tok-op">,</span> dof_pos<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+        <span class="tok-comment"># policy frame 包含手部关节、目标、触觉和接触位置。</span>
+        frame <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_build_policy_frame<span class="tok-op">(</span>
+            dof_pos<span class="tok-op">=</span>dof_pos<span class="tok-op">,</span>
+            targets<span class="tok-op">=</span>targets<span class="tok-op">,</span>
+            tactile<span class="tok-op">=</span>tactile<span class="tok-op">,</span>
+            contact_pos<span class="tok-op">=</span>contact_pos<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+        batch_size <span class="tok-op">=</span> <span class="tok-builtin">int</span><span class="tok-op">(</span>frame<span class="tok-op">.</span>shape<span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">]</span><span class="tok-op">)</span>
+
+        history <span class="tok-op">=</span> info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;obs_lag_history&quot;</span><span class="tok-op">)</span>
+        <span class="tok-kw">if</span> history <span class="tok-kw">is</span> <span class="tok-kw">None</span><span class="tok-op">:</span>
+            <span class="tok-comment"># reset 首帧用同一 frame 填满 history。</span>
+            history <span class="tok-op">=</span> repeat_obs_history<span class="tok-op">(</span>frame<span class="tok-op">,</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>obs_history_len<span class="tok-op">)</span><span class="tok-op">.</span>astype<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+        <span class="tok-kw">else</span><span class="tok-op">:</span>
+            history <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>history<span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+            <span class="tok-comment"># 常规 step 左移历史并写入最新触觉/接触状态。</span>
+            history<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">-</span><span class="tok-num">1</span><span class="tok-op">]</span> <span class="tok-op">=</span> history<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">1</span><span class="tok-op">:</span><span class="tok-op">]</span>
+            history<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">-</span><span class="tok-num">1</span><span class="tok-op">]</span> <span class="tok-op">=</span> frame
+
+        info<span class="tok-op">[</span><span class="tok-str">&quot;obs_lag_history&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> history
+        <span class="tok-comment"># proprio_hist 供部署/critic 相关组件复用更长历史。</span>
+        info<span class="tok-op">[</span><span class="tok-str">&quot;proprio_hist&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_update_proprio_history<span class="tok-op">(</span>history<span class="tok-op">)</span>
+
+        <span class="tok-comment"># actor 读取最近 obs_lag_steps 帧的展平结果。</span>
+        obs <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>
+            history<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-op">-</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>obs_lag_steps <span class="tok-op">:</span><span class="tok-op">]</span><span class="tok-op">.</span>reshape<span class="tok-op">(</span>batch_size<span class="tok-op">,</span> <span class="tok-op">-</span><span class="tok-num">1</span><span class="tok-op">)</span><span class="tok-op">,</span>
+            dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+        <span class="tok-comment"># critic_info 保留物体位置和 reset 随机化相关特权信息。</span>
+        critic_info <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_build_critic_info<span class="tok-op">(</span>info<span class="tok-op">,</span> batch_size<span class="tok-op">=</span>batch_size<span class="tok-op">,</span> object_pos<span class="tok-op">=</span>object_pos<span class="tok-op">)</span>
+        <span class="tok-kw">return</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_pack_observations<span class="tok-op">(</span>obs<span class="tok-op">,</span> critic_info<span class="tok-op">)</span></code></pre>
+<h3 id="action-抓取生成动作">Action：抓取生成动作</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>grasp_gen 覆盖 apply_action，不使用普通策略随机动作收集 cache。</td></tr><tr><td>这是生成稳定抓取初态的关键差异。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+    <span class="tok-kw">def</span> apply_action<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> actions<span class="tok-op">:</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> np<span class="tok-op">.</span>ndarray<span class="tok-op">:</span>
+        <span class="tok-comment"># Grasp-cache collection should not use policy/random actions.</span>
+        <span class="tok-comment"># Keep controls fixed at reset targets by forcing zero action input.</span>
+        <span class="tok-comment"># 抓取 cache 采集阶段不让策略扰动手型，只验证 reset 候选是否稳定。</span>
+        zero_actions <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros_like<span class="tok-op">(</span>actions<span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+        <span class="tok-kw">return</span> <span class="tok-builtin">super</span><span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">.</span>apply_action<span class="tok-op">(</span>zero_actions<span class="tok-op">,</span> state<span class="tok-op">)</span></code></pre>
+<h3 id="reward-termination">Reward/Termination</h3>
+<div class="table-wrap"><table><thead><tr><th>本任务人工导读</th></tr></thead><tbody><tr><td>update_state 在父类基础上追加成功抓取记录/终止逻辑。</td></tr><tr><td>termination 关注物体掉落、接触失败和 horizon。</td></tr></tbody></table></div>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+    <span class="tok-kw">def</span> update_state<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">,</span> state<span class="tok-op">:</span> NpEnvState<span class="tok-op">)</span> <span class="tok-op">-&gt;</span> NpEnvState<span class="tok-op">:</span>
+        <span class="tok-comment"># 先执行 rotation 父类更新，得到基础 obs/reward/termination 和物体状态记录。</span>
+        next_state <span class="tok-op">=</span> <span class="tok-builtin">super</span><span class="tok-op">(</span><span class="tok-op">)</span><span class="tok-op">.</span>update_state<span class="tok-op">(</span>state<span class="tok-op">)</span>
+
+        <span class="tok-comment"># 抓取质量判断需要 fingertip、物体位置和物体姿态。</span>
+        fingertip_pos <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_fingertip_pos<span class="tok-op">(</span><span class="tok-op">)</span>
+        object_pos <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_object_pos<span class="tok-op">(</span><span class="tok-op">)</span>
+        object_quat <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>get_object_quat<span class="tok-op">(</span><span class="tok-op">)</span>
+        <span class="tok-comment"># reset 时记录的物体默认 pose 用于计算姿态偏差。</span>
+        object_default_pose <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>
+            next_state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span>
+                <span class="tok-str">&quot;object_default_pose&quot;</span><span class="tok-op">,</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_num_envs<span class="tok-op">,</span> <span class="tok-num">7</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+            <span class="tok-op">)</span><span class="tok-op">,</span>
+            dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">,</span>
+        <span class="tok-op">)</span>
+
+        <span class="tok-comment"># 条件 1：所有指尖都靠近物体，说明手指包围住目标。</span>
+        cond1 <span class="tok-op">=</span> np<span class="tok-op">.</span>all<span class="tok-op">(</span>
+            np<span class="tok-op">.</span>linalg<span class="tok-op">.</span>norm<span class="tok-op">(</span>fingertip_pos <span class="tok-op">-</span> object_pos<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-kw">None</span><span class="tok-op">,</span> <span class="tok-op">:</span><span class="tok-op">]</span><span class="tok-op">,</span> axis<span class="tok-op">=</span><span class="tok-op">-</span><span class="tok-num">1</span><span class="tok-op">)</span> <span class="tok-op">&lt;</span> <span class="tok-num">0.1</span><span class="tok-op">,</span> axis<span class="tok-op">=</span><span class="tok-num">1</span>
+        <span class="tok-op">)</span>
+        tactile <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>last_contacts<span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+        <span class="tok-comment"># 条件 2：至少 3 个触觉通道有接触，避免单点碰撞被当成成功抓取。</span>
+        cond2 <span class="tok-op">=</span> np<span class="tok-op">.</span>sum<span class="tok-op">(</span>tactile <span class="tok-op">&gt;</span> <span class="tok-num">0.5</span><span class="tok-op">,</span> axis<span class="tok-op">=</span><span class="tok-num">1</span><span class="tok-op">)</span> <span class="tok-op">&gt;=</span> <span class="tok-num">3</span>
+        <span class="tok-comment"># 条件 3：物体姿态与 reset 姿态偏差不超过阈值。</span>
+        quat_error <span class="tok-op">=</span> np_quat_error_magnitude<span class="tok-op">(</span>object_default_pose<span class="tok-op">[</span><span class="tok-op">:</span><span class="tok-op">,</span> <span class="tok-num">3</span><span class="tok-op">:</span><span class="tok-num">7</span><span class="tok-op">]</span><span class="tok-op">,</span> object_quat<span class="tok-op">)</span>
+        cond3 <span class="tok-op">=</span> quat_error <span class="tok-op">&lt;</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>reset_angle_diff
+
+        <span class="tok-comment"># 任一条件失败或父类已终止，都结束该候选抓取。</span>
+        grasp_valid <span class="tok-op">=</span> cond1 <span class="tok-op">&amp;</span> cond2 <span class="tok-op">&amp;</span> cond3
+        terminated <span class="tok-op">=</span> np<span class="tok-op">.</span>asarray<span class="tok-op">(</span>next_state<span class="tok-op">.</span>terminated <span class="tok-op">|</span> <span class="tok-op">(</span><span class="tok-op">~</span>grasp_valid<span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">bool</span><span class="tok-op">)</span>
+
+        <span class="tok-comment"># 抓取生成任务不通过 reward 学习，成功样本通过 reset 前收集写入 cache。</span>
+        reward <span class="tok-op">=</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_num_envs<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_np_dtype<span class="tok-op">)</span>
+
+        step_count <span class="tok-op">=</span> next_state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;steps&quot;</span><span class="tok-op">,</span> np<span class="tok-op">.</span>zeros<span class="tok-op">(</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_num_envs<span class="tok-op">,</span><span class="tok-op">)</span><span class="tok-op">,</span> dtype<span class="tok-op">=</span>np<span class="tok-op">.</span>uint32<span class="tok-op">)</span><span class="tok-op">)</span>
+        should_log <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_enable_reward_log <span class="tok-kw">and</span> <span class="tok-op">(</span><span class="tok-builtin">int</span><span class="tok-op">(</span>step_count<span class="tok-op">[</span><span class="tok-num">0</span><span class="tok-op">]</span><span class="tok-op">)</span> <span class="tok-op">%</span> <span class="tok-num">4</span> <span class="tok-op">==</span> <span class="tok-num">0</span><span class="tok-op">)</span>
+        <span class="tok-kw">if</span> should_log<span class="tok-op">:</span>
+            log <span class="tok-op">=</span> next_state<span class="tok-op">.</span>info<span class="tok-op">.</span>get<span class="tok-op">(</span><span class="tok-str">&quot;log&quot;</span><span class="tok-op">,</span> <span class="tok-op">{</span><span class="tok-op">}</span><span class="tok-op">)</span>
+            <span class="tok-comment"># 日志记录每个条件通过率和分 scale cache 数量，方便判断采集覆盖度。</span>
+            log<span class="tok-op">[</span><span class="tok-str">&quot;grasp/cond1&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>np<span class="tok-op">.</span>mean<span class="tok-op">(</span>cond1<span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float32<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">)</span>
+            log<span class="tok-op">[</span><span class="tok-str">&quot;grasp/cond2&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>np<span class="tok-op">.</span>mean<span class="tok-op">(</span>cond2<span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float32<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">)</span>
+            log<span class="tok-op">[</span><span class="tok-str">&quot;grasp/cond3&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>np<span class="tok-op">.</span>mean<span class="tok-op">(</span>cond3<span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float32<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">)</span>
+            log<span class="tok-op">[</span><span class="tok-str">&quot;grasp/valid&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>np<span class="tok-op">.</span>mean<span class="tok-op">(</span>grasp_valid<span class="tok-op">.</span>astype<span class="tok-op">(</span>np<span class="tok-op">.</span>float32<span class="tok-op">)</span><span class="tok-op">)</span><span class="tok-op">)</span>
+            per_scale_counts <span class="tok-op">=</span> <span class="tok-builtin">self</span><span class="tok-op">.</span>_get_per_scale_grasp_counts<span class="tok-op">(</span><span class="tok-op">)</span>
+            log<span class="tok-op">[</span><span class="tok-str">&quot;grasp/target_cache_size&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>_cfg<span class="tok-op">.</span>grasp_collection_target<span class="tok-op">)</span>
+            <span class="tok-kw">for</span> scale_idx<span class="tok-op">,</span> count <span class="tok-kw">in</span> enumerate<span class="tok-op">(</span>per_scale_counts<span class="tok-op">)</span><span class="tok-op">:</span>
+                scale_value <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span><span class="tok-builtin">self</span><span class="tok-op">.</span>scale_values<span class="tok-op">[</span>scale_idx<span class="tok-op">]</span><span class="tok-op">)</span>
+                log<span class="tok-op">[</span>f&quot;grasp/cache_size_scale_<span class="tok-op">{</span>scale_value<span class="tok-op">:</span>g<span class="tok-op">}</span>&quot;<span class="tok-op">]</span> <span class="tok-op">=</span> <span class="tok-builtin">float</span><span class="tok-op">(</span>count<span class="tok-op">)</span>
+            next_state<span class="tok-op">.</span>info<span class="tok-op">[</span><span class="tok-str">&quot;log&quot;</span><span class="tok-op">]</span> <span class="tok-op">=</span> log
+
+        <span class="tok-kw">return</span> next_state<span class="tok-op">.</span>replace<span class="tok-op">(</span>reward<span class="tok-op">=</span>reward<span class="tok-op">,</span> terminated<span class="tok-op">=</span>terminated<span class="tok-op">)</span>
+
+
+SharpaWaveGraspCfg <span class="tok-op">=</span> SharpaInhandGraspEnvCfg</code></pre>
+<h2 id="agent">Agent</h2>
+<p>Agent 输出 22 维手部关节目标，优化稳定接触而非高速旋转。</p>
+<p>训练入口通过 owner YAML 决定注册 env、后端身份和算法参数；CLI 应使用 <code>--sim</code> 选择 backend owner，而不是单独 override <code>training.sim_backend</code>。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">training</span>:
+  <span class="tok-key">task_name</span>: SharpaInhandRotationGrasp
+  <span class="tok-key">sim_backend</span>: mujoco
+  <span class="tok-key">render_spacing</span>: <span class="tok-num">0.5</span>
+  <span class="tok-key">cam_distance</span>: <span class="tok-num">1.5</span>
+  <span class="tok-key">cam_lookat</span>:
+  - <span class="tok-num">0.75</span>
+  - <span class="tok-num">0.75</span>
+  - <span class="tok-num">0.4</span>
+  <span class="tok-key">cam_elevation</span>: <span class="tok-num">-20.0</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>: {}
+  <span class="tok-key">num_envs</span>: <span class="tok-num">2048</span>
+  <span class="tok-key">max_iterations</span>: <span class="tok-num">2290</span></code></pre>
+<h2 id="env">Env</h2>
+<p>Env 使用 Sharpa grasp generation 逻辑，复用 Sharpa base 与 scene。</p>
+<p>Env 必须遵守 <code>NpEnv</code> contract：<code>reset()</code> 返回 <code>(obs_dict, info_dict)</code>，<code>obs</code> 是 dict，<code>obs_groups_spec</code> 决定 learner 使用哪些观测组。</p>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+
+    grasp_collection_target<span class="tok-op">:</span> <span class="tok-builtin">int</span> <span class="tok-op">=</span> <span class="tok-num">50_000</span>
+    grasp_auto_save<span class="tok-op">:</span> <span class="tok-builtin">bool</span> <span class="tok-op">=</span> <span class="tok-kw">True</span>
+
+
+<span class="tok-op">@</span>registry<span class="tok-op">.</span>envcfg<span class="tok-op">(</span><span class="tok-str">&quot;SharpaInhandRotationGrasp&quot;</span><span class="tok-op">)</span>
+<span class="tok-op">@</span>dataclass
+<span class="tok-kw">class</span> SharpaInhandGraspEnvCfg<span class="tok-op">(</span>SharpaInhandRotationGraspCfg<span class="tok-op">)</span><span class="tok-op">:</span>
+    <span class="tok-kw">pass</span>
+</code></pre>
+<h2 id="obs">Obs</h2>
+<p>观测沿用 Sharpa 手部/物体状态，并强调抓取质量相关信息。</p>
+<h3 id="obs-字段级拆解">Obs 字段级拆解</h3>
+<p>下面的表格把源码里的观测拼接逻辑拆成语义字段。维度如果依赖 history、terrain scan 或 motion body 数量，文档会写成“规模”而不是硬编码，避免和配置漂移。</p>
+<div class="table-wrap"><table><thead><tr><th>观测字段</th><th>维度/规模</th><th>代码来源</th><th>中文说明</th></tr></thead><tbody><tr><td>hand dof pos</td><td>nu 维</td><td>手部关节角</td><td>表示每根手指当前弯曲/张开状态。</td></tr><tr><td>target / prev ctrl</td><td>nu 维</td><td>上一帧控制目标</td><td>让策略知道当前 actuator 目标和动作历史。</td></tr><tr><td>object pose</td><td>3+4 维</td><td>物体位置与四元数</td><td>被操作物体在手中的位置和朝向。</td></tr><tr><td>object velocity</td><td>3 或 6 维</td><td>物体线速度/角速度</td><td>判断旋转速度和是否被甩出。</td></tr><tr><td>contact / tactile</td><td>任务相关</td><td>contact sensors / tactile obs</td><td>手指接触和触觉信息，帮助稳定抓持。</td></tr><tr><td>obs history</td><td>lag steps × frame</td><td><code>obs_lag_steps</code></td><td>把短时间内手-物体状态串起来，改善部分可观测问题。</td></tr><tr><td>critic info</td><td>任务相关</td><td><code>critic_info_dim</code> / priv_info</td><td>训练 critic 使用的特权状态，例如物体误差、摩擦或 scale 信息。</td></tr></tbody></table></div>
+<p>owner YAML 中的 <code>algo.obs_groups</code> 说明算法从 env obs dict 中读取哪些组。没有写入 owner 的字段保持 env cfg 默认值，文档不臆造未配置项。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">algo</span>:
+  <span class="tok-key">obs_groups</span>:
+    {}
+</code></pre>
+<p>代码侧观测通常在 <code>_get_obs</code>、<code>_build_obs</code>、<code>obs_groups_spec</code> 或 base env 中组装：</p>
+<pre class="code-block language-text"><code># 未在 src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py 中找到片段：obs_groups_spec, _get_obs, build_obs, get_obs</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody></tbody></table></div>
+<h2 id="action">Action</h2>
+<p>动作空间与 Sharpa rotation 一致。</p>
+<h3 id="action-逐维拆解">Action 逐维拆解</h3>
+<p>灵巧手任务的 action 逐维对应手指 actuator，物体自由关节不在 action 中，由接触动力学被动演化。</p>
+<p>当前代表 scene 编译出的 action 维度为 <code>22</code>。下表来自 MuJoCo 编译模型的 actuator 顺序，也就是策略输出维度和执行器维度的对应关系。</p>
+<div class="table-wrap"><table><thead><tr><th>Action 维度</th><th>执行器</th><th>驱动关节</th><th>中文含义</th><th>控制/限制说明</th></tr></thead><tbody><tr><td>0</td><td>right_thumb_CMC_FE_ctrl</td><td>right_thumb_CMC_FE</td><td>右拇指腕掌屈伸关节</td><td>-0.1745 ~ 1.92</td></tr><tr><td>1</td><td>right_thumb_CMC_AA_ctrl</td><td>right_thumb_CMC_AA</td><td>右拇指腕掌外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>2</td><td>right_thumb_MCP_FE_ctrl</td><td>right_thumb_MCP_FE</td><td>右拇指掌指屈伸关节</td><td>-0.5236 ~ 1.396</td></tr><tr><td>3</td><td>right_thumb_MCP_AA_ctrl</td><td>right_thumb_MCP_AA</td><td>右拇指掌指外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>4</td><td>right_thumb_IP_ctrl</td><td>right_thumb_IP</td><td>右拇指指间关节</td><td>0 ~ 1.745</td></tr><tr><td>5</td><td>right_index_MCP_FE_ctrl</td><td>right_index_MCP_FE</td><td>右食指掌指屈伸关节</td><td>-0.1745 ~ 1.571</td></tr><tr><td>6</td><td>right_index_MCP_AA_ctrl</td><td>right_index_MCP_AA</td><td>右食指掌指外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>7</td><td>right_index_PIP_ctrl</td><td>right_index_PIP</td><td>右食指近端指间关节</td><td>0 ~ 1.745</td></tr><tr><td>8</td><td>right_index_DIP_ctrl</td><td>right_index_DIP</td><td>右食指远端指间关节</td><td>0 ~ 1.396</td></tr><tr><td>9</td><td>right_middle_MCP_FE_ctrl</td><td>right_middle_MCP_FE</td><td>右中指掌指屈伸关节</td><td>-0.1745 ~ 1.571</td></tr><tr><td>10</td><td>right_middle_MCP_AA_ctrl</td><td>right_middle_MCP_AA</td><td>右中指掌指外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>11</td><td>right_middle_PIP_ctrl</td><td>right_middle_PIP</td><td>右中指近端指间关节</td><td>0 ~ 1.745</td></tr><tr><td>12</td><td>right_middle_DIP_ctrl</td><td>right_middle_DIP</td><td>右中指远端指间关节</td><td>0 ~ 1.396</td></tr><tr><td>13</td><td>right_ring_MCP_FE_ctrl</td><td>right_ring_MCP_FE</td><td>右无名指掌指屈伸关节</td><td>-0.1745 ~ 1.571</td></tr><tr><td>14</td><td>right_ring_MCP_AA_ctrl</td><td>right_ring_MCP_AA</td><td>右无名指掌指外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>15</td><td>right_ring_PIP_ctrl</td><td>right_ring_PIP</td><td>右无名指近端指间关节</td><td>0 ~ 1.745</td></tr><tr><td>16</td><td>right_ring_DIP_ctrl</td><td>right_ring_DIP</td><td>右无名指远端指间关节</td><td>0 ~ 1.396</td></tr><tr><td>17</td><td>right_pinky_CMC_ctrl</td><td>right_pinky_CMC</td><td>右小指腕掌关节</td><td>0 ~ 0.2618</td></tr><tr><td>18</td><td>right_pinky_MCP_FE_ctrl</td><td>right_pinky_MCP_FE</td><td>右小指掌指屈伸关节</td><td>-0.1745 ~ 1.571</td></tr><tr><td>19</td><td>right_pinky_MCP_AA_ctrl</td><td>right_pinky_MCP_AA</td><td>右小指掌指外展/内收关节</td><td>-0.3491 ~ 0.3491</td></tr><tr><td>20</td><td>right_pinky_PIP_ctrl</td><td>right_pinky_PIP</td><td>右小指近端指间关节</td><td>0 ~ 1.745</td></tr><tr><td>21</td><td>right_pinky_DIP_ctrl</td><td>right_pinky_DIP</td><td>右小指远端指间关节</td><td>0 ~ 1.396</td></tr></tbody></table></div>
+<p>控制参数来自 owner YAML 的 <code>env.control_config</code>，缺省值由对应 env cfg/dataclass 提供。</p>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody><tr><td>action_scale</td><td>0.041666666666666664</td><td>策略输出到目标关节角的缩放系数。</td></tr><tr><td>d_gain</td><td>0.1</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>dof_limits_scale</td><td>0.9</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>p_gain</td><td>1.0</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>torque_control</td><td>False</td><td>布尔开关。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">control_config</span>:
+    <span class="tok-key">action_scale</span>: <span class="tok-num">0.041666666666666664</span>
+    <span class="tok-key">p_gain</span>: <span class="tok-num">1.0</span>
+    <span class="tok-key">d_gain</span>: <span class="tok-num">0.1</span>
+    <span class="tok-key">torque_control</span>: false
+    <span class="tok-key">dof_limits_scale</span>: <span class="tok-num">0.9</span>
+</code></pre>
+<p>动作到执行器的实际映射由 backend 的 actuator control range 和 env 的 <code>apply_action</code>/控制函数完成：</p>
+<pre class="code-block language-python"><code># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py
+        if np.any(np.bincount(self.scale_ids, minlength=self._num_scales) == 0):
+            raise ValueError(
+                &quot;Sharpa grasp generation requires at least one environment for the configured scale; &quot;
+                f&quot;got num_envs={num_envs}, num_scales={self._num_scales}&quot;
+            )
+
+    def apply_action(self, actions: np.ndarray, state: NpEnvState) -&gt; np.ndarray:
+        # Grasp-cache collection should not use policy/random actions.
+        # Keep controls fixed at reset targets by forcing zero action input.
+        zero_actions = np.zeros_like(actions, dtype=self._np_dtype)
+        return super().apply_action(zero_actions, state)
+
+    def _total_saved_grasps(self) -&gt; int:</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>apply_action</td><td>把策略输出缩放为执行器控制目标。</td></tr></tbody></table></div>
+<h2 id="reward">Reward</h2>
+<p>reward 聚焦物体保持、接触稳定和动作平滑。</p>
+<h3 id="reward-逐项拆解">Reward 逐项拆解</h3>
+<p>reward scale 以 owner YAML 的 <code>reward.scales</code> 为真源；源码中的 <code>RewardConfig</code> 描述可用字段，训练脚本只做 Hydra 组装和注入。正数通常表示奖励，负数通常表示惩罚，0 表示该项在当前 owner 中关闭或仅保留接口。</p>
+<div class="table-wrap"><table><thead><tr><th>Reward key</th><th>Scale</th><th>方向</th><th>中文含义</th></tr></thead><tbody><tr><td>rotate</td><td>0.0</td><td>记录/关闭</td><td>手内旋转主奖励，鼓励物体沿目标轴旋转。</td></tr><tr><td>obj_linvel</td><td>0.0</td><td>记录/关闭</td><td>物体线速度惩罚，避免物体被甩飞或平移过大。</td></tr><tr><td>pose_diff</td><td>0.0</td><td>记录/关闭</td><td>手部姿态偏差惩罚，保持抓持构型稳定。</td></tr><tr><td>torque</td><td>0.0</td><td>记录/关闭</td><td>手部力矩惩罚，降低过大的执行器输出。</td></tr><tr><td>work</td><td>0.0</td><td>记录/关闭</td><td>机械功惩罚，约束力矩与运动共同造成的能耗。</td></tr><tr><td>object_pos</td><td>0.0</td><td>记录/关闭</td><td>物体位置保持奖励/惩罚，防止被操作物体偏离手心。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">reward</span>:
+  <span class="tok-key">scales</span>:
+    <span class="tok-key">rotate</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">obj_linvel</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">pose_diff</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">torque</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">work</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">object_pos</span>: <span class="tok-num">0.0</span>
+  <span class="tok-key">angvel_clip_min</span>: <span class="tok-num">-0.5</span>
+  <span class="tok-key">angvel_clip_max</span>: <span class="tok-num">0.5</span>
+</code></pre>
+<p>源码中的 reward 入口：</p>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>manipulation<span class="tok-op">.</span>sharpa_inhand<span class="tok-op">.</span>base <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    SOURCE_DEFAULT_HAND_JOINT_POS_DEG<span class="tok-op">,</span>
+    SharpaDomainRandConfig<span class="tok-op">,</span>
+    resolve_grasp_cache_file<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>manipulation<span class="tok-op">.</span>sharpa_inhand<span class="tok-op">.</span>rotation <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    RewardConfig<span class="tok-op">,</span>
+    SharpaInhandRotationCfg<span class="tok-op">,</span>
+    SharpaInhandRotationDRProvider<span class="tok-op">,</span>
+    SharpaInhandRotationEnv<span class="tok-op">,</span>
+<span class="tok-op">)</span>
+</code></pre>
+<p>源码锚点拆解：</p>
+<div class="table-wrap"><table><thead><tr><th>源码符号</th><th>中文说明</th></tr></thead><tbody><tr><td>_compute_reward</td><td>reward 相关源码锚点。</td></tr></tbody></table></div>
+<h2 id="初始状态">初始状态</h2>
+<p>reset 采样手指和物体初态，必要时写入/读取 grasp cache。</p>
+<p>机器人默认姿态来自 scene/task fragment 中的 keyframe；任务 reset 在此基础上加入命令、motion reference、物体状态或随机化。</p>
+<pre class="code-block language-xml"><code><span class="tok-comment">&lt;!-- src/unilab/assets/robots/sharpa_wave/scene.xml --&gt;</span>
+      [22:25] object position xyz
+      [25:29] object quaternion wxyz
+  --&gt;
+  &lt;<span class="tok-tag">keyframe</span>&gt;
+    &lt;key
+      name=&quot;home&quot;
+      qpos=&quot;0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 -0.09559 -0.00517 0.61906 1 0 0 0&quot;</code></pre>
+<pre class="code-block language-python"><code><span class="tok-comment"># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py</span>
+
+<span class="tok-kw">import</span> numpy <span class="tok-kw">as</span> np
+
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>base <span class="tok-kw">import</span> registry
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>base<span class="tok-op">.</span>np_env <span class="tok-kw">import</span> NpEnvState
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr <span class="tok-kw">import</span> ResetPlan
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>dr<span class="tok-op">.</span>dr_utils <span class="tok-kw">import</span> build_common_reset_randomization
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>common<span class="tok-op">.</span>rotation <span class="tok-kw">import</span> np_quat_error_magnitude
+<span class="tok-kw">from</span> unilab<span class="tok-op">.</span>envs<span class="tok-op">.</span>manipulation<span class="tok-op">.</span>sharpa_inhand<span class="tok-op">.</span>base <span class="tok-kw">import</span> <span class="tok-op">(</span>
+    SOURCE_DEFAULT_HAND_JOINT_POS_DEG<span class="tok-op">,</span>
+    SharpaDomainRandConfig<span class="tok-op">,</span>
+    resolve_grasp_cache_file<span class="tok-op">,</span>
+<span class="tok-op">)</span></code></pre>
+<h2 id="终止条件">终止条件</h2>
+<p>终止关注物体掉落、过大姿态误差和超时。</p>
+<p>终止条件通常由 env 源码中的 <code>_compute_termination(s)</code>、reward config 阈值和 <code>max_episode_seconds</code> 共同决定。</p>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">max_episode_seconds</span>: <span class="tok-num">3.0</span>
+
+<span class="tok-key">reward</span>:
+  {}
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py
+            self.state.info[&quot;log&quot;] = log
+
+        exit(0)
+
+    def _collect_successful_grasps(self, env_ids: np.ndarray) -&gt; None:
+        if self.state is None or len(env_ids) == 0:
+            return
+
+        success_mask = self.state.truncated[env_ids] &amp; ~self.state.terminated[env_ids]
+        if not np.any(success_mask):
+            return
+
+        success_env_ids = env_ids[np.flatnonzero(success_mask)]
+        hand_qpos = self.get_hand_dof_pos()[success_env_ids]
+        object_pos = self.get_object_pos()[success_env_ids]
+        object_quat = self.get_object_quat()[success_env_ids]
+        all_states = np.concatenate([hand_qpos, object_pos, object_quat], axis=1).astype(np.float32)</code></pre>
+<h2 id="域随机化">域随机化</h2>
+<p>domain_rand 与 Sharpa rotation 共享。</p>
+<p>域随机化只在 reset/interval 等冷路径触发，不在 step 热路径解析资产或探测 backend 私有能力。</p>
+<h3 id="域随机化字段拆解">域随机化字段拆解</h3>
+<div class="table-wrap"><table><thead><tr><th>配置字段</th><th>当前值</th><th>中文说明</th></tr></thead><tbody><tr><td>contact_latency</td><td>0.005</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>contact_sensor_noise</td><td>0.01</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>elastomer_base_friction</td><td>0.8</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>force_decay</td><td>0.9</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>force_decay_interval</td><td>0.08</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>force_scale</td><td>0.0</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>gravity_direction_magnitude</td><td>9.81</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>gravity_range</td><td>[[0.0, 0.0, -9.81], [0.0, 0.0, -9.81]]</td><td>随机采样范围或控制范围。</td></tr><tr><td>joint_noise_scale</td><td>0.02</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>metal_base_friction</td><td>0.1</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>object_base_friction</td><td>0.5</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>random_force_prob_scalar</td><td>0.0</td><td>任务 owner YAML 中的配置字段。</td></tr><tr><td>randomize_com</td><td>False</td><td>域随机化开关。</td></tr><tr><td>randomize_com_lower</td><td>-0.01</td><td>域随机化开关。</td></tr><tr><td>randomize_com_upper</td><td>0.01</td><td>域随机化开关。</td></tr><tr><td>randomize_d_gain_scale_lower</td><td>0.5</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_d_gain_scale_upper</td><td>2.0</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_friction</td><td>False</td><td>域随机化开关。</td></tr><tr><td>randomize_friction_scale_lower</td><td>0.5</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_friction_scale_upper</td><td>2.0</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_gravity</td><td>False</td><td>域随机化开关。</td></tr><tr><td>randomize_gravity_direction</td><td>False</td><td>域随机化开关。</td></tr><tr><td>randomize_mass</td><td>True</td><td>域随机化开关。</td></tr><tr><td>randomize_mass_lower</td><td>0.05</td><td>域随机化开关。</td></tr><tr><td>randomize_mass_upper</td><td>0.051</td><td>域随机化开关。</td></tr><tr><td>randomize_p_gain_scale_lower</td><td>0.5</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_p_gain_scale_upper</td><td>2.0</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr><tr><td>randomize_pd_gains</td><td>False</td><td>域随机化开关。</td></tr><tr><td>scale_list</td><td>[0.8]</td><td>观测噪声或传感器噪声缩放，用于提升鲁棒性。</td></tr></tbody></table></div>
+<pre class="code-block language-yaml"><code><span class="tok-comment"># conf/ppo/task/sharpa_inhand_grasp/mujoco.yaml</span>
+<span class="tok-key">env</span>:
+  <span class="tok-key">domain_rand</span>:
+    <span class="tok-key">scale_list</span>:
+    - <span class="tok-num">0.8</span>
+    <span class="tok-key">randomize_gravity</span>: false
+    <span class="tok-key">gravity_range</span>:
+    - - <span class="tok-num">0.0</span>
+      - <span class="tok-num">0.0</span>
+      - <span class="tok-num">-9.81</span>
+    - - <span class="tok-num">0.0</span>
+      - <span class="tok-num">0.0</span>
+      - <span class="tok-num">-9.81</span>
+    <span class="tok-key">randomize_gravity_direction</span>: false
+    <span class="tok-key">gravity_direction_magnitude</span>: <span class="tok-num">9.81</span>
+    <span class="tok-key">randomize_pd_gains</span>: false
+    <span class="tok-key">randomize_p_gain_scale_lower</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">randomize_p_gain_scale_upper</span>: <span class="tok-num">2.0</span>
+    <span class="tok-key">randomize_d_gain_scale_lower</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">randomize_d_gain_scale_upper</span>: <span class="tok-num">2.0</span>
+    <span class="tok-key">randomize_friction</span>: false
+    <span class="tok-key">randomize_friction_scale_lower</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">randomize_friction_scale_upper</span>: <span class="tok-num">2.0</span>
+    <span class="tok-key">elastomer_base_friction</span>: <span class="tok-num">0.8</span>
+    <span class="tok-key">metal_base_friction</span>: <span class="tok-num">0.1</span>
+    <span class="tok-key">object_base_friction</span>: <span class="tok-num">0.5</span>
+    <span class="tok-key">randomize_com</span>: false
+    <span class="tok-key">randomize_com_lower</span>: <span class="tok-num">-0.01</span>
+    <span class="tok-key">randomize_com_upper</span>: <span class="tok-num">0.01</span>
+    <span class="tok-key">randomize_mass</span>: true
+    <span class="tok-key">randomize_mass_lower</span>: <span class="tok-num">0.05</span>
+    <span class="tok-key">randomize_mass_upper</span>: <span class="tok-num">0.051</span>
+    <span class="tok-key">force_scale</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">random_force_prob_scalar</span>: <span class="tok-num">0.0</span>
+    <span class="tok-key">force_decay</span>: <span class="tok-num">0.9</span>
+    <span class="tok-key">force_decay_interval</span>: <span class="tok-num">0.08</span>
+    <span class="tok-key">joint_noise_scale</span>: <span class="tok-num">0.02</span>
+    <span class="tok-key">contact_latency</span>: <span class="tok-num">0.005</span>
+    <span class="tok-key">contact_sensor_noise</span>: <span class="tok-num">0.01</span>
+</code></pre>
+<pre class="code-block language-python"><code># src/unilab/envs/manipulation/sharpa_inhand/grasp_gen.py
+from unilab.base.np_env import NpEnvState
+from unilab.dr import ResetPlan
+from unilab.dr.dr_utils import build_common_reset_randomization
+from unilab.envs.common.rotation import np_quat_error_magnitude
+from unilab.envs.manipulation.sharpa_inhand.base import (
+    SOURCE_DEFAULT_HAND_JOINT_POS_DEG,
+    SharpaDomainRandConfig,
+    resolve_grasp_cache_file,
+)
+from unilab.envs.manipulation.sharpa_inhand.rotation import (
+    RewardConfig,
+    SharpaInhandRotationCfg,
+    SharpaInhandRotationDRProvider,</code></pre>
+    </article>
+  </main>
+  <script>window.SEARCH_INDEX_URL = "../../search-index.json";</script>
+  <script>window.SITE_ROOT_PREFIX = "../../";</script>
+  <script src="../../site.js"></script>
+</body>
+</html>

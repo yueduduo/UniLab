@@ -2,13 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any
 
-from omegaconf import DictConfig
+import torch
+from omegaconf import DictConfig, OmegaConf
 
 from unilab.algos.torch.flash_sac.learner import FlashSACLearner
 from unilab.algos.torch.offpolicy.double_buffer_runner import DoubleBufferOffPolicyRunner
-from unilab.training import create_env, ensure_registries
+from unilab.training import create_env, ensure_registries, resolve_task_checkpoint_path
 from unilab.training.seed import apply_training_seed
 from unilab.utils.device import get_default_device
 
@@ -95,6 +97,7 @@ def build_flashsac_double_buffer_runner(
         amp_dtype=cfg.algo.algo_params.amp_dtype,
         use_compile=cfg.algo.algo_params.use_compile,
     )
+    _maybe_warm_start_flashsac_actor(cfg, learner)
 
     return DoubleBufferOffPolicyRunner(
         learner=learner,
@@ -126,4 +129,92 @@ def build_flashsac_double_buffer_runner(
         trace_cuda_events=cfg.training.trace_cuda_events,
         replay_prefetch_mode=replay_prefetch_mode,
         verbose_metrics=verbose_metrics,
+    )
+
+
+def _maybe_warm_start_flashsac_actor(cfg: DictConfig, learner: FlashSACLearner) -> None:
+    enabled = bool(OmegaConf.select(cfg, "algo.warm_start.enabled", default=False))
+    if not enabled:
+        return
+
+    source_task = str(OmegaConf.select(cfg, "algo.warm_start.source_task", default="K1WalkFlat"))
+    source_algo_log_name = str(
+        OmegaConf.select(cfg, "algo.warm_start.source_algo_log_name", default="flash_sac")
+    )
+    source_load_run = str(OmegaConf.select(cfg, "algo.warm_start.source_load_run", default="-1"))
+    source_checkpoint = OmegaConf.select(cfg, "algo.warm_start.source_checkpoint", default=None)
+    source_checkpoint_text = (
+        None
+        if source_checkpoint in (None, "", -1, "-1", "null", "None")
+        else str(source_checkpoint)
+    )
+    strict = bool(OmegaConf.select(cfg, "algo.warm_start.strict", default=False))
+    root_dir = Path(__file__).resolve().parents[5]
+    ckpt_path, _ = resolve_task_checkpoint_path(
+        root_dir,
+        task_name=source_task,
+        load_run=source_load_run,
+        algo_log_name=source_algo_log_name,
+        checkpoint=source_checkpoint_text,
+        log_root=OmegaConf.select(cfg, "training.log_root"),
+    )
+    if ckpt_path is None:
+        print(
+            "[flashsac] warm_start enabled but checkpoint not found: "
+            f"task={source_task}, run={source_load_run}, algo_log_name={source_algo_log_name}"
+        )
+        return
+
+    payload = torch.load(str(ckpt_path), map_location="cpu", weights_only=True)
+    if not isinstance(payload, dict):
+        print(f"[flashsac] warm_start skipped: checkpoint payload is not dict ({ckpt_path})")
+        return
+    actor_state = payload.get("actor")
+    if not isinstance(actor_state, dict):
+        print(f"[flashsac] warm_start skipped: missing actor state in checkpoint ({ckpt_path})")
+        return
+
+    target_state = learner.actor.state_dict()
+    compatible_state: dict[str, Any] = {}
+    skipped_shape: list[str] = []
+    skipped_missing: list[str] = []
+    for key, tensor in actor_state.items():
+        if key not in target_state:
+            skipped_missing.append(key)
+            continue
+        target_tensor = target_state[key]
+        if (
+            isinstance(tensor, torch.Tensor)
+            and isinstance(target_tensor, torch.Tensor)
+            and tensor.shape != target_tensor.shape
+        ):
+            skipped_shape.append(key)
+            continue
+        compatible_state[key] = tensor
+
+    if strict and (skipped_shape or skipped_missing):
+        raise RuntimeError(
+            "[flashsac] warm_start strict mode failed due to incompatible actor keys: "
+            f"shape_mismatch={len(skipped_shape)}, missing_in_target={len(skipped_missing)}"
+        )
+
+    load_result = learner.actor.load_state_dict(compatible_state, strict=False)
+    if skipped_shape:
+        preview = ", ".join(skipped_shape[:5])
+        suffix = "..." if len(skipped_shape) > 5 else ""
+        print(
+            "[flashsac] warm_start skipped shape-mismatch keys: "
+            f"{len(skipped_shape)} ({preview}{suffix})"
+        )
+    if skipped_missing:
+        preview = ", ".join(skipped_missing[:5])
+        suffix = "..." if len(skipped_missing) > 5 else ""
+        print(
+            "[flashsac] warm_start skipped unknown checkpoint keys: "
+            f"{len(skipped_missing)} ({preview}{suffix})"
+        )
+    print(
+        "[flashsac] warm_start actor loaded from "
+        f"{ckpt_path} (strict={strict}, loaded={len(compatible_state)}, "
+        f"missing={len(load_result.missing_keys)}, unexpected={len(load_result.unexpected_keys)})"
     )

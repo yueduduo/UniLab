@@ -2820,6 +2820,10 @@ def test_play_interactive_runner_log_dir_uses_algo_log_name(monkeypatch: pytest.
     monkeypatch.setattr(mod.registry, "make", lambda *args, **kwargs: fake_env)
     monkeypatch.setattr(mod, "resolve_checkpoint", lambda *args, **kwargs: "/tmp/model_10.pt")
     monkeypatch.setattr(
+        "unilab.visualization.interactive_playback.load_checkpoint_payload",
+        lambda _path: {"actor_state_dict": {}},
+    )
+    monkeypatch.setattr(
         mod,
         "get_entrypoint_log_root",
         lambda root_dir, *, algo_log_name, log_root=None: Path("/tmp") / algo_log_name,

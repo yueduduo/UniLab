@@ -367,6 +367,7 @@ class SimBackend(abc.ABC):
         frame_state_getter: Callable[[], np.ndarray] | None = None,
         camera_kwargs: dict[str, Any] | None = None,
         extra_data_getter: Callable[[], np.ndarray | None] | None = None,
+        before_step: Callable[[], None] | None = None,
     ) -> str | None:
         """Execute backend-owned playback for an env wrapper."""
         raise NotImplementedError(f"{self.__class__.__name__} does not support playback execution")

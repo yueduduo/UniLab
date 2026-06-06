@@ -108,13 +108,18 @@ class APPORunner(AsyncRunner):
             critic_group = self.rl_cfg["obs_groups"].get("critic")
             if critic_group is None:
                 self.rl_cfg["obs_groups"]["critic"] = {"policy": self.critic_input_dim}
-            elif isinstance(critic_group, dict) and "policy" in critic_group:
-                critic_group["policy"] = self.critic_input_dim
+            elif isinstance(critic_group, dict):
+                for key in critic_group:
+                    critic_group[key] = self.critic_input_dim
 
     def _detect_dims(self):
         """Create a tiny env to read obs/action dims, then close it."""
         from unilab.base import registry
-        from unilab.base.observations import get_critic_base_dim, get_obs_dims
+        from unilab.base.observations import (
+            get_critic_base_dim,
+            get_critic_obs_group_key,
+            get_obs_dims,
+        )
         from unilab.base.registry import ensure_registries
 
         ensure_registries()
@@ -141,13 +146,19 @@ class APPORunner(AsyncRunner):
         import torch
         from tensordict import TensorDict
 
+        from unilab.base.observations import get_critic_obs_group_key
+
         apply_training_seed(self.seed, torch_runtime=True, cuda=True)
         obs_example = torch.zeros((self.num_envs, self.obs_dim), device=self.device)
         td_example = TensorDict({"policy": obs_example}, batch_size=self.num_envs)
 
         critic_obs_dim = self.critic_input_dim
         critic_obs_example = torch.zeros((self.num_envs, critic_obs_dim), device=self.device)
-        critic_td_example = TensorDict({"policy": critic_obs_example}, batch_size=self.num_envs)
+        critic_obs_key = get_critic_obs_group_key(cfg["obs_groups"])
+        critic_td_example = TensorDict(
+            {critic_obs_key: critic_obs_example},
+            batch_size=self.num_envs,
+        )
 
         # Build actor (stochastic MLPModel — distribution_cfg carries GaussianDistribution)
         # deepcopy so MLPModel.__init__'s distribution_cfg.pop("class_name") doesn't

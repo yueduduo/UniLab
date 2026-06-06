@@ -56,7 +56,7 @@ dev = ["pytest", "pytest-cov", "ruff", "mypy", "pyright>=1.1.408"]
 
 [[tool.uv.index]]
 name = "pytorch-cu128"
-url = "https://download.pytorch.org/whl/cu128"
+url = "https://mirrors.nju.edu.cn/pytorch/whl/cu128"
 explicit = true
 
 [tool.uv.sources]

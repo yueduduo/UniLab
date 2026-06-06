@@ -11,6 +11,7 @@ from typing import Any, ClassVar, Protocol
 
 import numpy as np
 import torch
+from tensordict import TensorDict
 
 LogFn = Callable[[str], None]
 
@@ -120,6 +121,114 @@ class KeyboardCommander:
         return (
             f"cmd vx={self.command[0]:+.2f} vy={self.command[1]:+.2f} vyaw={self.command[2]:+.2f}"
         )
+
+
+_MOTRIX_KEY_UP = ("up",)
+_MOTRIX_KEY_DOWN = ("down",)
+_MOTRIX_KEY_LEFT = ("left",)
+_MOTRIX_KEY_RIGHT = ("right",)
+_MOTRIX_KEY_ENTER = ("enter",)
+
+
+def _motrix_key_just_pressed(render_input: Any, keys: tuple[str, ...]) -> bool:
+    return any(render_input.is_key_just_pressed(key) for key in keys)
+
+
+def poll_motrix_nudge_keyboard(commander: KeyboardCommander, render_input: Any) -> bool:
+    """Apply one MuJoCo-style nudge from Motrix ``RenderApp.input`` edge events."""
+    handled = False
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_UP):
+        commander.nudge(commander.AXIS_VX, +1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_DOWN):
+        commander.nudge(commander.AXIS_VX, -1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_LEFT):
+        commander.nudge(commander.AXIS_VYAW, +1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_RIGHT):
+        commander.nudge(commander.AXIS_VYAW, -1.0)
+        handled = True
+    if _motrix_key_just_pressed(render_input, _MOTRIX_KEY_ENTER):
+        commander.zero()
+        handled = True
+    return handled
+
+
+def sync_play_velocity_command(
+    env: Any,
+    command: np.ndarray,
+    *,
+    flush_obs_history: bool = False,
+) -> None:
+    """Write teleop velocity commands into env state for interactive play.
+
+    When ``flush_obs_history`` is true, stacked-observation envs rebuild all
+    history frames from the current physics state and command. Use this after
+    reset so play mode does not inherit random training-time commands.
+    """
+    state = env.state
+    if state is None:
+        return
+
+    cmd = np.asarray(command, dtype=state.info["commands"].dtype)
+    if cmd.ndim == 1:
+        state.info["commands"][:] = cmd.reshape(1, -1)
+    else:
+        state.info["commands"][:] = cmd
+
+    if not flush_obs_history or not hasattr(env, "_obs_history"):
+        return
+
+    linvel = env.get_local_linvel()
+    gyro = env.get_gyro()
+    gravity = env._backend.get_sensor_data(env._cfg.sensor.upvector)
+    dof_pos = env.get_dof_pos()
+    dof_vel = env.get_dof_vel()
+    obs = env._compute_obs(
+        state.info,
+        linvel,
+        gyro,
+        gravity,
+        dof_pos,
+        dof_vel,
+        env_ids=None,
+        is_reset=True,
+    )
+    env._state = state.replace(obs=obs)
+
+
+def build_motrix_keyboard_before_step(
+    env: Any,
+    backend: Any,
+    commander: KeyboardCommander,
+    *,
+    log_command: LogFn | None = print,
+) -> Callable[[], None]:
+    """Return a playback hook that writes nudged keyboard commands into env state."""
+
+    def before_step() -> None:
+        state = env.state
+        if state is None:
+            return
+        render_input = backend.get_render_input()
+        if render_input is None:
+            sync_play_velocity_command(env, np.zeros(3, dtype=state.info["commands"].dtype))
+            return
+        if poll_motrix_nudge_keyboard(commander, render_input) and log_command is not None:
+            log_command(f"[play_interactive] {commander.describe()}")
+        sync_play_velocity_command(env, commander.command)
+
+    return before_step
+
+
+def print_play_keyboard_legend(*, action_mode: str = "policy") -> None:
+    print("[play_interactive] Keyboard teleop ENABLED (focus render window):")
+    print("  Up / Down    : forward / backward (vx)")
+    print("  Left / Right : turn left / right  (vyaw)")
+    print("  Enter        : full stop")
+    if action_mode != "policy":
+        print("  NOTE: action_mode is not 'policy'; commands will not drive the robot.")
 
 
 @dataclass(frozen=True)
@@ -338,6 +447,203 @@ def select_torch_device() -> str:
     return "cpu"
 
 
+def load_checkpoint_payload(checkpoint_path: str | Path) -> dict[str, Any]:
+    loaded = torch.load(str(checkpoint_path), map_location="cpu", weights_only=True)
+    if not isinstance(loaded, dict):
+        raise TypeError(f"Checkpoint at {checkpoint_path} must be a dict, got {type(loaded)!r}")
+    return loaded
+
+
+def is_appo_learner_checkpoint(loaded: dict[str, Any]) -> bool:
+    return (
+        "actor" in loaded
+        and "actor_state_dict" not in loaded
+        and not is_flashsac_checkpoint(loaded)
+    )
+
+
+def is_flashsac_checkpoint(loaded: dict[str, Any]) -> bool:
+    return "actor" in loaded and "temperature" in loaded and "target_critic" in loaded
+
+
+def infer_actor_input_dim_from_state_dict(state_dict: dict[str, Any]) -> int | None:
+    for key in ("mlp.0.weight", "actor.mlp.0.weight", "embedder.w.w.weight"):
+        weight = state_dict.get(key)
+        if isinstance(weight, torch.Tensor) and weight.ndim == 2:
+            return int(weight.shape[1])
+
+    for key, weight in state_dict.items():
+        if key.endswith(".0.weight") and isinstance(weight, torch.Tensor) and weight.ndim == 2:
+            return int(weight.shape[1])
+    return None
+
+
+def infer_actor_input_dim_from_checkpoint_payload(loaded: dict[str, Any]) -> int | None:
+    for state_key in ("actor_state_dict", "actor"):
+        state_dict = loaded.get(state_key)
+        if isinstance(state_dict, dict):
+            input_dim = infer_actor_input_dim_from_state_dict(state_dict)
+            if input_dim is not None:
+                return input_dim
+    return None
+
+
+def infer_actor_input_dim_from_checkpoint_path(checkpoint_path: str | Path) -> int | None:
+    return infer_actor_input_dim_from_checkpoint_payload(load_checkpoint_payload(checkpoint_path))
+
+
+def load_algo_config_from_run_dir(checkpoint_path: str | Path) -> dict[str, Any] | None:
+    run_config_path = Path(checkpoint_path).parent / "run_config.json"
+    if not run_config_path.is_file():
+        return None
+    with run_config_path.open(encoding="utf-8") as handle:
+        payload = json.load(handle)
+    config = payload.get("config")
+    if not isinstance(config, dict):
+        return None
+    algo_cfg = config.get("algo")
+    if not isinstance(algo_cfg, dict):
+        return None
+    return copy.deepcopy(algo_cfg)
+
+
+def _prepare_appo_rl_cfg(
+    rl_cfg: dict[str, Any],
+    *,
+    obs_dim: int,
+    critic_dim: int,
+) -> dict[str, Any]:
+    cfg = copy.deepcopy(rl_cfg)
+    if "obs_groups" not in cfg:
+        cfg["obs_groups"] = {
+            "actor": {"policy": obs_dim},
+            "critic": {"policy": critic_dim if critic_dim > 0 else obs_dim},
+        }
+        return cfg
+
+    actor_group = cfg["obs_groups"].get("actor", cfg["obs_groups"].get("policy", {}))
+    if isinstance(actor_group, dict) and "policy" in actor_group:
+        actor_group["policy"] = obs_dim
+
+    critic_group = cfg["obs_groups"].get("critic")
+    critic_obs_dim = critic_dim if critic_dim > 0 else obs_dim
+    if critic_group is None:
+        cfg["obs_groups"]["critic"] = {"policy": critic_obs_dim}
+    elif isinstance(critic_group, dict) and "policy" in critic_group:
+        critic_group["policy"] = critic_obs_dim
+    return cfg
+
+
+def build_appo_actor(
+    rl_cfg: dict[str, Any],
+    *,
+    obs_dim: int,
+    critic_dim: int,
+    action_dim: int,
+    num_envs: int,
+    device: str,
+) -> Any:
+    from copy import deepcopy
+
+    from rsl_rl.utils import resolve_callable
+
+    cfg = _prepare_appo_rl_cfg(rl_cfg, obs_dim=obs_dim, critic_dim=critic_dim)
+    obs_example = torch.zeros((num_envs, obs_dim), device=device)
+    td_example = TensorDict({"policy": obs_example}, batch_size=num_envs, device=device)
+
+    actor_cfg = deepcopy(cfg["actor"])
+    actor_cls = resolve_callable(actor_cfg.pop("class_name"))
+    actor_cfg.pop("num_actions", None)
+    actor = actor_cls(
+        td_example,
+        cfg.get("obs_groups", {"actor": {"policy": obs_dim}}),
+        "actor",
+        action_dim,
+        **actor_cfg,
+    )
+    return actor.to(device)
+
+
+def build_appo_inference_policy(actor: Any, *, device: str) -> Callable[[Any], torch.Tensor]:
+    actor.eval()
+
+    def policy(obs: Any) -> torch.Tensor:
+        with torch.inference_mode():
+            if isinstance(obs, TensorDict):
+                policy_obs = obs["policy"]
+            else:
+                policy_obs = obs
+            batch_size = int(policy_obs.shape[0])
+            actor_input = TensorDict(
+                {"policy": policy_obs},
+                batch_size=batch_size,
+                device=device,
+            )
+            return actor(actor_input)
+
+    return policy
+
+
+def build_flashsac_actor(
+    rl_cfg: dict[str, Any],
+    *,
+    obs_dim: int,
+    action_dim: int,
+    device: str,
+) -> tuple[Any, Any | None]:
+    from unilab.algos.torch.common.actor_factory import build_actor
+    from unilab.algos.torch.common.normalization import EmpiricalNormalization
+
+    cfg = copy.deepcopy(rl_cfg)
+    algo_params = cfg.get("algo_params", {})
+    if not isinstance(algo_params, dict):
+        algo_params = {}
+
+    actor = build_actor(
+        "flashsac",
+        obs_dim,
+        action_dim,
+        int(cfg.get("actor_hidden_dim", 128)),
+        bool(cfg.get("use_layer_norm", False)),
+        device,
+        actor_num_blocks=int(algo_params.get("actor_num_blocks", 2)),
+        actor_noise_zeta_mu=float(algo_params.get("actor_noise_zeta_mu", 2.0)),
+        actor_noise_zeta_max=int(algo_params.get("actor_noise_zeta_max", 16)),
+    ).to(device)
+
+    normalizer = None
+    if bool(cfg.get("obs_normalization", False)):
+        normalizer = EmpiricalNormalization(shape=obs_dim, device=device)
+    return actor, normalizer
+
+
+def build_flashsac_inference_policy(
+    actor: Any,
+    *,
+    device: str,
+    obs_normalizer: Any | None = None,
+) -> Callable[[Any], torch.Tensor]:
+    actor.eval()
+    if obs_normalizer is not None:
+        obs_normalizer.eval()
+
+    def policy(obs: Any) -> torch.Tensor:
+        with torch.inference_mode():
+            if isinstance(obs, TensorDict):
+                policy_obs: Any = obs["policy"]
+            else:
+                policy_obs = obs
+            if isinstance(policy_obs, torch.Tensor):
+                policy_obs_t = policy_obs.to(device=device, dtype=torch.float32)
+            else:
+                policy_obs_t = torch.as_tensor(policy_obs, device=device, dtype=torch.float32)
+            if obs_normalizer is not None:
+                policy_obs_t = obs_normalizer(policy_obs_t, update=False)
+            return actor.explore(policy_obs_t, deterministic=True)
+
+    return policy
+
+
 def create_rsl_rl_playback_session(
     *,
     playback_cfg: RslRlPlaybackConfig,
@@ -400,27 +706,73 @@ def create_rsl_rl_playback_session(
         if checkpoint_path is None:
             log("WARNING: no checkpoint found - falling back to zero actions.")
         else:
-            log_dir = str(
-                entrypoint_log_root(
-                    Path(root_dir),
-                    algo_log_name=playback_cfg.algo_log_name,
-                    log_root=playback_cfg.log_root,
+            loaded = load_checkpoint_payload(checkpoint_path)
+            if is_flashsac_checkpoint(loaded):
+                rl_cfg = load_algo_config_from_run_dir(checkpoint_path) or algo_config
+                action_shape = env.action_space.shape
+                if action_shape is None:
+                    raise ValueError("env.action_space.shape must be defined")
+                action_dim = int(action_shape[0])
+                actor, obs_normalizer = build_flashsac_actor(
+                    rl_cfg,
+                    obs_dim=actor_obs_dim,
+                    action_dim=action_dim,
+                    device=device_name,
                 )
-                / playback_cfg.task
-                / "play_temp"
-            )
-            runner = runner_cls(wrapped_env, train_cfg, log_dir=log_dir, device=device_name)
-            runner.load(
-                checkpoint_path,
-                load_cfg={
-                    "actor": True,
-                    "critic": False,
-                    "optimizer": False,
-                    "iteration": False,
-                    "rnd": False,
-                },
-            )
-            policy = runner.get_inference_policy(device=device_name)
+                actor_state = loaded.get("actor")
+                if not isinstance(actor_state, dict):
+                    raise TypeError("FlashSAC checkpoint missing actor state dict")
+                actor.load_state_dict(actor_state)
+                if obs_normalizer is not None:
+                    normalizer_state = loaded.get("obs_normalizer")
+                    if isinstance(normalizer_state, dict):
+                        obs_normalizer.load_state_dict(normalizer_state)
+                policy = build_flashsac_inference_policy(
+                    actor,
+                    device=device_name,
+                    obs_normalizer=obs_normalizer,
+                )
+                log("Loaded FlashSAC actor for interactive playback.")
+            elif is_appo_learner_checkpoint(loaded):
+                rl_cfg = load_algo_config_from_run_dir(checkpoint_path) or algo_config
+                critic_dim = int(env.obs_groups_spec.get("critic", 0))
+                action_shape = env.action_space.shape
+                if action_shape is None:
+                    raise ValueError("env.action_space.shape must be defined")
+                action_dim = int(action_shape[0])
+                actor = build_appo_actor(
+                    rl_cfg,
+                    obs_dim=actor_obs_dim,
+                    critic_dim=critic_dim,
+                    action_dim=action_dim,
+                    num_envs=int(playback_cfg.num_envs),
+                    device=device_name,
+                )
+                actor.load_state_dict(loaded["actor"])
+                policy = build_appo_inference_policy(actor, device=device_name)
+                log("Loaded APPO learner checkpoint actor for interactive playback.")
+            else:
+                log_dir = str(
+                    entrypoint_log_root(
+                        Path(root_dir),
+                        algo_log_name=playback_cfg.algo_log_name,
+                        log_root=playback_cfg.log_root,
+                    )
+                    / playback_cfg.task
+                    / "play_temp"
+                )
+                runner = runner_cls(wrapped_env, train_cfg, log_dir=log_dir, device=device_name)
+                runner.load(
+                    checkpoint_path,
+                    load_cfg={
+                        "actor": True,
+                        "critic": False,
+                        "optimizer": False,
+                        "iteration": False,
+                        "rnd": False,
+                    },
+                )
+                policy = runner.get_inference_policy(device=device_name)
 
     log(f"Action mode: {playback_cfg.action_mode}")
     session = RslRlPlaybackSession(
@@ -953,6 +1305,9 @@ def prepare_motion_overlay_selection(
 
 __all__ = [
     "KeyboardCommander",
+    "build_motrix_keyboard_before_step",
+    "poll_motrix_nudge_keyboard",
+    "sync_play_velocity_command",
     "MotionOverlaySelection",
     "OffPolicyPlaybackSession",
     "PlaybackControls",
@@ -964,5 +1319,6 @@ __all__ = [
     "create_rsl_rl_playback_session",
     "create_sac_playback_session",
     "prepare_motion_overlay_selection",
+    "print_play_keyboard_legend",
     "select_torch_device",
 ]

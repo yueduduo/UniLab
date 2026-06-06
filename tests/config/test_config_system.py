@@ -498,6 +498,57 @@ def test_offpolicy_g1_walk_flat_motrix_preserves_backend_env_overrides():
     assert cfg.env.domain_rand.randomize_kd is False
 
 
+def test_offpolicy_flashsac_k1_walk_flat_composes_with_gait_owner_overrides() -> None:
+    """K1 owner may override scales for gait tuning; base FlashSAC stack stays aligned."""
+    g1_cfg = _compose(
+        "offpolicy",
+        overrides=["algo=flashsac", "task=flashsac/g1_walk_flat/mujoco"],
+    )
+    k1_cfg = _compose(
+        "offpolicy",
+        overrides=["algo=flashsac", "task=flashsac/k1_walk_flat/mujoco"],
+    )
+
+    g1_scales = OmegaConf.to_container(g1_cfg.reward.scales, resolve=True)
+    k1_scales = OmegaConf.to_container(k1_cfg.reward.scales, resolve=True)
+    assert g1_scales.keys() == k1_scales.keys()
+
+    shared_scale_keys = set(g1_scales) - {
+        "penalty_orientation",
+        "penalty_ang_vel_xy",
+        "upper_body_pose",
+        "pose",
+    }
+    for key in shared_scale_keys:
+        assert g1_scales[key] == k1_scales[key], key
+
+    assert k1_cfg.training.task_name == "K1WalkFlat"
+    assert k1_cfg.reward.scales.alive == pytest.approx(10.0)
+    assert k1_cfg.env.control_config.action_scale == pytest.approx(0.35)
+    assert k1_cfg.reward.feet_phase_swing_height == pytest.approx(0.08)
+    assert k1_cfg.reward.feet_phase_tracking_sigma == pytest.approx(0.008)
+    assert k1_cfg.reward.pose_weights[11] == pytest.approx(200.0)
+    assert k1_cfg.reward.pose_weights[17] == pytest.approx(200.0)
+    assert k1_cfg.reward.scales.penalty_orientation == pytest.approx(-15.0)
+    assert k1_cfg.reward.scales.pose == pytest.approx(-0.8)
+
+    assert g1_cfg.reward.scales.penalty_orientation == pytest.approx(-10.0)
+    assert g1_cfg.reward.feet_phase_tracking_sigma == pytest.approx(0.005)
+
+
+def test_offpolicy_flashsac_walk_flat_disables_duplicate_recipe_penalties() -> None:
+    cfg = _compose(
+        "offpolicy",
+        overrides=["algo=flashsac", "task=flashsac/g1_walk_flat/mujoco"],
+    )
+    assert cfg.reward.scales.action_rate == pytest.approx(0.0)
+    assert cfg.reward.scales.orientation == pytest.approx(0.0)
+    assert cfg.reward.scales.ang_vel_xy == pytest.approx(0.0)
+    assert cfg.reward.scales.penalty_action_rate == pytest.approx(-5.0)
+    assert cfg.reward.scales.penalty_orientation == pytest.approx(-10.0)
+    assert cfg.reward.scales.penalty_ang_vel_xy == pytest.approx(-1.0)
+
+
 def test_offpolicy_flashsac_go2_joystick_mujoco_enables_full_dr_stack():
     mujoco_cfg = _compose(
         "offpolicy",

@@ -173,6 +173,15 @@ def play_appo(
         cfg, root_dir=ROOT_DIR, algo_name="appo"
     ).build_task_env_cfg_override()
 
+    keyboard_enabled = bool(OmegaConf.select(cfg, "interactive.keyboard", default=False))
+    if keyboard_enabled and str(cfg.training.sim_backend) == "motrix":
+        if int(cfg.training.play_env_num) != 1:
+            print(
+                "[play] interactive.keyboard forces training.play_env_num=1 "
+                f"(was {cfg.training.play_env_num})."
+            )
+            cfg.training.play_env_num = 1
+
     device = cfg.training.device or (
         "cuda"
         if torch.cuda.is_available()
@@ -215,8 +224,10 @@ def play_appo(
             rl_cfg_dict["obs_groups"]["critic"] = {
                 "policy": critic_dim if critic_dim > 0 else obs_dim
             }
-        elif isinstance(critic_group, dict) and "policy" in critic_group:
-            critic_group["policy"] = critic_dim if critic_dim > 0 else obs_dim
+        elif isinstance(critic_group, dict):
+            critic_value = critic_dim if critic_dim > 0 else obs_dim
+            for key in critic_group:
+                critic_group[key] = critic_value
 
     from copy import deepcopy
 
@@ -290,6 +301,52 @@ def play_appo(
     if env.state is None:
         env.init_state()
 
+    keyboard_enabled = bool(OmegaConf.select(cfg, "interactive.keyboard", default=False))
+    before_step = None
+    if keyboard_enabled:
+        if str(cfg.training.sim_backend) != "motrix":
+            print("[play] interactive.keyboard is only supported for Motrix native playback.")
+        elif not hasattr(env, "cfg") or not hasattr(getattr(env, "cfg", None), "commands"):
+            print("[play] interactive.keyboard ignored: task has no velocity commands.")
+        else:
+            from unilab.visualization.interactive_playback import (
+                KeyboardCommander,
+                build_motrix_keyboard_before_step,
+                print_play_keyboard_legend,
+                sync_play_velocity_command,
+            )
+
+            env.set_autoreset(False)
+            env.cfg.commands.heading_command = False
+            env.cfg.commands.resampling_time = 0.0
+            commander = KeyboardCommander.from_vel_limit(
+                env.cfg.commands.vel_limit,
+                step_lin=float(
+                    OmegaConf.select(cfg, "interactive.keyboard_step_lin", default=0.1)
+                ),
+                step_ang=float(
+                    OmegaConf.select(cfg, "interactive.keyboard_step_ang", default=0.2)
+                ),
+            )
+            before_step = build_motrix_keyboard_before_step(env, env._backend, commander)
+            print_play_keyboard_legend(
+                action_mode=str(OmegaConf.select(cfg, "interactive.action_mode", default="zero"))
+            )
+
+    def _initialize_play_obs() -> np.ndarray:
+        env.reset(np.arange(cfg.training.play_env_num, dtype=np.int32))
+        if before_step is not None:
+            from unilab.visualization.interactive_playback import sync_play_velocity_command
+
+            sync_play_velocity_command(
+                env,
+                np.zeros(3, dtype=np.float32),
+                flush_obs_history=True,
+            )
+        if env.state is None:
+            raise RuntimeError("play initialize requires env.state after reset")
+        return np.asarray(env.state.obs["obs"], dtype=np.float32)
+
     with torch.inference_mode():
         play_video_path = env.run_playback_mode(
             play_render_mode=getattr(cfg.training, "play_render_mode", "auto"),
@@ -298,10 +355,7 @@ def play_appo(
             render_spacing=float(
                 getattr(cfg.training, "render_spacing", getattr(env.cfg, "render_spacing", 1.0))
             ),
-            initialize=lambda: np.asarray(
-                env.reset(np.arange(cfg.training.play_env_num, dtype=np.int32))[0]["obs"],
-                dtype=np.float32,
-            ),
+            initialize=_initialize_play_obs,
             step=lambda obs_np: np.asarray(
                 env.step(
                     actor(
@@ -326,6 +380,7 @@ def play_appo(
                 "cam_tracking_extra_envs": getattr(cfg.training, "cam_tracking_extra_envs", 2),
             },
             on_plan=log_playback_plan,
+            before_step=before_step,
         )
     if play_video_path is not None:
         print(f"Saving video to {play_video_path} with mediapy...")

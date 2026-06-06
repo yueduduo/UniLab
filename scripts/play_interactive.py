@@ -18,10 +18,14 @@ Usage:
       interactive.target_show_axes=true \
       interactive.show_reward_debug=true
 
-Camera controls (MuJoCo viewer):
+Viewer controls (both backends when interactive.keyboard=true):
+    Up/Down/Left/Right/Enter - velocity teleop (focus the viewer window for Motrix)
+
+MuJoCo-only viewer controls:
     Mouse drag     - rotate
     Scroll         - zoom
     Right-drag     - pan
+    Space/N/+/-    - pause, single-step, speed
 """
 
 # pyright: reportAttributeAccessIssue=false, reportArgumentType=false, reportOptionalMemberAccess=false, reportOptionalSubscript=false
@@ -34,13 +38,14 @@ import warnings
 from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Callable, cast
 
 import numpy as np
 import torch
 from hydra import compose, initialize_config_dir
 from hydra.core.global_hydra import GlobalHydra
 from omegaconf import DictConfig, OmegaConf
+from tensordict import TensorDict
 
 ROOT_DIR = Path(__file__).parent.parent
 SRC_DIR = ROOT_DIR / "src"
@@ -69,8 +74,11 @@ from unilab.visualization.interactive_playback import (
     create_rsl_rl_playback_session,
     create_sac_playback_session,
     prepare_motion_overlay_selection,
+    print_play_keyboard_legend,
     select_torch_device,
+    sync_play_velocity_command,
 )
+from unilab.visualization.soccer_dribble_playback import is_soccer_dribble_task
 
 _KEY_ENTER, _KEY_KP_ENTER = 257, 335
 _KEY_BACKSPACE = 259
@@ -144,21 +152,7 @@ class PlayInteractiveArgs:
 
 
 def _infer_checkpoint_actor_input_dim(ckpt_path: str) -> int | None:
-    loaded = torch.load(ckpt_path, map_location="cpu", weights_only=True)
-    state_dict = loaded.get("actor_state_dict")
-    if not isinstance(state_dict, dict):
-        return None
-
-    # Common rsl-rl naming: "mlp.0.weight" or nested prefixes ending with ".0.weight".
-    for key in ("mlp.0.weight", "actor.mlp.0.weight"):
-        w = state_dict.get(key)
-        if isinstance(w, torch.Tensor) and w.ndim == 2:
-            return int(w.shape[1])
-
-    for key, w in state_dict.items():
-        if key.endswith(".0.weight") and isinstance(w, torch.Tensor) and w.ndim == 2:
-            return int(w.shape[1])
-    return None
+    return infer_actor_input_dim_from_checkpoint_path(ckpt_path)
 
 
 def _backend_adapter(cfg: DictConfig, *, algo_name: str = "ppo"):
@@ -314,6 +308,8 @@ def resolve_checkpoint(
     checkpoint: str | None = None,
     algo_log_name: str = "rsl_rl_ppo",
     log_root: str | None = None,
+    *,
+    log_failure: bool = True,
 ) -> str | None:
     checkpoint_path, checkpoint_dir = resolve_task_checkpoint_path(
         ROOT_DIR,
@@ -324,19 +320,77 @@ def resolve_checkpoint(
         log_root=log_root,
     )
     if checkpoint_path is None:
-        if checkpoint is not None and checkpoint_dir is not None:
-            checkpoint_name = (
-                f"model_{checkpoint}.pt" if str(checkpoint).isdigit() else str(checkpoint)
-            )
-            print(f"[play_interactive] Checkpoint not found: {checkpoint_dir / checkpoint_name}")
-        elif checkpoint_dir is not None:
-            print(f"[play_interactive] No model_*.pt files in {checkpoint_dir}")
-        else:
-            print(f"[play_interactive] Run not found for load_run={load_run}")
+        if log_failure:
+            if checkpoint is not None and checkpoint_dir is not None:
+                checkpoint_name = (
+                    f"model_{checkpoint}.pt" if str(checkpoint).isdigit() else str(checkpoint)
+                )
+                print(f"[play_interactive] Checkpoint not found: {checkpoint_dir / checkpoint_name}")
+            elif checkpoint_dir is not None:
+                print(f"[play_interactive] No model_*.pt files in {checkpoint_dir}")
+            else:
+                print(f"[play_interactive] Run not found for load_run={load_run}")
         return None
 
     print(f"[play_interactive] Loading checkpoint: {checkpoint_path}")
     return str(checkpoint_path)
+
+
+def _resolve_playback_checkpoint(
+    playback_cfg: RslRlPlaybackConfig,
+    *,
+    cfg: DictConfig | None = None,
+) -> tuple[str | None, RslRlPlaybackConfig]:
+    candidate_log_names: list[str] = [playback_cfg.algo_log_name]
+    for fallback in ("appo", "rsl_rl_ppo"):
+        if fallback not in candidate_log_names:
+            candidate_log_names.append(fallback)
+
+    for index, algo_log_name in enumerate(candidate_log_names):
+        candidate_cfg = playback_cfg
+        if algo_log_name != playback_cfg.algo_log_name:
+            candidate_cfg = RslRlPlaybackConfig(
+                task=playback_cfg.task,
+                load_run=playback_cfg.load_run,
+                checkpoint=playback_cfg.checkpoint,
+                action_mode=playback_cfg.action_mode,
+                policy_obs_mode=playback_cfg.policy_obs_mode,
+                algo_log_name=algo_log_name,
+                log_root=playback_cfg.log_root,
+                num_envs=playback_cfg.num_envs,
+                speed=playback_cfg.speed,
+                start_paused=playback_cfg.start_paused,
+            )
+        checkpoint_path = resolve_checkpoint(
+            candidate_cfg.task,
+            candidate_cfg.load_run,
+            candidate_cfg.checkpoint,
+            candidate_cfg.algo_log_name,
+            candidate_cfg.log_root,
+            log_failure=index == len(candidate_log_names) - 1,
+        )
+        if checkpoint_path is None:
+            continue
+        resolved_algo_log_name = _resolve_playback_algo_log_name(
+            cfg,
+            checkpoint_path,
+            fallback_algo_log_name=candidate_cfg.algo_log_name,
+        )
+        if resolved_algo_log_name != candidate_cfg.algo_log_name:
+            candidate_cfg = RslRlPlaybackConfig(
+                task=candidate_cfg.task,
+                load_run=candidate_cfg.load_run,
+                checkpoint=candidate_cfg.checkpoint,
+                action_mode=candidate_cfg.action_mode,
+                policy_obs_mode=candidate_cfg.policy_obs_mode,
+                algo_log_name=resolved_algo_log_name,
+                log_root=candidate_cfg.log_root,
+                num_envs=candidate_cfg.num_envs,
+                speed=candidate_cfg.speed,
+                start_paused=candidate_cfg.start_paused,
+            )
+        return checkpoint_path, candidate_cfg
+    return None, playback_cfg
 
 
 # ---------------------------------------------------------------------------
@@ -992,12 +1046,7 @@ def _handle_command_key(commander: KeyboardCommander, keycode: int) -> None:
 
 
 def _print_keyboard_legend(args) -> None:
-    print("[play_interactive] Keyboard teleop ENABLED (drive style):")
-    print("  Up / Down    : forward / backward (vx)")
-    print("  Left / Right : turn left / right  (vyaw)")
-    print("  Enter        : full stop")
-    if str(getattr(args, "action_mode", "")) != "policy":
-        print("  NOTE: action_mode is not 'policy'; commands will not drive the robot.")
+    print_play_keyboard_legend(action_mode=str(getattr(args, "action_mode", "policy")))
 
 
 def play_interactive(args, cfg: DictConfig | None = None, *, algo: str | None = None):
@@ -1007,17 +1056,10 @@ def play_interactive(args, cfg: DictConfig | None = None, *, algo: str | None = 
 
     # Always use a single env for interactive view
     available_backends = _available_backends_for_task(args.task)
-    if available_backends and "mujoco" not in available_backends:
-        print(
-            "[play_interactive] Task does not support MuJoCo backend: "
-            f"{args.task}. Available backends: {available_backends or ('<none>',)}. "
-            "This script only supports MuJoCo viewer mode."
-        )
-        return
 
     def _create_env(num_envs: int):
         if cfg is None:
-            return registry.make(args.task, num_envs=num_envs, sim_backend="mujoco")
+            return registry.make(args.task, num_envs=num_envs, sim_backend=sim_backend)
         from unilab.training import create_env
 
         if algo in _OFFPOLICY_INTERACTIVE_ALGOS:
@@ -1031,18 +1073,42 @@ def play_interactive(args, cfg: DictConfig | None = None, *, algo: str | None = 
                 cfg,
                 num_envs=num_envs,
                 env_cfg_override=env_cfg_override,
-                sim_backend="mujoco",
+                sim_backend=sim_backend,
                 task_name=args.task,
             )
         except ValueError as exc:
-            if "does not support simulation backend 'mujoco'" in str(exc):
+            if f"does not support simulation backend '{sim_backend}'" in str(exc):
                 print(
-                    "[play_interactive] Task does not support MuJoCo backend: "
-                    f"{args.task}. Available backends: {available_backends or ('<none>',)}. "
-                    "This script only supports MuJoCo viewer mode."
+                    "[play_interactive] Task does not support "
+                    f"{sim_backend} backend: {args.task}. "
+                    f"Available backends: {available_backends or ('<none>',)}."
                 )
                 raise RuntimeError(_PLAYBACK_ENV_UNAVAILABLE) from exc
             raise
+
+    return _create_env
+
+
+def _open_playback_session(
+    args: PlayInteractiveArgs,
+    cfg: DictConfig | None,
+    *,
+    sim_backend: str,
+    num_envs: int,
+) -> tuple[Any, str | None] | None:
+    playback_cfg = _build_playback_config(args, num_envs=num_envs)
+    checkpoint_path: str | None = None
+    if playback_cfg.action_mode == "policy":
+        checkpoint_path, playback_cfg = _resolve_playback_checkpoint(playback_cfg, cfg=cfg)
+
+    playback_algo_name = "appo" if playback_cfg.algo_log_name == "appo" else "ppo"
+    available_backends = _available_backends_for_task(args.task)
+    if available_backends and sim_backend not in available_backends:
+        print(
+            f"[play_interactive] Task does not support {sim_backend} backend: "
+            f"{args.task}. Available backends: {available_backends or ('<none>',)}."
+        )
+        return None
 
     try:
         playback_cfg = _build_playback_config(args, num_envs=1)
@@ -1113,7 +1179,213 @@ def play_interactive(args, cfg: DictConfig | None = None, *, algo: str | None = 
         if str(exc) in {_PLAYBACK_ENV_UNAVAILABLE, _HORA_DISTILL_CHECKPOINT_UNAVAILABLE}:
             return
         raise
-    playback_session = session[0]
+
+    return session, resolved_checkpoint
+
+
+def _build_motrix_keyboard_hook(env: Any, args: PlayInteractiveArgs):
+    commander = _build_keyboard_commander(env, args)
+    if commander is None:
+        return None
+
+    backend = getattr(env, "_backend", None)
+    if backend is None:
+        print("[play_interactive] interactive.keyboard ignored: env has no backend.")
+        return None
+
+    return build_motrix_keyboard_before_step(
+        env,
+        backend,
+        commander,
+        log_command=lambda message: print(message),
+    )
+
+
+def _motrix_uses_raw_env_obs(
+    playback_cfg: RslRlPlaybackConfig,
+    checkpoint_path: str | None,
+) -> bool:
+    if playback_cfg.algo_log_name == "appo":
+        return True
+    if checkpoint_path is None:
+        return False
+    loaded = load_checkpoint_payload(checkpoint_path)
+    return is_appo_learner_checkpoint(loaded)
+
+
+def _motrix_camera_kwargs(cfg: DictConfig | None) -> dict[str, Any]:
+    if cfg is None:
+        return {}
+    return {
+        "cam_distance": getattr(cfg.training, "cam_distance", 6.0),
+        "cam_elevation": getattr(cfg.training, "cam_elevation", -20.0),
+        "cam_azimuth": getattr(cfg.training, "cam_azimuth", 90.0),
+        "cam_lookat": getattr(cfg.training, "cam_lookat", None),
+        "cam_tracking": getattr(cfg.training, "cam_tracking", False),
+        "cam_tracking_env_idx": getattr(cfg.training, "cam_tracking_env_idx", 0),
+        "cam_tracking_extra_envs": getattr(cfg.training, "cam_tracking_extra_envs", 2),
+    }
+
+
+def play_interactive(args: PlayInteractiveArgs, cfg: DictConfig | None = None) -> None:
+    sim_backend = str(getattr(args, "sim_backend", "mujoco"))
+    if sim_backend == "motrix":
+        play_interactive_motrix(args, cfg)
+    elif sim_backend == "mujoco":
+        play_interactive_mujoco(args, cfg)
+    else:
+        raise ValueError(f"Unsupported sim_backend {sim_backend!r}")
+
+
+def _soccer_dribble_debug_enabled(cfg: DictConfig | None, task_name: str) -> bool:
+    if cfg is None:
+        return task_name == "K1SoccerDribble"
+    override = OmegaConf.select(cfg, "interactive.soccer_dribble_debug", default=None)
+    if override is not None:
+        return bool(override)
+    return str(task_name) == "K1SoccerDribble"
+
+
+def play_interactive_motrix(args: PlayInteractiveArgs, cfg: DictConfig | None = None) -> None:
+    device = select_torch_device()
+    print(f"[play_interactive] Device: {device}, backend: motrix")
+
+    if args.show_target_bodies or args.show_reward_debug:
+        print("[play_interactive] Motion/reward overlays are MuJoCo-only; ignored for Motrix.")
+
+    play_env_num = 1
+    opened = _open_playback_session(args, cfg, sim_backend="motrix", num_envs=play_env_num)
+    if opened is None:
+        return
+    playback_session, checkpoint_path = opened
+    env = playback_session.env
+    policy = playback_session.policy
+    playback_cfg = _build_playback_config(args, num_envs=play_env_num)
+    if playback_cfg.action_mode == "policy" and policy is None:
+        print("[play_interactive] No policy loaded; exiting.")
+        return
+
+    if env.state is None:
+        env.init_state()
+
+    if cfg is not None and is_soccer_dribble_task(args.task) and _motrix_uses_raw_env_obs(
+        playback_cfg, checkpoint_path
+    ):
+        from unilab.visualization.soccer_dribble_playback import (
+            run_motrix_soccer_dribble_playback,
+            soccer_debug_from_cfg,
+        )
+
+        soccer_debug = soccer_debug_from_cfg(env, cfg)
+        if soccer_debug is not None:
+            print("[play_interactive] K1 soccer dribble debug logging enabled (see [soccer-debug]).")
+        run_motrix_soccer_dribble_playback(
+            env,
+            policy,
+            cfg,
+            device=device,
+            debug=soccer_debug,
+            keyboard=bool(args.keyboard),
+            keyboard_step_lin=float(args.keyboard_step_lin),
+            keyboard_step_ang=float(args.keyboard_step_ang),
+            play_steps=getattr(cfg.training, "play_steps", None),
+            log_prefix="[play_interactive]",
+            num_envs=play_env_num,
+        )
+        print("[play_interactive] Done.")
+        return
+
+    before_step = _build_motrix_keyboard_hook(env, args)
+    if before_step is not None:
+        env.set_autoreset(False)
+
+    use_raw_env_obs = _motrix_uses_raw_env_obs(playback_cfg, checkpoint_path)
+
+    from unilab.visualization.soccer_dribble_playback_debug import SoccerDribblePlaybackDiagnostics
+
+    soccer_debug = SoccerDribblePlaybackDiagnostics.maybe_create(
+        env,
+        enabled=_soccer_dribble_debug_enabled(cfg, args.task),
+    )
+    if soccer_debug is not None:
+        print("[play_interactive] K1 soccer dribble debug logging enabled (see [soccer-debug]).")
+
+    def _initialize_play_obs():
+        env.reset(np.arange(play_env_num, dtype=np.int32))
+        if before_step is not None:
+            sync_play_velocity_command(
+                env,
+                np.zeros(3, dtype=np.float32),
+                flush_obs_history=True,
+            )
+        if soccer_debug is not None:
+            soccer_debug.print_setup_once()
+            soccer_debug.sync_ball_velocity_baseline()
+        if use_raw_env_obs:
+            if env.state is None:
+                raise RuntimeError("play initialize requires env.state after reset")
+            return np.asarray(env.state.obs["obs"], dtype=np.float32)
+        obs, _info = playback_session.wrapped_env.reset()
+        return obs
+
+    def _step_play_obs(obs):
+        with torch.inference_mode():
+            if use_raw_env_obs:
+                from unilab.visualization.soccer_dribble_playback import step_soccer_dribble
+
+                action_dim = int(env.action_space.shape[0])
+                next_obs, info = step_soccer_dribble(
+                    env,
+                    policy,
+                    np.asarray(obs, dtype=np.float32),
+                    device=device,
+                    action_dim=action_dim,
+                    num_envs=play_env_num,
+                )
+                if soccer_debug is not None:
+                    soccer_debug.after_step(info)
+                return next_obs
+            actions = policy(obs)
+            next_obs, _reward, _done, _info = playback_session.wrapped_env.step(actions)
+            if soccer_debug is not None:
+                soccer_debug.after_step(_info)
+            return next_obs
+
+    print("[play_interactive] Opening Motrix render window — close to quit.")
+    if before_step is not None:
+        _print_keyboard_legend(args)
+
+    try:
+        env.run_playback_mode(
+            play_render_mode=getattr(cfg.training, "play_render_mode", "auto") if cfg else "auto",
+            play_steps=getattr(cfg.training, "play_steps", None) if cfg else None,
+            output_video=None,
+            render_spacing=float(
+                getattr(cfg.training, "render_spacing", getattr(env.cfg, "render_spacing", 1.0))
+                if cfg is not None
+                else getattr(env.cfg, "render_spacing", 1.0)
+            ),
+            initialize=_initialize_play_obs,
+            step=_step_play_obs,
+            camera_kwargs=_motrix_camera_kwargs(cfg),
+            before_step=before_step,
+        )
+    except Exception as exc:
+        if "RenderClosedError" in str(type(exc).__name__):
+            print("[play_interactive] Render window closed.")
+        else:
+            raise
+    print("[play_interactive] Done.")
+
+
+def play_interactive_mujoco(args: PlayInteractiveArgs, cfg: DictConfig | None = None) -> None:
+    device = select_torch_device()
+    print(f"[play_interactive] Device: {device}, backend: mujoco")
+
+    opened = _open_playback_session(args, cfg, sim_backend="mujoco", num_envs=1)
+    if opened is None:
+        return
+    playback_session, _checkpoint_path = opened
     env = playback_session.env
 
     if _uses_native_mujoco_viewer_launch() and not _can_launch_glfw_viewer():
@@ -1318,30 +1590,56 @@ def _build_play_args(cfg: DictConfig, *, algo: str = "ppo") -> PlayInteractiveAr
         task=str(cfg.training.task_name),
         load_run=str(cfg.algo.load_run),
         checkpoint=_normalize_checkpoint_value(OmegaConf.select(cfg, "algo.checkpoint")),
-        action_mode=str(cfg.interactive.action_mode),
-        policy_obs_mode=str(cfg.interactive.policy_obs_mode),
+        action_mode=str(OmegaConf.select(cfg, "interactive.action_mode", default="zero")),
+        policy_obs_mode=str(OmegaConf.select(cfg, "interactive.policy_obs_mode", default="auto")),
         algo_log_name=str(cfg.algo.algo_log_name),
         log_root=(
             str(cfg.training.log_root)
             if OmegaConf.select(cfg, "training.log_root") is not None
             else None
         ),
-        show_target_bodies=bool(cfg.interactive.show_target_bodies),
-        show_reward_debug=bool(cfg.interactive.show_reward_debug),
-        target_show_axes=bool(cfg.interactive.target_show_axes),
-        target_body_names=str(cfg.interactive.target_body_names),
-        target_max_bodies=int(cfg.interactive.target_max_bodies),
-        target_marker_radius=float(cfg.interactive.target_marker_radius),
-        target_axis_length=float(cfg.interactive.target_axis_length),
-        target_marker_alpha=float(cfg.interactive.target_marker_alpha),
-        reward_debug_show_velocity=bool(cfg.interactive.reward_debug_show_velocity),
-        reward_debug_lin_vel_scale=float(cfg.interactive.reward_debug_lin_vel_scale),
-        reward_debug_ang_vel_scale=float(cfg.interactive.reward_debug_ang_vel_scale),
-        reward_debug_show_connectors=bool(cfg.interactive.reward_debug_show_connectors),
-        reward_debug_show_global_anchor=bool(cfg.interactive.reward_debug_show_global_anchor),
-        camera_follow_body=bool(cfg.interactive.camera_follow_body),
-        camera_focus_body_name=str(cfg.interactive.camera_focus_body_name),
-        camera_height_offset=float(cfg.interactive.camera_height_offset),
+        show_target_bodies=bool(
+            OmegaConf.select(cfg, "interactive.show_target_bodies", default=False)
+        ),
+        show_reward_debug=bool(
+            OmegaConf.select(cfg, "interactive.show_reward_debug", default=False)
+        ),
+        target_show_axes=bool(OmegaConf.select(cfg, "interactive.target_show_axes", default=False)),
+        target_body_names=str(OmegaConf.select(cfg, "interactive.target_body_names", default="")),
+        target_max_bodies=int(OmegaConf.select(cfg, "interactive.target_max_bodies", default=0)),
+        target_marker_radius=float(
+            OmegaConf.select(cfg, "interactive.target_marker_radius", default=0.02)
+        ),
+        target_axis_length=float(
+            OmegaConf.select(cfg, "interactive.target_axis_length", default=0.08)
+        ),
+        target_marker_alpha=float(
+            OmegaConf.select(cfg, "interactive.target_marker_alpha", default=0.75)
+        ),
+        reward_debug_show_velocity=bool(
+            OmegaConf.select(cfg, "interactive.reward_debug_show_velocity", default=False)
+        ),
+        reward_debug_lin_vel_scale=float(
+            OmegaConf.select(cfg, "interactive.reward_debug_lin_vel_scale", default=0.08)
+        ),
+        reward_debug_ang_vel_scale=float(
+            OmegaConf.select(cfg, "interactive.reward_debug_ang_vel_scale", default=0.05)
+        ),
+        reward_debug_show_connectors=bool(
+            OmegaConf.select(cfg, "interactive.reward_debug_show_connectors", default=False)
+        ),
+        reward_debug_show_global_anchor=bool(
+            OmegaConf.select(cfg, "interactive.reward_debug_show_global_anchor", default=False)
+        ),
+        camera_follow_body=bool(
+            OmegaConf.select(cfg, "interactive.camera_follow_body", default=True)
+        ),
+        camera_focus_body_name=str(
+            OmegaConf.select(cfg, "interactive.camera_focus_body_name", default="")
+        ),
+        camera_height_offset=float(
+            OmegaConf.select(cfg, "interactive.camera_height_offset", default=0.15)
+        ),
         camera_distance=(
             float(cfg.interactive.camera_distance)
             if OmegaConf.select(cfg, "interactive.camera_distance") is not None
@@ -1357,7 +1655,9 @@ def _build_play_args(cfg: DictConfig, *, algo: str = "ppo") -> PlayInteractiveAr
             if OmegaConf.select(cfg, "interactive.camera_azimuth") is not None
             else None
         ),
-        use_env_visual_model=bool(cfg.interactive.use_env_visual_model),
+        use_env_visual_model=bool(
+            OmegaConf.select(cfg, "interactive.use_env_visual_model", default=True)
+        ),
         speed=float(OmegaConf.select(cfg, "interactive.speed", default=1.0)),
         start_paused=bool(OmegaConf.select(cfg, "interactive.start_paused", default=False)),
         keyboard=bool(OmegaConf.select(cfg, "interactive.keyboard", default=False)),
@@ -1381,4 +1681,5 @@ def main(argv: list[str] | None = None) -> None:
 
 
 if __name__ == "__main__":
+    _inject_motrix_hydra_config()
     main()
