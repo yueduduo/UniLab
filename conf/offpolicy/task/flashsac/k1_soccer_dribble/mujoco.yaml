@@ -1,23 +1,23 @@
 # @package _global_
 # Phase 1: same walk reward profile as K1WalkFlat FlashSAC (via shared YAML + K1 gait overrides).
 # Phase 2: ball / dribble terms enabled in env via phase2_mask (see soccer_dribble.py).
+# MuJoCo owner: algo throughput aligned with k1_walk_flat/mujoco; env/reward aligned with motrix owner.
 defaults:
   - /locomotion/g1_walk_flat_recipe
   - /locomotion/g1_walk_flat_flashsac_reward
 
 training:
   task_name: K1SoccerDribble
-  sim_backend: motrix
+  sim_backend: mujoco
 algo:
-  num_envs: 1024
-  # learning_starts * num_envs must be <= replay_buffer_n * num_envs (else learner waits forever)
-  learning_starts: 167
+  num_envs: 4096
+  learning_starts: 50
   max_iterations: 20000
   save_interval: 1000
-  updates_per_step: 1
+  updates_per_step: 8
   batch_size: 2048
-  replay_buffer_n: 341
-  tau: 0.01
+  replay_buffer_n: 256
+  tau: 0.05
   actor_lr: 2.0e-4
   critic_lr: 2.0e-4
   algo_params:

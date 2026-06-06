@@ -147,6 +147,10 @@ class SimBackend(abc.ABC):
         """Return one geom size vector through the backend contract."""
         raise NotImplementedError(f"{self.__class__.__name__} does not expose geom sizes")
 
+    def set_world_geom_pos(self, geom_name: str, pos: np.ndarray) -> None:
+        """Move a fixed world-body geom (visual markers only; cold/visualization path)."""
+        raise NotImplementedError(f"{self.__class__.__name__} does not support world geom poses")
+
     def create_hfield_scanner(
         self,
         *,

@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import numpy as np
+
 K1_ACTUATOR_JOINT_ORDER: tuple[str, ...] = (
     "AAHead_yaw",
     "Head_pitch",
@@ -61,6 +63,8 @@ K1_OBS_SINGLE_DIM = 75
 K1_OBS_STACKED_DIM = K1_OBS_SINGLE_DIM * K1_OBS_FRAME_STACK
 K1_NUM_ACTION = len(K1_ACTUATOR_JOINT_ORDER)
 K1_UPPER_BODY_JOINTS = 10
+# Task keyframes: free-base qpos prefix (xyz + quat) before actuator joint coordinates.
+K1_KEYFRAME_BASE_QPOS_DIM = 7
 # G1-walk-aligned pose weights (22 DOF): low on head/arms, high on legs.
 K1_G1_ALIGNED_POSE_WEIGHTS: tuple[float, ...] = (
     0.01,
@@ -88,6 +92,15 @@ K1_G1_ALIGNED_POSE_WEIGHTS: tuple[float, ...] = (
 )
 
 
+def k1_keyframe_robot_joint_qpos(
+    keyframe_qpos: np.ndarray, num_action: int = K1_NUM_ACTION
+) -> np.ndarray:
+    """Robot actuator qpos slice from a task keyframe (excludes trailing ball / object dofs)."""
+    start = K1_KEYFRAME_BASE_QPOS_DIM
+    stop = start + num_action
+    return np.asarray(keyframe_qpos[start:stop], dtype=keyframe_qpos.dtype)
+
+
 def k1_walk_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
     """G1 walk profile: gyro(3)+gravity(3)+joint(3n)+cmd(3)+phase(2)."""
     return 6 + 3 * num_action + 5
@@ -95,3 +108,45 @@ def k1_walk_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
 
 def k1_walk_critic_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
     return k1_walk_actor_obs_dim(num_action) + 3
+
+
+def k1_soccer_push_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    # Walk layout (gyro/gravity/proprio/cmd/phase) + ball rel state (3).
+    return k1_walk_actor_obs_dim(num_action) + 3
+
+
+def k1_soccer_push_critic_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    return k1_soccer_push_actor_obs_dim(num_action) + 3
+
+
+# Soccer curriculum layout (scene_soccer_dribble_minimal.xml): colinear +X axis.
+K1_SOCCER_CURRICULUM_START_XY = (0.0, 0.0)
+K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY = (1.0, 0.0)
+K1_SOCCER_CURRICULUM_BALL_SPAWN_XY = (1.2, 0.0)
+K1_SOCCER_CURRICULUM_PHASE1_DISTANCE_M = 1.0
+K1_SOCCER_CURRICULUM_PHASE2_DISTANCE_M = 0.2
+# Sphere center ≈ keyframe trunk height; radius matches scene geom size (pass-through volume).
+K1_SOCCER_PHASE1_WAYPOINT_Z = 0.5743699226900935
+K1_SOCCER_PHASE1_WAYPOINT_SPHERE_RADIUS = 0.08
+K1_SOCCER_PHASE1_WAYPOINT_MARKER_HIDDEN_Z = -30.0
+K1_SOCCER_PHASE1_WAYPOINT_GEOM_PENDING = "phase1_waypoint_marker_pending"
+K1_SOCCER_PHASE1_WAYPOINT_GEOM_REACHED = "phase1_waypoint_marker_reached"
+
+# Reward terms active only after phase-1 waypoint is reached (phase 2 dribble).
+K1_SOCCER_PHASE2_REWARD_KEYS: frozenset[str] = frozenset(
+    {
+        "ball_progress",
+        "ball_keep",
+        "ball_front",
+        "ball_speed_match",
+        "ball_approach",
+        "ball_moving",
+        "ball_still",
+        "ball_lost",
+        "ball_over_speed",
+        "ball_orbit",
+        "feet_inward_yaw",
+        "feet_step_travel",
+        "termination_bad",
+    }
+)

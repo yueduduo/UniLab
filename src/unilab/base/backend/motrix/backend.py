@@ -432,6 +432,16 @@ class MotrixBackend(SimBackend):
         )
         return np.asarray(geom.size, dtype=np.float64).copy()
 
+    def set_world_geom_pos(self, geom_name: str, pos: np.ndarray) -> None:
+        _require_not_none(
+            self._model.get_geom(geom_name),
+            f"Geom '{geom_name}' not found in Motrix model",
+        )
+        raise NotImplementedError(
+            "MotrixBackend does not support runtime world geom pose updates "
+            f"(requested geom '{geom_name}')"
+        )
+
     def get_body_mass(self) -> np.ndarray:
         return self._default_body_mass.copy()
 

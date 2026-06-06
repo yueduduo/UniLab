@@ -98,12 +98,20 @@ class LocomotionDRProvider(DomainRandomizationProvider):
         """Return additional info_updates entries (e.g. gait_phase for G1)."""
         return {}
 
+    def _sample_reset_yaw(self, env: Any, num_reset: int) -> np.ndarray:
+        """Sample base yaw offsets applied on reset. Override to disable or narrow."""
+        return np.random.uniform(-np.pi, np.pi, (num_reset,))
+
+    def _sample_reset_xy_offset(self, env: Any, num_reset: int) -> np.ndarray:
+        """Sample root xy offsets applied on reset. Override to restrict axes or range."""
+        return np.random.uniform(-0.5, 0.5, (num_reset, 2))
+
     def build_reset_plan(self, env: Any, env_ids: np.ndarray) -> ResetPlan:
         num_reset = len(env_ids)
         qpos = np.tile(env._init_qpos, (num_reset, 1))
         qvel = np.tile(env._init_qvel, (num_reset, 1))
-        qpos[:, 0:2] += np.random.uniform(-0.5, 0.5, (num_reset, 2))
-        yaw = np.random.uniform(-np.pi, np.pi, (num_reset,))
+        qpos[:, 0:2] += self._sample_reset_xy_offset(env, num_reset)
+        yaw = self._sample_reset_yaw(env, num_reset)
         qpos[:, 3:7] = np_quat_mul(qpos[:, 3:7], np_yaw_to_quat(yaw))
         qpos[:, 0:3] = env._spawn.apply_spawn(env_ids, qpos[:, 0:3], yaw=yaw)
         limit = self._get_qvel_limit(env)

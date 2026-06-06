@@ -657,6 +657,10 @@ class MuJoCoBackend(SimBackend):
     def get_geom_size(self, name: str) -> np.ndarray:
         return np.asarray(self._model.geom_size[self.get_geom_id(name)], dtype=np.float64).copy()
 
+    def set_world_geom_pos(self, geom_name: str, pos: np.ndarray) -> None:
+        geom_id = self.get_geom_id(geom_name)
+        self._model.geom_pos[geom_id] = np.asarray(pos, dtype=np.float64).reshape(3)
+
     def create_hfield_scanner(
         self,
         *,
