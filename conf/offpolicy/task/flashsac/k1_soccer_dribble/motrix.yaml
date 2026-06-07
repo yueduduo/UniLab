@@ -67,7 +67,8 @@ reward:
   scales:
     phase1_reach: 10.0
     phase1_complete: 10.0
-    penalty_phase1_vel_direction: -4.0
+    alive: 1.0
+    penalty_vel_direction: -40.0
     tracking_ang_vel: 2.0
     penalty_orientation: -20.0
     penalty_ang_vel_xy: -1.5
@@ -114,7 +115,7 @@ reward:
   ball_cmd_kp: 0.9
   fixed_cmd_lin_speed: 0.3
   feet_step_travel_cap: 0.10
-  phase1_reach_sigma: 0.3
-  phase1_vel_direction_min_speed: 0.05
-  phase1_vel_direction_phase2_scale: 0.25
+  phase1_reach_sigma: 0.1
+  phase1_reach_sigma_2: 0.3
+  vel_direction_min_speed: 0.05
   phase1_max_steps: 200

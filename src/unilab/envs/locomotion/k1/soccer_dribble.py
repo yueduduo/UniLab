@@ -99,9 +99,9 @@ class K1SoccerDribbleRewardConfig(K1RewardConfig):
     fixed_cmd_lin_speed: float = 0.3
     feet_step_travel_cap: float = 0.10
     phase1_max_steps: int = 200
-    phase1_reach_sigma: float = 0.3
-    phase1_vel_direction_min_speed: float = 0.05
-    phase1_vel_direction_phase2_scale: float = 0.25
+    phase1_reach_sigma: float = 0.1
+    phase1_reach_sigma_2: float = 0.3
+    vel_direction_min_speed: float = 0.05
 
 
 @dataclass
@@ -268,8 +268,11 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         return newly_reached
 
     def _phase1_reach_raw_from_distance(self, dist: np.ndarray) -> np.ndarray:
-        sigma = max(float(self._reward_cfg.phase1_reach_sigma), 1e-6)
-        return np.asarray(1.0 - np.tanh(dist / sigma), dtype=get_global_dtype())
+        sigma1 = max(float(self._reward_cfg.phase1_reach_sigma), 1e-6)
+        sigma2 = max(float(self._reward_cfg.phase1_reach_sigma_2), 1e-6)
+        near = 1.0 - np.tanh(dist / sigma1)
+        far = 1.0 - np.tanh(dist / sigma2)
+        return np.asarray(near + far, dtype=get_global_dtype())
 
     def _freeze_phase1_reach_reward(self, newly_reached: np.ndarray) -> None:
         if not np.any(newly_reached):
@@ -325,7 +328,7 @@ class K1SoccerDribbleEnv(K1WalkEnv):
                 "termination_bad": self._reward_termination_bad,
                 "phase1_complete": self._reward_phase1_complete,
                 "phase1_reach": self._reward_phase1_reach,
-                "penalty_phase1_vel_direction": self._reward_penalty_phase1_vel_direction,
+                "penalty_vel_direction": self._reward_penalty_vel_direction,
             }
         )
 
@@ -574,10 +577,6 @@ class K1SoccerDribbleEnv(K1WalkEnv):
                 weighted_rew = weighted_rew * phase2_mask
             elif name in K1_SOCCER_PHASE1_REWARD_KEYS:
                 weighted_rew = weighted_rew * (1.0 - phase2_mask)
-            elif name == "penalty_phase1_vel_direction":
-                phase2_factor = float(self._reward_cfg.phase1_vel_direction_phase2_scale)
-                multiplier = (1.0 - phase2_mask) + phase2_mask * phase2_factor
-                weighted_rew = weighted_rew * multiplier
             reward += weighted_rew
             if should_log:
                 log[f"reward/{name}"] = float(np.mean(weighted_rew))
@@ -695,14 +694,14 @@ class K1SoccerDribbleEnv(K1WalkEnv):
             reward[reached] = self._phase1_reach_reward_frozen[reached]
         return np.asarray(reward, dtype=get_global_dtype())
 
-    def _reward_penalty_phase1_vel_direction(self, ctx: RewardContext) -> np.ndarray:
-        """Penalize world-frame lateral speed deviating from start -> phase-1 waypoint (+X)."""
+    def _reward_penalty_vel_direction(self, ctx: RewardContext) -> np.ndarray:
+        """Penalize world-frame lateral speed off the curriculum +X axis (phase1 & phase2)."""
         vel_xy = self._backend.get_base_lin_vel()[:, :2]
         speed = np.linalg.norm(vel_xy, axis=1)
         target = self._phase1_target_dir_xy
         parallel = (vel_xy @ target)[:, None] * target[None, :]
         lateral = np.linalg.norm(vel_xy - parallel, axis=1)
-        min_speed = float(self._reward_cfg.phase1_vel_direction_min_speed)
+        min_speed = float(self._reward_cfg.vel_direction_min_speed)
         active = speed > min_speed
         return np.asarray(np.where(active, lateral, 0.0), dtype=get_global_dtype())
 
