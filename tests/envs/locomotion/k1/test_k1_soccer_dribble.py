@@ -10,6 +10,10 @@ from unilab.envs.locomotion.k1.constants import (
     K1_SOCCER_CURRICULUM_PHASE1_DISTANCE_M,
     K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY,
     K1_SOCCER_CURRICULUM_PHASE2_DISTANCE_M,
+    K1_SOCCER_PHASE1_MAX_STEPS,
+    K1_SOCCER_PHASE1_REWARD_KEYS,
+    K1_SOCCER_RESET_X_OFFSET_M,
+    K1_SOCCER_PHASE1_WAYPOINT_SPHERE_RADIUS,
     K1_SOCCER_PHASE2_REWARD_KEYS,
     k1_keyframe_robot_joint_qpos,
     k1_soccer_push_actor_obs_dim,
@@ -30,13 +34,30 @@ def test_k1_soccer_curriculum_layout_matches_scene():
     assert K1_SOCCER_CURRICULUM_BALL_SPAWN_XY == (1.2, 0.0)
     assert K1_SOCCER_CURRICULUM_PHASE1_DISTANCE_M == 1.0
     assert K1_SOCCER_CURRICULUM_PHASE2_DISTANCE_M == 0.2
+    assert K1_SOCCER_PHASE1_MAX_STEPS == 200
+    assert K1_SOCCER_RESET_X_OFFSET_M == pytest.approx(0.3)
+    assert K1_SOCCER_PHASE1_WAYPOINT_SPHERE_RADIUS == pytest.approx(0.18)
 
 
 def test_k1_soccer_phase2_reward_keys_are_ball_or_dribble_only():
     assert "tracking_lin_vel" not in K1_SOCCER_PHASE2_REWARD_KEYS
     assert "phase1_complete" not in K1_SOCCER_PHASE2_REWARD_KEYS
+    assert "phase1_reach" not in K1_SOCCER_PHASE2_REWARD_KEYS
+    assert "penalty_phase1_vel_direction" not in K1_SOCCER_PHASE1_REWARD_KEYS
+    assert "penalty_phase1_vel_direction" not in K1_SOCCER_PHASE2_REWARD_KEYS
     assert "ball_progress" in K1_SOCCER_PHASE2_REWARD_KEYS
     assert "feet_step_travel" in K1_SOCCER_PHASE2_REWARD_KEYS
+
+
+def test_phase1_timeout_terminates_when_steps_exceeded_without_waypoint():
+    import numpy as np
+
+    from unilab.envs.locomotion.k1.constants import K1_SOCCER_PHASE1_MAX_STEPS
+
+    phase1_reached = np.array([False, False, True], dtype=bool)
+    steps = np.array([199, 200, 200], dtype=np.uint32)
+    term = np.logical_and(~phase1_reached, steps >= K1_SOCCER_PHASE1_MAX_STEPS)
+    np.testing.assert_array_equal(term, [False, True, False])
 
 
 def test_soccer_default_angles_use_robot_keyframe_not_ball_tail():
@@ -83,8 +104,8 @@ def test_soccer_reset_randomizes_x_only():
     offset = provider._sample_reset_xy_offset(None, 512)
     assert offset.shape == (512, 2)
     np.testing.assert_allclose(offset[:, 1], 0.0)
-    assert float(np.min(offset[:, 0])) >= -0.5
-    assert float(np.max(offset[:, 0])) <= 0.5
+    assert float(np.min(offset[:, 0])) >= -0.3
+    assert float(np.max(offset[:, 0])) <= 0.3
     assert float(np.std(offset[:, 0])) > 0.1
 
 
@@ -108,11 +129,18 @@ def test_k1_soccer_dribble_flashsac_owner_uses_walk_flashsac_reward_base(
     assert cfg.training.sim_backend == expected_sim_backend
     assert cfg.algo.num_envs == expected_num_envs
     assert cfg.reward.scales.tracking_lin_vel == pytest.approx(2.0)
+    assert cfg.reward.scales.tracking_ang_vel == pytest.approx(2.0)
     assert cfg.reward.scales.feet_phase == pytest.approx(5.0)
     assert cfg.reward.scales.alive == pytest.approx(10.0)
     assert cfg.reward.scales.ball_progress == pytest.approx(1.7)
-    assert cfg.reward.scales.phase1_complete == pytest.approx(1.0)
-    assert cfg.reward.scales.penalty_orientation == pytest.approx(-15.0)
+    assert cfg.reward.scales.phase1_reach == pytest.approx(10.0)
+    assert cfg.reward.scales.phase1_complete == pytest.approx(10.0)
+    assert cfg.reward.scales.penalty_orientation == pytest.approx(-20.0)
+    assert cfg.reward.scales.penalty_phase1_vel_direction == pytest.approx(-4.0)
+    assert cfg.reward.phase1_max_steps == 200
+    assert cfg.reward.phase1_reach_sigma == pytest.approx(0.3)
+    assert cfg.reward.phase1_vel_direction_min_speed == pytest.approx(0.05)
+    assert cfg.reward.phase1_vel_direction_phase2_scale == pytest.approx(0.25)
     assert cfg.env.curriculum.enabled is True
     assert cfg.env.control_config.action_scale == pytest.approx(0.35)
     assert cfg.env.reset_base_qvel_limit == pytest.approx(0.5)
@@ -121,6 +149,114 @@ def test_k1_soccer_dribble_flashsac_owner_uses_walk_flashsac_reward_base(
     assert cfg.env.commands.vel_limit[0][0] == pytest.approx(0.4)
     assert cfg.env.commands.vel_limit[1][0] == pytest.approx(0.7)
     assert cfg.reward.min_forward_speed_for_gait_reward == pytest.approx(0.05)
+
+
+def test_phase1_reach_reward_increases_as_distance_decreases():
+    import numpy as np
+
+    from unilab.envs.locomotion.common.rewards import RewardContext
+    from unilab.envs.locomotion.k1.constants import K1_SOCCER_PHASE1_WAYPOINT_Z
+    from unilab.envs.locomotion.k1.soccer_dribble import K1SoccerDribbleEnv
+
+    env = K1SoccerDribbleEnv.__new__(K1SoccerDribbleEnv)
+    env._phase1_reached = np.zeros(3, dtype=bool)
+    env._phase1_reach_reward_frozen = np.zeros(3, dtype=np.float32)
+    env._phase1_waypoint_center = np.array([1.0, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z], dtype=np.float32)
+    env._reward_cfg = type("Cfg", (), {"phase1_reach_sigma": 1.0})()
+
+    class _Backend:
+        def get_base_pos(self) -> np.ndarray:
+            return np.array(
+                [
+                    [0.0, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z],
+                    [0.5, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z],
+                    [1.0, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z],
+                ],
+                dtype=np.float32,
+            )
+
+    env._backend = _Backend()
+    ctx = RewardContext(
+        info={},
+        linvel=np.zeros((3, 3), dtype=np.float32),
+        gyro=np.zeros((3, 3), dtype=np.float32),
+        dof_pos=np.zeros((3, 1), dtype=np.float32),
+        num_envs=3,
+    )
+    rew = env._reward_phase1_reach(ctx)
+    assert rew[2] == pytest.approx(1.0)
+    assert rew[1] > rew[0]
+    assert rew[0] == pytest.approx(1.0 - np.tanh(1.0))
+
+
+def test_phase1_reach_reward_freezes_at_completion():
+    import numpy as np
+
+    from unilab.envs.locomotion.common.rewards import RewardContext
+    from unilab.envs.locomotion.k1.constants import K1_SOCCER_PHASE1_WAYPOINT_Z
+    from unilab.envs.locomotion.k1.soccer_dribble import K1SoccerDribbleEnv
+
+    env = K1SoccerDribbleEnv.__new__(K1SoccerDribbleEnv)
+    env._phase1_reached = np.array([True, False], dtype=bool)
+    env._phase1_reach_reward_frozen = np.array([0.85, 0.0], dtype=np.float32)
+    env._phase1_waypoint_center = np.array([1.0, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z], dtype=np.float32)
+    env._reward_cfg = type("Cfg", (), {"phase1_reach_sigma": 0.3})()
+
+    class _Backend:
+        def get_base_pos(self) -> np.ndarray:
+            # env 0 moved away after completion; env 1 still approaching.
+            return np.array(
+                [
+                    [2.0, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z],
+                    [0.5, 0.0, K1_SOCCER_PHASE1_WAYPOINT_Z],
+                ],
+                dtype=np.float32,
+            )
+
+    env._backend = _Backend()
+    ctx = RewardContext(
+        info={},
+        linvel=np.zeros((2, 3), dtype=np.float32),
+        gyro=np.zeros((2, 3), dtype=np.float32),
+        dof_pos=np.zeros((2, 1), dtype=np.float32),
+        num_envs=2,
+    )
+    rew = env._reward_phase1_reach(ctx)
+    np.testing.assert_allclose(rew[0], 0.85)
+    assert rew[1] == pytest.approx(1.0 - np.tanh(0.5 / 0.3))
+
+
+def test_penalty_phase1_vel_direction_uses_world_lateral_speed():
+    import numpy as np
+
+    from unilab.envs.locomotion.common.rewards import RewardContext
+    from unilab.envs.locomotion.k1.soccer_dribble import K1SoccerDribbleEnv
+
+    env = K1SoccerDribbleEnv.__new__(K1SoccerDribbleEnv)
+    env._phase1_target_dir_xy = np.array([1.0, 0.0], dtype=np.float32)
+    env._reward_cfg = type("Cfg", (), {"phase1_vel_direction_min_speed": 0.05})()
+
+    class _Backend:
+        def get_base_lin_vel(self) -> np.ndarray:
+            return np.array(
+                [
+                    [0.5, 0.0, 0.0],
+                    [0.5, 0.2, 0.0],
+                    [0.01, 0.01, 0.0],
+                ],
+                dtype=np.float32,
+            )
+
+    env._backend = _Backend()
+    ctx = RewardContext(
+        info={},
+        linvel=np.zeros((3, 3), dtype=np.float32),
+        gyro=np.zeros((3, 3), dtype=np.float32),
+        dof_pos=np.zeros((3, 1), dtype=np.float32),
+        num_envs=3,
+    )
+    penalty = env._reward_penalty_phase1_vel_direction(ctx)
+    np.testing.assert_allclose(penalty, [0.0, 0.2, 0.0])
 
 
 def test_phase1_complete_reward_while_alive_in_phase2():
@@ -253,7 +389,7 @@ def test_k1_soccer_dribble_motrix_reset_step_obs_shape():
         min_base_height=0.25,
         max_tilt_deg=55.0,
         pose_weights=[1.0] * K1_NUM_ACTION,
-        ball_keep_distance=0.45,
+        ball_keep_distance=0.25,
         ball_keep_sigma=0.08,
         ball_front_lateral_sigma=0.16,
         ball_speed_sigma=0.12,

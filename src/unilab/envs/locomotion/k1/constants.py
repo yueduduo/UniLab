@@ -125,12 +125,19 @@ K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY = (1.0, 0.0)
 K1_SOCCER_CURRICULUM_BALL_SPAWN_XY = (1.2, 0.0)
 K1_SOCCER_CURRICULUM_PHASE1_DISTANCE_M = 1.0
 K1_SOCCER_CURRICULUM_PHASE2_DISTANCE_M = 0.2
+# Reset DR: uniform x offset in [-limit, +limit], y fixed at 0.
+K1_SOCCER_RESET_X_OFFSET_M = 0.3
 # Sphere center ≈ keyframe trunk height; radius matches scene geom size (pass-through volume).
 K1_SOCCER_PHASE1_WAYPOINT_Z = 0.5743699226900935
-K1_SOCCER_PHASE1_WAYPOINT_SPHERE_RADIUS = 0.08
+K1_SOCCER_PHASE1_WAYPOINT_SPHERE_RADIUS = 0.18
+# Phase-1 fail-safe: terminate if episode steps exceed this without reaching waypoint.
+K1_SOCCER_PHASE1_MAX_STEPS = 200
 K1_SOCCER_PHASE1_WAYPOINT_MARKER_HIDDEN_Z = -30.0
 K1_SOCCER_PHASE1_WAYPOINT_GEOM_PENDING = "phase1_waypoint_marker_pending"
 K1_SOCCER_PHASE1_WAYPOINT_GEOM_REACHED = "phase1_waypoint_marker_reached"
+
+# Reward terms masked to phase 1 only (phase1_reach manages its own freeze logic).
+K1_SOCCER_PHASE1_REWARD_KEYS: frozenset[str] = frozenset()
 
 # Reward terms active only after phase-1 waypoint is reached (phase 2 dribble).
 K1_SOCCER_PHASE2_REWARD_KEYS: frozenset[str] = frozenset(

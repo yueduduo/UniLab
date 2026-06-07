@@ -20,6 +20,10 @@ from unilab.envs.locomotion.k1.constants import (
     K1_ACTUATOR_JOINT_ORDER,
     K1_NUM_ACTION,
     K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY,
+    K1_SOCCER_CURRICULUM_START_XY,
+    K1_SOCCER_RESET_X_OFFSET_M,
+    K1_SOCCER_PHASE1_MAX_STEPS,
+    K1_SOCCER_PHASE1_REWARD_KEYS,
     K1_SOCCER_PHASE2_REWARD_KEYS,
     K1_SOCCER_PHASE1_WAYPOINT_GEOM_PENDING,
     K1_SOCCER_PHASE1_WAYPOINT_GEOM_REACHED,
@@ -48,7 +52,8 @@ class K1SoccerDomainRandomizationProvider(K1WalkDomainRandomizationProvider):
 
     def _sample_reset_xy_offset(self, env: Any, num_reset: int) -> np.ndarray:
         offset = np.zeros((num_reset, 2), dtype=np.float64)
-        offset[:, 0] = np.random.uniform(-0.5, 0.5, (num_reset,))
+        limit = float(K1_SOCCER_RESET_X_OFFSET_M)
+        offset[:, 0] = np.random.uniform(-limit, limit, (num_reset,))
         return offset
 
     def _sample_reset_yaw(self, env: Any, num_reset: int) -> np.ndarray:
@@ -78,7 +83,7 @@ class K1SoccerDomainRandomizationProvider(K1WalkDomainRandomizationProvider):
 
 @dataclass
 class K1SoccerDribbleRewardConfig(K1RewardConfig):
-    ball_keep_distance: float = 0.45
+    ball_keep_distance: float = 0.25
     ball_keep_sigma: float = 0.08
     ball_front_lateral_sigma: float = 0.10
     ball_speed_sigma: float = 0.12
@@ -93,6 +98,10 @@ class K1SoccerDribbleRewardConfig(K1RewardConfig):
     ball_cmd_kp: float = 1.2
     fixed_cmd_lin_speed: float = 0.3
     feet_step_travel_cap: float = 0.10
+    phase1_max_steps: int = 200
+    phase1_reach_sigma: float = 0.3
+    phase1_vel_direction_min_speed: float = 0.05
+    phase1_vel_direction_phase2_scale: float = 0.25
 
 
 @dataclass
@@ -173,7 +182,13 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         self._phase1_waypoint_xy = np.asarray(
             K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY, dtype=np.float32
         )
+        phase1_delta_xy = (
+            np.asarray(K1_SOCCER_CURRICULUM_PHASE1_WAYPOINT_XY, dtype=np.float32)
+            - np.asarray(K1_SOCCER_CURRICULUM_START_XY, dtype=np.float32)
+        )
+        self._phase1_target_dir_xy = phase1_delta_xy / max(float(np.linalg.norm(phase1_delta_xy)), 1e-6)
         self._phase1_reached = np.zeros(self._num_envs, dtype=bool)
+        self._phase1_reach_reward_frozen = np.zeros(self._num_envs, dtype=np.float32)
         self._phase1_visual_reached = False
         self._phase1_waypoint_center = np.asarray(
             [
@@ -211,6 +226,7 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         obs, info = super().reset(env_indices)
         sel = np.asarray(env_indices, dtype=np.intp)
         self._phase1_reached[sel] = False
+        self._phase1_reach_reward_frozen[sel] = 0.0
         self._sync_phase1_waypoint_visual(reached=bool(np.any(self._phase1_reached)))
         self._sync_prev_foot_pos(env_indices)
         return obs, info
@@ -250,6 +266,19 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         self._phase1_reached |= inside
         self._sync_phase1_waypoint_visual(reached=bool(self._phase1_reached[0]))
         return newly_reached
+
+    def _phase1_reach_raw_from_distance(self, dist: np.ndarray) -> np.ndarray:
+        sigma = max(float(self._reward_cfg.phase1_reach_sigma), 1e-6)
+        return np.asarray(1.0 - np.tanh(dist / sigma), dtype=get_global_dtype())
+
+    def _freeze_phase1_reach_reward(self, newly_reached: np.ndarray) -> None:
+        if not np.any(newly_reached):
+            return
+        dist = self._phase1_waypoint_distance()
+        reach = self._phase1_reach_raw_from_distance(dist)
+        self._phase1_reach_reward_frozen[newly_reached] = reach[newly_reached].astype(
+            np.float32, copy=False
+        )
 
     def _foot_positions(self) -> tuple[np.ndarray, np.ndarray]:
         left_foot = self._backend.get_sensor_data("left_foot_pos")
@@ -295,6 +324,8 @@ class K1SoccerDribbleEnv(K1WalkEnv):
                 "feet_step_travel": self._reward_feet_step_travel,
                 "termination_bad": self._reward_termination_bad,
                 "phase1_complete": self._reward_phase1_complete,
+                "phase1_reach": self._reward_phase1_reach,
+                "penalty_phase1_vel_direction": self._reward_penalty_phase1_vel_direction,
             }
         )
 
@@ -470,6 +501,7 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         _, _, rel_pos_b, _ = self._ball_state()
         ball_dist_xy = np.linalg.norm(rel_pos_b[:, :2], axis=1)
         newly_reached = self._update_phase1_reached()
+        self._freeze_phase1_reach_reward(newly_reached)
         state.info["phase1_just_reached"] = np.asarray(newly_reached, dtype=get_global_dtype())
         state.info["phase1_reached"] = np.asarray(self._phase1_reached, dtype=get_global_dtype())
         state.info["phase2_mask"] = state.info["phase1_reached"]
@@ -479,15 +511,26 @@ class K1SoccerDribbleEnv(K1WalkEnv):
         tilt = np.arccos(np.clip(gravity[:, 2], -1, 1))
         term_fall = tilt > max_tilt_rad
         term_low = self._backend.get_base_pos()[:, 2] < self._reward_cfg.min_base_height
+        phase1_steps = np.asarray(state.info.get("steps", np.zeros(self._num_envs, dtype=np.uint32)))
+        phase1_step_limit = int(
+            getattr(self._reward_cfg, "phase1_max_steps", K1_SOCCER_PHASE1_MAX_STEPS)
+        )
+        term_phase1_timeout = np.logical_and(
+            ~self._phase1_reached,
+            phase1_steps >= phase1_step_limit,
+        )
         term_ball_lost = np.logical_and(
             self._phase1_reached,
             ball_dist_xy > float(self._reward_cfg.ball_lost_distance_hard),
         )
         term_bad = np.logical_or(term_fall, term_low)
-        terminated = np.logical_or(term_bad, term_ball_lost)
+        terminated = np.logical_or.reduce([term_bad, term_ball_lost, term_phase1_timeout])
 
         state.info["ball_dist_xy"] = np.asarray(ball_dist_xy, dtype=get_global_dtype())
         state.info["term_bad"] = np.asarray(term_bad, dtype=get_global_dtype())
+        state.info["term_phase1_timeout"] = np.asarray(
+            term_phase1_timeout, dtype=get_global_dtype()
+        )
         state.info["terminated"] = np.asarray(terminated, dtype=get_global_dtype())
         self._update_feet_step_travel(state.info)
         reward = self._compute_reward(state.info, linvel, gyro, gravity, dof_pos, dof_vel)
@@ -529,6 +572,12 @@ class K1SoccerDribbleEnv(K1WalkEnv):
             weighted_rew = rew * scale
             if name in K1_SOCCER_PHASE2_REWARD_KEYS:
                 weighted_rew = weighted_rew * phase2_mask
+            elif name in K1_SOCCER_PHASE1_REWARD_KEYS:
+                weighted_rew = weighted_rew * (1.0 - phase2_mask)
+            elif name == "penalty_phase1_vel_direction":
+                phase2_factor = float(self._reward_cfg.phase1_vel_direction_phase2_scale)
+                multiplier = (1.0 - phase2_mask) + phase2_mask * phase2_factor
+                weighted_rew = weighted_rew * multiplier
             reward += weighted_rew
             if should_log:
                 log[f"reward/{name}"] = float(np.mean(weighted_rew))
@@ -631,6 +680,31 @@ class K1SoccerDribbleEnv(K1WalkEnv):
     def _reward_termination_bad(self, ctx: RewardContext) -> np.ndarray:
         """One-shot penalty on fall / too-low termination (not ball lost)."""
         return np.asarray(ctx.info["term_bad"], dtype=get_global_dtype())
+
+    def _phase1_waypoint_distance(self) -> np.ndarray:
+        base_pos = self._backend.get_base_pos()
+        return np.linalg.norm(base_pos - self._phase1_waypoint_center, axis=1)
+
+    def _reward_phase1_reach(self, ctx: RewardContext) -> np.ndarray:
+        """Before phase-1 complete: 1 - tanh(dist / std). After: frozen reach at completion."""
+        dist = self._phase1_waypoint_distance()
+        dist_reward = self._phase1_reach_raw_from_distance(dist)
+        reached = self._phase1_reached
+        reward = dist_reward.copy()
+        if np.any(reached):
+            reward[reached] = self._phase1_reach_reward_frozen[reached]
+        return np.asarray(reward, dtype=get_global_dtype())
+
+    def _reward_penalty_phase1_vel_direction(self, ctx: RewardContext) -> np.ndarray:
+        """Penalize world-frame lateral speed deviating from start -> phase-1 waypoint (+X)."""
+        vel_xy = self._backend.get_base_lin_vel()[:, :2]
+        speed = np.linalg.norm(vel_xy, axis=1)
+        target = self._phase1_target_dir_xy
+        parallel = (vel_xy @ target)[:, None] * target[None, :]
+        lateral = np.linalg.norm(vel_xy - parallel, axis=1)
+        min_speed = float(self._reward_cfg.phase1_vel_direction_min_speed)
+        active = speed > min_speed
+        return np.asarray(np.where(active, lateral, 0.0), dtype=get_global_dtype())
 
     def _reward_phase1_complete(self, ctx: RewardContext) -> np.ndarray:
         """Per-step bonus while alive after the phase-1 waypoint is reached."""

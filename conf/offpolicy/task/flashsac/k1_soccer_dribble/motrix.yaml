@@ -65,20 +65,23 @@ env:
 reward:
   # K1WalkFlat FlashSAC gait overrides (phase-1 walk stack)
   scales:
-    phase1_complete: 1.0
-    penalty_orientation: -15.0
+    phase1_reach: 10.0
+    phase1_complete: 10.0
+    penalty_phase1_vel_direction: -4.0
+    tracking_ang_vel: 2.0
+    penalty_orientation: -20.0
     penalty_ang_vel_xy: -1.5
     upper_body_pose: -0.15
     pose: -0.8
     # Phase 2 only (masked off until phase1 waypoint reached)
     ball_progress: 1.7
-    ball_keep: 1.0
-    ball_front: 0.25
+    ball_keep: 3.0
+    ball_front: 2.0
     ball_speed_match: 0.6
-    ball_approach: 0.5
-    ball_moving: 0.3
+    ball_approach: 2.4
+    ball_moving: 0.6
     ball_still: -0.2
-    ball_lost: -0.8
+    ball_lost: -1.6
     ball_over_speed: -1.0
     ball_orbit: -0.4
     feet_inward_yaw: -1.4
@@ -96,7 +99,7 @@ reward:
     40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
     40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
   ]
-  ball_keep_distance: 0.45
+  ball_keep_distance: 0.25
   ball_keep_sigma: 0.08
   ball_front_lateral_sigma: 0.16
   ball_speed_sigma: 0.12
@@ -111,3 +114,7 @@ reward:
   ball_cmd_kp: 0.9
   fixed_cmd_lin_speed: 0.3
   feet_step_travel_cap: 0.10
+  phase1_reach_sigma: 0.3
+  phase1_vel_direction_min_speed: 0.05
+  phase1_vel_direction_phase2_scale: 0.25
+  phase1_max_steps: 200
