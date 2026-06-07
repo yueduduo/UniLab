@@ -1,0 +1,140 @@
+# @package _global_
+# Run-up phase: walk stack + runup_reach. Kick phase: ball-to-goal terms (see soccer_penalty_kick.py).
+defaults:
+  - /locomotion/g1_walk_flat_recipe
+  - /locomotion/g1_walk_flat_flashsac_reward
+
+training:
+  task_name: K1SoccerPenaltyKick
+  sim_backend: motrix
+algo:
+  num_envs: 1024
+  learning_starts: 167
+  max_iterations: 20000
+  save_interval: 1000
+  updates_per_step: 1
+  batch_size: 2048
+  replay_buffer_n: 341
+  tau: 0.01
+  actor_lr: 2.0e-4
+  critic_lr: 2.0e-4
+  algo_params:
+    temp_initial_value: 0.02
+    temp_target_sigma: 0.30
+  warm_start:
+    enabled: true
+    source_task: K1SoccerDribble
+    source_algo_log_name: flash_sac
+    source_load_run: 2026-06-07_14-29-52_mujoco
+    source_checkpoint: 13000
+    strict: false
+env:
+  obs_frame_stack: 1
+  control_config:
+    action_scale: 0.35
+  commands:
+    vel_limit:
+      - [0.4, 0.0, 0.0]
+      - [0.95, 0.0, 0.0]
+    rel_standing_envs: 0.0
+  gait_phase_init_mode: offset_phase
+  reset_base_qvel_limit: 0.5
+  max_episode_seconds: 18.0
+  curriculum:
+    enabled: true
+    initial_scale: 0.5
+    min_scale: 0.5
+    max_scale: 1.0
+    level_down_threshold: 150.0
+    level_up_threshold: 750.0
+    degree: 0.001
+  noise_config:
+    level: 0.0
+    scale_gyro: 0.0
+    scale_gravity: 0.0
+    scale_joint_vel: 0.1
+    scale_linvel: 0.0
+  domain_rand:
+    randomize_kp: false
+    randomize_kd: false
+    randomize_base_mass: false
+    randomize_body_mass: false
+    random_com: false
+    randomize_gravity: false
+    randomize_ground_friction: false
+    randomize_dof_armature: false
+    push_robots: false
+reward:
+  scales:
+    runup_reach: 6.67
+    runup_speed: 8.0
+    tracking_lin_vel: 7.5
+    feet_phase: 0.5
+    right_foot_to_ball: 6.67
+    right_foot_to_ball_progress: 5.0
+    runup_success: 100.0
+    alive: 0.0
+    penalty_vel_direction: -15.0
+    tracking_ang_vel: 1.0
+    penalty_orientation: -10.0
+    penalty_ang_vel_xy: -1.0
+    penalty_action_rate: -0.25
+    upper_body_pose: -0.10
+    pose: -0.04
+    ball_to_goal: 2.0
+    ball_goal_progress: 40.0
+    ball_kick_speed: 10.0
+    kick_stability: 2.0
+    goal_scored: 200.0
+    term_fall: -120.0
+    term_low: -120.0
+    term_runup_timeout: -30.0
+    term_kick_timeout: -10.0
+    term_ball_missed_goal: -60.0
+    term_ball_flew_high: -70.0
+    term_ball_backward: -60.0
+    term_ball_out_y: -60.0
+  feet_phase_swing_height: 0.06
+  feet_phase_tracking_sigma: 0.008
+  base_height_target: 0.55
+  min_forward_speed_for_gait_reward: 0.05
+  min_base_height: 0.35
+  max_tilt_deg: 65.0
+  close_feet_threshold: 0.12
+  pose_weights: [
+    0.01, 2.0, 5.0, 0.01, 5.0, 5.0, 0.01, 2.0, 5.0, 0.01,
+    40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
+  ]
+  runup_reach_sigma: 0.25
+  runup_reach_sigma_2: 2.0
+  right_foot_ball_sigma: 0.30
+  right_foot_ball_sigma_2: 2.0
+  right_foot_strike_dist: 0.30
+  runup_min_forward_speed: 0.40
+  runup_speed_curriculum_initial: 0.40
+  runup_speed_curriculum_increment: 0.10
+  runup_speed_curriculum_interval_iterations: 1000
+  runup_speed_curriculum_max_speed: 0.95
+  runup_speed_success_curriculum_enabled: true
+  runup_speed_success_threshold: 0.15
+  runup_speed_success_promotion_updates: 20
+  runup_success_rate_ema_alpha: 0.2
+  runup_start_distance_curriculum_enabled: true
+  runup_start_distance_phase1: [0.20, 0.35]
+  runup_start_distance_phase2: [0.35, 0.80]
+  runup_start_distance_phase3: [2.0, 2.0]
+  runup_start_distance_success_threshold: 0.15
+  runup_start_distance_promotion_updates: 20
+  right_foot_ball_progress_clip: 1.0
+  ball_to_goal_sigma: 0.35
+  ball_kick_speed_target: 2.0
+  ball_kick_speed_sigma: 1.0
+  fixed_cmd_lin_speed: 0.75
+  runup_ball_dist: 0.35
+  runup_max_steps: 300
+  runup_timeout_enable_after_iteration: 1
+  kick_phase_max_steps: 120
+  max_steps: 520
+  vel_direction_min_speed: 0.05
+  ball_fail_max_height: 2.15
+  ball_fail_backward_dist: 0.45

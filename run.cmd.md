@@ -19,3 +19,6 @@ cd ~/projects/UniLab && uv run scripts/play_interactive.py \
   --render-mode record \
   algo.load_run=/home/m/projects/UniLab/logs/flash_sac/K1SoccerDribble/2026-06-07_15-21-58_mujoco/model_10000.pt \
   training.play_env_num=16 training.play_steps=800
+
+# 点球训练（warm-start: K1SoccerDribble model_13000）
+cd ~/projects/UniLab && uv run train --algo flashsac --task k1_soccer_penalty_kick --sim mujoco

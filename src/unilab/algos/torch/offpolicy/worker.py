@@ -197,6 +197,14 @@ def _service_collector_pack_requests(
     return True, None
 
 
+def _sync_env_training_iteration(env, shared_training_iteration) -> None:
+    if shared_training_iteration is None:
+        return
+    setter = getattr(env, "set_training_iteration", None)
+    if callable(setter):
+        setter(int(shared_training_iteration.value))
+
+
 def off_policy_collector_fn(
     stop_event,
     env_name: str,
@@ -227,6 +235,7 @@ def off_policy_collector_fn(
     collector_pack_request_queue=None,
     collector_pack_ready_queue=None,
     collector_pack_shared_slots=None,
+    shared_training_iteration=None,
     **kwargs,
 ):
     """Entry point for the off-policy collector subprocess."""
@@ -265,6 +274,7 @@ def off_policy_collector_fn(
             collector_pack_request_queue=collector_pack_request_queue,
             collector_pack_ready_queue=collector_pack_ready_queue,
             collector_pack_shared_slots=collector_pack_shared_slots,
+            shared_training_iteration=shared_training_iteration,
         )
     except Exception as e:
         print(f"[Collector] Exception: {e}", file=sys.stderr, flush=True)
@@ -306,6 +316,7 @@ def _run_collector(
     collector_pack_request_queue,
     collector_pack_ready_queue,
     collector_pack_shared_slots,
+    shared_training_iteration=None,
 ):
     del learning_starts
     from unilab.base import registry
@@ -375,6 +386,7 @@ def _run_collector(
     terminated_count_window = 0
 
     # Initial step to get first observation
+    _sync_env_training_iteration(env, shared_training_iteration)
     actions_np = np.zeros((num_envs, action_dim), dtype=np.float32)
     state = env.step(actions_np)
     obs_np, critic_np = split_obs_dict(state.obs)
@@ -455,6 +467,7 @@ def _run_collector(
         phase_start_ns = _record_phase_ms(cycle_timing_ms, "action_select_ms", phase_start_ns)
 
         # Step environment
+        _sync_env_training_iteration(env, shared_training_iteration)
         _env_ns = _time.perf_counter_ns()
         state = env.step(actions_np)
         if trace_recorder:

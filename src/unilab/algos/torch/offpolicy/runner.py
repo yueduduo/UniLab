@@ -230,6 +230,7 @@ class OffPolicyRunner(AsyncRunner):
             print(f"[Runner] Collection sync enabled: env_steps_per_sync={self.env_steps_per_sync}")
 
         metrics_queue = _SPAWN_CTX.Queue(maxsize=100)
+        shared_training_iteration = _SPAWN_CTX.Value("i", 0)
 
         # Setup obs normalization
         shared_obs_normalizer_stats = None
@@ -264,6 +265,7 @@ class OffPolicyRunner(AsyncRunner):
             "seed": derive_worker_seed(self.seed, worker_index=0),
             "trace_enabled": self.trace_enabled,
             "trace_thread_time": self.trace_thread_time,
+            "shared_training_iteration": shared_training_iteration,
         }
         self._start_collector(
             target_fn=off_policy_collector_fn,
@@ -304,6 +306,7 @@ class OffPolicyRunner(AsyncRunner):
 
         # Training loop
         for iteration in range(1, max_iterations + 1):
+            shared_training_iteration.value = iteration
             # Wait for data
             wait_start = time.time()
             wait_start_ns = time.perf_counter_ns() if trace_recorder else 0

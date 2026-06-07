@@ -1,0 +1,120 @@
+<mujoco model="k1 soccer penalty kick">
+  <include file="k1.xml"/>
+
+  <!--
+    sim_soccer2 layout:
+      - world.xml pitch plane: 12 m x 9 m (half 6 x 4.5)
+      - match_config markings field: 9 m x 6 m; penalty spot at x = 4.5 - 1.5 = 3.0
+      - Robot_Goal.obj right mouth front ≈ x = +4.49 (not x = +6)
+    Ball uses UniLab dribble mesh; goal mesh from sim_soccer assets.
+  -->
+  <option density="1.2" viscosity="0.00002" timestep="0.002"/>
+
+  <asset>
+    <texture type="2d" name="soccer_ball_tex" file="soccer_ball/Robot_Football.png"/>
+    <material name="soccer_ball_mat" texture="soccer_ball_tex" rgba="1 1 1 1"/>
+    <mesh name="soccer_ball_mesh" file="soccer_ball/Robot_Football.obj"/>
+    <mesh name="soccer_goal_mesh" file="../soccer_goal/Robot_Goal.obj"/>
+  </asset>
+
+  <statistic center="2.5 0 0.5743699226900935" extent="7.0"/>
+
+  <visual>
+    <headlight diffuse="0.6 0.6 0.6" ambient="0.15 0.15 0.15" specular="0.3 0.3 0.3"/>
+    <global azimuth="120" elevation="-18"/>
+  </visual>
+
+  <worldbody>
+    <light pos="0 0 4" dir="0 0 -1" directional="true"/>
+    <geom name="pitch" pos="0 0 0" size="6 4.5 1" type="plane" contype="0" conaffinity="0" rgba="0.18 0.45 0.18 1"/>
+    <geom
+      name="COL_Collider"
+      pos="0 0 -0.1"
+      type="box"
+      size="6 4.5 0.1"
+      friction="1.0 0.005 0.02"
+      group="3"
+    />
+
+    <!-- sim_soccer GEO_Robot_Goal: visual only, right goal mouth ≈ x = +4.49 -->
+    <geom
+      name="goal_visual"
+      type="mesh"
+      mesh="soccer_goal_mesh"
+      rgba="0.85 0.85 0.85 1"
+      contype="0"
+      conaffinity="0"
+      group="1"
+    />
+
+    <!-- sim_soccer _add_field_markings: flat white penalty spot (line_width/2 radius, no collision) -->
+    <geom
+      name="penalty_spot_marker"
+      type="cylinder"
+      pos="3.0 0 0.001"
+      size="0.025 0.001"
+      rgba="1 1 1 1"
+      contype="0"
+      conaffinity="0"
+      mass="0"
+      density="0"
+      group="1"
+    />
+
+    <body name="ball" pos="3.0 0 0.09167862683534622">
+      <joint name="ball-root" type="free"/>
+      <geom
+        name="ball_visual"
+        type="mesh"
+        mesh="soccer_ball_mesh"
+        material="soccer_ball_mat"
+        contype="0"
+        conaffinity="0"
+        group="1"
+        mass="0"
+      />
+      <geom
+        name="ball_geom"
+        type="mesh"
+        mesh="soccer_ball_mesh"
+        mass="0.43"
+        friction="1.0 0.02 0.05"
+        group="3"
+      />
+    </body>
+  </worldbody>
+
+  <sensor>
+    <contact name="left_foot_contact_0" geom1="COL_Collider" geom2="left_foot_contact_0_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="left_foot_contact_1" geom1="COL_Collider" geom2="left_foot_contact_1_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="left_foot_contact_2" geom1="COL_Collider" geom2="left_foot_contact_2_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="left_foot_contact_3" geom1="COL_Collider" geom2="left_foot_contact_3_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="right_foot_contact_0" geom1="COL_Collider" geom2="right_foot_contact_0_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="right_foot_contact_1" geom1="COL_Collider" geom2="right_foot_contact_1_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="right_foot_contact_2" geom1="COL_Collider" geom2="right_foot_contact_2_geom" data="found" num="1" reduce="mindist"/>
+    <contact name="right_foot_contact_3" geom1="COL_Collider" geom2="right_foot_contact_3_geom" data="found" num="1" reduce="mindist"/>
+  </sensor>
+
+  <keyframe>
+    <key
+      name="stand"
+      qpos="
+      1.0 0 0.5743699226900935
+      1 0 0 0
+      0 0
+      0 -1.3 0 -0.5
+      0 1.3 0 0.5
+      -0.15 0 0 0.3 -0.15 0
+      -0.15 0 0 0.3 -0.15 0
+      3.0 0 0.09167862683534622 1 0 0 0
+      "
+      ctrl="
+      0 0
+      0 -1.3 0 -0.5
+      0 1.3 0 0.5
+      -0.15 0 0 0.3 -0.15 0
+      -0.15 0 0 0.3 -0.15 0
+      "
+    />
+  </keyframe>
+</mujoco>

@@ -151,6 +151,7 @@ class DoubleBufferOffPolicyRunner(OffPolicyRunner):
             )
 
         metrics_queue = _SPAWN_CTX.Queue(maxsize=100)
+        shared_training_iteration = _SPAWN_CTX.Value("i", 0)
 
         # --- obs normalization ---
         shared_obs_normalizer_stats = None
@@ -188,6 +189,7 @@ class DoubleBufferOffPolicyRunner(OffPolicyRunner):
             "collector_pack_request_queue": collector_pack_request_queue,
             "collector_pack_ready_queue": collector_pack_ready_queue,
             "collector_pack_shared_slots": collector_pack_shared_slots,
+            "shared_training_iteration": shared_training_iteration,
         }
         self._start_collector(
             target_fn=off_policy_collector_fn,
@@ -245,6 +247,7 @@ class DoubleBufferOffPolicyRunner(OffPolicyRunner):
 
         # ---- training loop ----
         for iteration in range(1, max_iterations + 1):
+            shared_training_iteration.value = iteration
             # -- wait for data --
             wait_start = time.time()
             wait_start_ns = time.perf_counter_ns()
