@@ -10,7 +10,7 @@ training:
 algo:
   num_envs: 4096
   learning_starts: 50
-  max_iterations: 20000
+  max_iterations: 2000
   save_interval: 1000
   updates_per_step: 8
   batch_size: 2048

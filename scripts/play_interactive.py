@@ -58,7 +58,9 @@ if str(ROOT_DIR) not in sys.path:
 from unilab.training import (
     ensure_registries,
     get_entrypoint_log_root,
+    resolve_play_training_iteration,
     resolve_task_checkpoint_path,
+    sync_env_training_iteration,
 )
 from unilab.training.rsl_rl import (
     RslRlVecEnvWrapper,
@@ -770,6 +772,36 @@ def _create_playback_env_factory(
     return _create_env
 
 
+def _resolve_base_env(env: Any) -> Any:
+    current = env
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        if hasattr(current, "_runup_start_distance_current"):
+            return current
+        current = getattr(current, "env", None)
+    return env
+
+
+def _sync_play_curriculum_from_checkpoint(
+    env: Any,
+    cfg: DictConfig | None,
+    checkpoint_path: str | None,
+) -> None:
+    if cfg is None or checkpoint_path is None:
+        return
+    play_training_iteration = resolve_play_training_iteration(cfg, checkpoint_path)
+    if play_training_iteration is None:
+        return
+    if not sync_env_training_iteration(env, play_training_iteration):
+        return
+    print(f"[play_interactive] Synced play curriculum to training iteration {play_training_iteration}.")
+    base_env = _resolve_base_env(env)
+    if hasattr(base_env, "_runup_start_distance_current"):
+        distance_m = float(base_env._runup_start_distance_current())
+        print(f"[play_interactive] curriculum_start_distance_m: {distance_m:.3f}")
+
+
 def _open_playback_session(
     args: PlayInteractiveArgs,
     cfg: DictConfig | None,
@@ -816,6 +848,8 @@ def _open_playback_session(
         if str(exc) == _PLAYBACK_ENV_UNAVAILABLE:
             return None
         raise
+
+    _sync_play_curriculum_from_checkpoint(session.env, cfg, resolved_checkpoint)
 
     return session, resolved_checkpoint
 
