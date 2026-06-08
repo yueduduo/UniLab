@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from os import PathLike
 from pathlib import Path
+from typing import Any
 
 from omegaconf import DictConfig, OmegaConf
 
@@ -65,6 +66,44 @@ def get_latest_run(log_dir: str | Path) -> Path | None:
     return runs[-1] if runs else None
 
 
+def parse_model_checkpoint_iteration(checkpoint_path: str | Path) -> int | None:
+    """Parse the training iteration encoded in a ``model_<iter>.pt`` checkpoint filename."""
+    stem_parts = Path(checkpoint_path).stem.split("_", 1)
+    if len(stem_parts) != 2 or stem_parts[0] != "model":
+        return None
+    try:
+        return int(stem_parts[1])
+    except ValueError:
+        return None
+
+
+def resolve_play_training_iteration(
+    cfg: DictConfig,
+    checkpoint_path: str | Path | None,
+) -> int | None:
+    """Resolve playback curriculum iteration from config or checkpoint filename."""
+    explicit = OmegaConf.select(cfg, "training.play_training_iteration")
+    if explicit is not None and explicit not in ("", -1, "-1"):
+        return int(explicit)
+    if checkpoint_path is None:
+        return None
+    return parse_model_checkpoint_iteration(checkpoint_path)
+
+
+def sync_env_training_iteration(env: Any, iteration: int) -> bool:
+    """Apply training iteration to an env (including wrappers) for play curriculum sync."""
+    current = env
+    visited: set[int] = set()
+    while current is not None and id(current) not in visited:
+        visited.add(id(current))
+        setter = getattr(current, "set_training_iteration", None)
+        if callable(setter):
+            setter(int(iteration))
+            return True
+        current = getattr(current, "env", None)
+    return False
+
+
 def get_latest_checkpoint(run_dir: str | Path, *, suffix: str = ".pt") -> Path | None:
     """Return the latest model checkpoint inside a run directory."""
     run_path = Path(run_dir)
@@ -72,13 +111,8 @@ def get_latest_checkpoint(run_dir: str | Path, *, suffix: str = ".pt") -> Path |
         return None
 
     def _iteration(path: Path) -> int:
-        stem_parts = path.stem.split("_", 1)
-        if len(stem_parts) != 2:
-            return -1
-        try:
-            return int(stem_parts[1])
-        except ValueError:
-            return -1
+        parsed = parse_model_checkpoint_iteration(path)
+        return parsed if parsed is not None else -1
 
     model_files = [
         path

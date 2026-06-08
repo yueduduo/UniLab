@@ -1368,6 +1368,10 @@ def test_play_offpolicy_can_skip_onnx_export_and_still_record_video(
             self.obs_groups_spec = {"obs": 4}
             self.action_space = type("ActionSpace", (), {"shape": (2,)})()
             self.state = None
+            self.play_training_iteration = None
+
+        def set_training_iteration(self, iteration: int) -> None:
+            self.play_training_iteration = iteration
 
         def init_state(self):
             self.state = type(
@@ -1401,7 +1405,8 @@ def test_play_offpolicy_can_skip_onnx_export_and_still_record_video(
 
     monkeypatch.setattr(mod, "build_offpolicy_env_cfg_override", lambda algo_name, cfg: {})
     monkeypatch.setattr(mod, "default_device", lambda torch_module, preferred=None: "cpu")
-    monkeypatch.setattr(mod, "create_env", lambda *args, **kwargs: FakeEnv())
+    fake_env = FakeEnv()
+    monkeypatch.setattr(mod, "create_env", lambda *args, **kwargs: fake_env)
     monkeypatch.setattr(mod, "resolve_play_obs_dim", lambda obs_groups_spec: 4)
     monkeypatch.setattr(mod, "extract_play_obs", lambda obs_dict: obs_dict["obs"])
     monkeypatch.setattr(
@@ -1431,6 +1436,8 @@ def test_play_offpolicy_can_skip_onnx_export_and_still_record_video(
     assert captured["init_obs_shape"] == (cfg.training.play_env_num, 4)
     assert captured["next_obs_shape"] == (cfg.training.play_env_num, 4)
     assert captured["deterministic"] is True
+    assert fake_env.play_training_iteration == 5000
+    assert "Synced play curriculum to training iteration 5000." in out
     assert "Skipping ONNX export because training.export_onnx=false." in out
     assert not (run_dir / "policy.onnx").exists()
 

@@ -63,26 +63,36 @@ env:
     push_robots: false
 reward:
   scales:
-    runup_reach: 6.67
-    runup_speed: 8.0
-    tracking_lin_vel: 7.5
+    runup_reach: 8.893
+    runup_speed: 15.0
+    forward_progress: 12.5
+    tracking_lin_vel: 5.0
     feet_phase: 0.5
-    right_foot_to_ball: 6.67
+    right_foot_to_ball: 8.893
     right_foot_to_ball_progress: 5.0
     runup_success: 10.0
     alive: 0.0
+    penalty_runup_feet_still: -5.0
     penalty_vel_direction: -15.0
     tracking_ang_vel: 1.0
-    penalty_orientation: -10.0
+    penalty_orientation: -15.0
     penalty_ang_vel_xy: -1.0
     penalty_action_rate: -0.25
     upper_body_pose: -0.10
     pose: -0.04
-    ball_to_goal: 2.0
-    ball_goal_progress: 40.0
-    ball_kick_speed: 10.0
-    kick_stability: 2.0
-    goal_scored: 200.0
+    ball_to_goal: 10.0
+    ball_goal_progress: 16.0
+    ball_kick_speed: 120.0
+    penalty_ball_vy: -40.0
+    penalty_ball_lateral_progress: -40.0
+    kick_pose: 8.0
+    kick_robot_still: 5.0
+    kick_stability: 5.0
+    kick_plant_foot_x: 8.0
+    kick_plant_foot_order: 6.0
+    penalty_kick_plant_foot_order: -10.0
+    penalty_ball_pin: -40.0
+    goal_scored: 100.0
     term_fall: -1200.0
     term_low: -120.0
     term_runup_timeout: -30.0
@@ -102,11 +112,11 @@ reward:
     0.01, 2.0, 5.0, 0.01, 5.0, 5.0, 0.01, 2.0, 5.0, 0.01,
     40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
   ]
-  runup_reach_sigma: 0.25
+  runup_reach_sigma: 0.30
   runup_reach_sigma_2: 2.0
   right_foot_ball_sigma: 0.30
   right_foot_ball_sigma_2: 2.0
-  right_foot_strike_dist: 0.30
+  right_foot_strike_dist: 0.18
   runup_min_forward_speed: 0.40
   runup_speed_curriculum_initial: 0.40
   runup_speed_curriculum_increment: 0.10
@@ -122,10 +132,38 @@ reward:
   runup_start_distance_phase3: [2.0, 2.0]
   runup_start_distance_success_threshold: 0.15
   runup_start_distance_promotion_updates: 20
+  runup_start_distance_linear_enabled: true
+  runup_start_distance_linear_start: 0.10
+  runup_start_distance_linear_end: 1.10
+  runup_start_distance_linear_duration_iterations: 10000
+  runup_start_distance_linear_jitter: 0.02
+  runup_start_distance_linear_success_gate_enabled: true
+  runup_start_distance_linear_success_threshold: 0.20
+  runup_start_distance_linear_y_jitter_start_distance: 0.50
+  runup_start_distance_linear_y_jitter_end_distance: 1.10
+  runup_start_distance_linear_y_jitter_max: 0.05
+  kick_success_min_ball_forward_progress: 0.30
   right_foot_ball_progress_clip: 1.0
+  ball_pin_max_xy_dist: 0.15
+  ball_pin_max_ball_speed: 0.08
+  ball_pin_max_robot_speed: 0.08
+  ball_pin_min_foot_above_ball_z: 0.02
+  kick_phase_min_ball_forward_speed: 0.05
+  kick_phase_min_robot_forward_speed: 0.15
+  kick_phase_max_left_foot_ball_x_error: 0.08
+  kick_phase_require_plant_foot_lead: true
+  kick_phase_min_base_height: 0.40
+  kick_plant_foot_x_sigma: 0.10
+  kick_plant_foot_min_lead_m: 0.02
+  runup_speed_bonus_cap: 1.0
   ball_to_goal_sigma: 0.35
-  ball_kick_speed_target: 2.0
-  ball_kick_speed_sigma: 1.0
+  ball_goal_progress_sigma: 0.05
+  ball_kick_speed_sigma: 2.0
+  ball_kick_speed_min_forward: 0.08
+  ball_kick_speed_max_forward: 2.5
+  kick_pose_sigma: 0.15
+  kick_robot_still_sigma: 0.15
+  runup_feet_still_sigma: 0.015
   fixed_cmd_lin_speed: 0.75
   runup_ball_dist: 0.35
   runup_max_steps: 300

@@ -191,6 +191,19 @@ class OffPolicyLogger(BaseTrainingLogger):
         self._staging_pool_len = current_len
         self._staging_pool_max = max_size
 
+    def update_scalar_metrics(self, metrics: dict[str, float], *, global_step: int | None = None):
+        if not metrics:
+            return
+        self._latest_metrics.update(metrics)
+        step = int(global_step if global_step is not None else self._total_steps or self._iteration)
+        if self._tb_writer:
+            for key, value in metrics.items():
+                self._tb_writer.add_scalar(_metric_backend_key(key), value, step)
+        if self._wandb_run:
+            wandb = _load_wandb()
+            if wandb is not None:
+                wandb.log({_metric_backend_key(k): v for k, v in metrics.items()}, step=step)
+
     def set_collection_sync(self, enabled: bool, env_steps_per_sync: int = 0):
         self._sync_collection = enabled
         self._env_steps_per_sync = env_steps_per_sync

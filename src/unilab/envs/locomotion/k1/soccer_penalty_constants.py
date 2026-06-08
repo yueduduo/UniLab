@@ -38,6 +38,8 @@ K1_PENALTY_TRUNK_Z = 0.5743699226900935
 K1_PENALTY_RESET_Y_OFFSET_M = 0.15
 K1_PENALTY_RUNUP_BALL_DIST_M = 0.35
 K1_PENALTY_RIGHT_FOOT_STRIKE_DIST_M = 0.22
+# Stand keyframe: ||left_foot_xy - right_foot_xy|| ≈ 0.1924 (left target is ball + this offset).
+K1_PENALTY_STANCE_FOOT_WIDTH_XY_M = 0.1924
 K1_PENALTY_RUNUP_MAX_STEPS = 180
 K1_PENALTY_KICK_PHASE_MAX_STEPS = 120
 K1_PENALTY_MAX_STEPS = 400
@@ -48,7 +50,14 @@ K1_PENALTY_KICK_REWARD_KEYS: frozenset[str] = frozenset(
         "ball_to_goal",
         "ball_goal_progress",
         "ball_kick_speed",
+        "penalty_ball_vy",
+        "penalty_ball_lateral_progress",
         "kick_stability",
+        "kick_plant_foot_x",
+        "kick_plant_foot_order",
+        "penalty_kick_plant_foot_order",
+        "kick_pose",
+        "kick_robot_still",
     }
 )
 

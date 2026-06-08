@@ -622,6 +622,12 @@ class OffPolicyRunner(AsyncRunner):
                     reward_components.clear()
                     reward_components.update(m["reward_components"])
 
+                if "scalar_metrics" in m:
+                    logger.update_scalar_metrics(
+                        m["scalar_metrics"],
+                        global_step=int(m.get("total_steps", 0)) or None,
+                    )
+
                 if "mean_ep_length" in m:
                     logger.update_ep_length(m["mean_ep_length"])
 

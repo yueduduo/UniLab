@@ -22,7 +22,9 @@ from unilab.training import (
     ensure_registries,
     get_log_root,
     log_playback_plan,
+    resolve_play_training_iteration,
     should_run_playback,
+    sync_env_training_iteration,
 )
 from unilab.training import (
     resolve_checkpoint_path as resolve_checkpoint_path_common,
@@ -520,6 +522,12 @@ def play_offpolicy(algo_name: str, cfg: DictConfig) -> str | None:
             print("ONNX export verified OK.")
     elif load_path_dir is not None:
         print("Skipping ONNX export because training.export_onnx=false.")
+
+    play_training_iteration = resolve_play_training_iteration(cfg, load_path)
+    if play_training_iteration is not None and sync_env_training_iteration(
+        env, play_training_iteration
+    ):
+        print(f"Synced play curriculum to training iteration {play_training_iteration}.")
 
     if env.state is None:
         env.init_state()

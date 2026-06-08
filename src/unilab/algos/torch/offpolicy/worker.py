@@ -379,6 +379,7 @@ def _run_collector(
     from collections import defaultdict
 
     ep_reward_components = defaultdict(list)
+    scalar_metrics = defaultdict(list)
     timing_accum_ms = defaultdict(float)
     timing_counts = defaultdict(int)
     done_count_window = 0
@@ -656,6 +657,8 @@ def _run_collector(
             for k, v in log_info.items():
                 if k.startswith("reward/"):
                     ep_reward_components[k].append(v)
+                elif "/" in k:
+                    scalar_metrics[k].append(v)
 
         # Send metrics periodically
         if metrics_queue is not None and total_steps % (num_envs * 10) == 0:
@@ -679,6 +682,14 @@ def _run_collector(
                             components_mean[k] = statistics.mean(vals)
                     msg["reward_components"] = components_mean
                     ep_reward_components.clear()  # reset after sending
+
+                if scalar_metrics:
+                    scalars_mean = {}
+                    for k, vals in scalar_metrics.items():
+                        if vals:
+                            scalars_mean[k] = statistics.mean(vals)
+                    msg["scalar_metrics"] = scalars_mean
+                    scalar_metrics.clear()
 
                 if timing_counts:
                     msg["collector_timing_ms"] = {

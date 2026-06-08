@@ -19,8 +19,11 @@ from unilab.training import (
     get_latest_checkpoint,
     get_latest_run,
     parse_checkpoint_path,
+    parse_model_checkpoint_iteration,
     resolve_checkpoint_path,
+    resolve_play_training_iteration,
     resolve_task_checkpoint_path,
+    sync_env_training_iteration,
 )
 from unilab.visualization.playback import render_play_mode
 
@@ -92,6 +95,42 @@ def test_get_latest_run_and_checkpoint_support_shared_checkpoint_resolution(tmp_
 
     assert latest_run == newer_run
     assert latest_checkpoint == newer_run / "model_9.pt"
+
+
+def test_parse_model_checkpoint_iteration_reads_model_stem():
+    assert parse_model_checkpoint_iteration("model_13000.pt") == 13000
+    assert parse_model_checkpoint_iteration(Path("/tmp/run/model_5000.pt")) == 5000
+    assert parse_model_checkpoint_iteration("policy.onnx") is None
+
+
+def test_resolve_play_training_iteration_prefers_explicit_cfg(tmp_path: Path):
+    cfg = _offpolicy_cfg(["training.play_training_iteration=42"])
+    assert resolve_play_training_iteration(cfg, tmp_path / "model_13000.pt") == 42
+
+
+def test_resolve_play_training_iteration_falls_back_to_checkpoint_name(tmp_path: Path):
+    cfg = _offpolicy_cfg()
+    assert (
+        resolve_play_training_iteration(cfg, tmp_path / "model_13000.pt") == 13000
+    )
+
+
+def test_sync_env_training_iteration_walks_wrappers():
+    class InnerEnv:
+        def __init__(self):
+            self.iteration = 0
+
+        def set_training_iteration(self, iteration: int) -> None:
+            self.iteration = iteration
+
+    class Wrapper:
+        def __init__(self, env: InnerEnv):
+            self.env = env
+
+    inner = InnerEnv()
+    wrapped = Wrapper(inner)
+    assert sync_env_training_iteration(wrapped, 13000) is True
+    assert inner.iteration == 13000
 
 
 def test_resolve_checkpoint_path_accepts_integer_latest_run(tmp_path: Path):

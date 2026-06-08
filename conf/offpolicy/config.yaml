@@ -24,6 +24,8 @@ training:
   export_onnx: true
   play_env_num: 16
   play_steps: 800
+  # Playback curriculum sync: null = infer from model_<iter>.pt; set explicitly to override.
+  play_training_iteration: null
   cam_distance: 6.0
   cam_elevation: -20.0
   cam_azimuth: 90.0

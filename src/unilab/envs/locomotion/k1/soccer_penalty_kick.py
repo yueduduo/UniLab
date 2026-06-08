@@ -34,6 +34,7 @@ from unilab.envs.locomotion.k1.soccer_penalty_constants import (
     K1_PENALTY_MAX_STEPS,
     K1_PENALTY_RESET_Y_OFFSET_M,
     K1_PENALTY_RIGHT_FOOT_STRIKE_DIST_M,
+    K1_PENALTY_STANCE_FOOT_WIDTH_XY_M,
     K1_PENALTY_RUNUP_BALL_DIST_M,
     K1_PENALTY_RUNUP_MAX_STEPS,
     K1_PENALTY_SPOT_XY,
@@ -51,10 +52,22 @@ class K1PenaltyKickDomainRandomizationProvider(K1WalkDomainRandomizationProvider
         offset = np.zeros((num_reset, 2), dtype=np.float64)
         if env._runup_start_distance_curriculum_enabled():
             distance = env._sample_runup_start_distance(num_reset)
-            target_x = float(K1_PENALTY_SPOT_XY[0]) - distance
+            foot_offset = np.asarray(
+                getattr(env, "_right_foot_offset_from_base_xy", np.zeros(2, dtype=np.float64)),
+                dtype=np.float64,
+            )
+            target_x = float(K1_PENALTY_SPOT_XY[0]) - distance - float(foot_offset[0])
             offset[:, 0] = target_x - float(env._init_qpos[0])
-        limit = float(K1_PENALTY_RESET_Y_OFFSET_M)
-        offset[:, 1] = np.random.uniform(-limit, limit, (num_reset,))
+        limit = float(env._runup_reset_y_jitter_limit())
+        jitter = np.random.uniform(-limit, limit, (num_reset,)) if limit > 0.0 else 0.0
+        foot_offset_y = float(
+            np.asarray(
+                getattr(env, "_right_foot_offset_from_base_xy", np.zeros(2, dtype=np.float64)),
+                dtype=np.float64,
+            )[1]
+        )
+        target_y = float(K1_PENALTY_SPOT_XY[1]) - foot_offset_y
+        offset[:, 1] = target_y - float(env._init_qpos[1]) + jitter
         return offset
 
     def _sample_reset_yaw(self, env: Any, num_reset: int) -> np.ndarray:
@@ -84,7 +97,7 @@ class K1PenaltyKickDomainRandomizationProvider(K1WalkDomainRandomizationProvider
 
 @dataclass
 class K1SoccerPenaltyKickRewardConfig(K1RewardConfig):
-    runup_reach_sigma: float = 0.25
+    runup_reach_sigma: float = 0.30
     runup_reach_sigma_2: float = 2.0
     right_foot_ball_sigma: float = 0.30
     right_foot_ball_sigma_2: float = 2.0
@@ -104,10 +117,35 @@ class K1SoccerPenaltyKickRewardConfig(K1RewardConfig):
     runup_start_distance_phase3: list[float] = field(default_factory=lambda: [2.0, 2.0])
     runup_start_distance_success_threshold: float = 0.05
     runup_start_distance_promotion_updates: int = 5
+    runup_start_distance_linear_enabled: bool = False
+    runup_start_distance_linear_start: float = 0.10
+    runup_start_distance_linear_end: float = 1.10
+    runup_start_distance_linear_duration_iterations: int = 10000
+    runup_start_distance_linear_jitter: float = 0.02
+    runup_start_distance_linear_success_gate_enabled: bool = True
+    runup_start_distance_linear_success_threshold: float = 0.20
+    runup_start_distance_linear_y_jitter_start_distance: float = 0.50
+    runup_start_distance_linear_y_jitter_end_distance: float = 1.10
+    runup_start_distance_linear_y_jitter_max: float = 0.05
+    kick_success_min_ball_forward_progress: float = 0.30
     right_foot_ball_progress_clip: float = 1.0
+    kick_phase_min_ball_forward_speed: float = 0.05
+    kick_phase_min_robot_forward_speed: float = 0.15
+    kick_phase_max_left_foot_ball_x_error: float = 0.08
+    kick_phase_require_plant_foot_lead: bool = True
+    kick_phase_min_base_height: float = 0.40
+    kick_plant_foot_x_sigma: float = 0.10
+    kick_plant_foot_min_lead_m: float = 0.02
+    runup_speed_bonus_cap: float = 1.0
     ball_to_goal_sigma: float = 0.35
-    ball_kick_speed_target: float = 2.0
-    ball_kick_speed_sigma: float = 1.0
+    ball_goal_progress_sigma: float = 0.05
+    ball_kick_speed_sigma: float = 2.0
+    ball_kick_speed_min_forward: float = 0.08
+    ball_kick_speed_max_forward: float = 2.5
+    kick_pose_sigma: float = 0.15
+    kick_robot_still_sigma: float = 0.15
+    runup_feet_still_sigma: float = 0.015
+    ball_movement_min_speed: float = 0.05
     fixed_cmd_lin_speed: float = 0.55
     runup_ball_dist: float = K1_PENALTY_RUNUP_BALL_DIST_M
     runup_max_steps: int = K1_PENALTY_RUNUP_MAX_STEPS
@@ -117,6 +155,10 @@ class K1SoccerPenaltyKickRewardConfig(K1RewardConfig):
     vel_direction_min_speed: float = 0.05
     ball_fail_max_height: float = K1_PENALTY_GOAL_HEIGHT_M + 0.35
     ball_fail_backward_dist: float = 0.45
+    ball_pin_max_xy_dist: float = 0.15
+    ball_pin_max_ball_speed: float = 0.08
+    ball_pin_max_robot_speed: float = 0.08
+    ball_pin_min_foot_above_ball_z: float = 0.02
 
 
 @dataclass
@@ -180,9 +222,15 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
             k1_keyframe_robot_joint_qpos(self._init_qpos, self._num_action),
             dtype=self.default_angles.dtype,
         )
+        self._right_foot_offset_from_base_xy = self._compute_right_foot_offset_from_base_xy()
+        self._runup_reach_left_target_offset_from_ball_xy = (
+            self._compute_runup_reach_left_target_offset_from_ball_xy()
+        )
         self._dr_manager = DomainRandomizationManager(
             self, K1PenaltyKickDomainRandomizationProvider()
         )
+        if cfg.reward_config is None:
+            raise ValueError("reward_config must be provided via Hydra configuration")
         self._reward_cfg = cfg.reward_config
         self._ball_body_ids = self._backend.get_body_ids(["ball"])
         if self._ball_body_ids.shape != (1,):
@@ -202,18 +250,52 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         self._training_iteration = 0
         self._runup_success_rate_ema = 0.0
         self._runup_success_rate_initialized = False
+        self._kick_success_rate_ema = 0.0
+        self._kick_success_rate_initialized = False
+        self._goal_success_rate_ema = 0.0
+        self._goal_success_rate_initialized = False
         self._runup_start_distance_phase_idx = 0
         self._runup_start_distance_success_streak = 0
+        self._runup_start_distance_linear_current_m = (
+            self._runup_start_distance_linear_start()
+        )
+        self._runup_start_distance_linear_last_iteration = 0
         self._runup_speed_success_level_idx = 0
         self._runup_speed_success_streak = 0
         self._prev_right_foot_ball_dist = self._right_foot_ball_distance_xy().astype(
             np.float32, copy=True
         )
+        ball_pos_w, _, _, _ = self._ball_state()
+        self._prev_ball_x = ball_pos_w[:, 0].astype(np.float32, copy=True)
+        self._prev_ball_y = ball_pos_w[:, 1].astype(np.float32, copy=True)
+        left_foot, right_foot = self._foot_positions_w()
+        self._prev_foot_pos = np.stack([left_foot, right_foot], axis=1).astype(np.float32)
         self._apply_runup_speed_curriculum(self._runup_speed_curriculum_level())
 
     def set_training_iteration(self, iteration: int) -> None:
-        self._training_iteration = int(iteration)
+        next_iteration = int(iteration)
+        self._advance_runup_start_distance_linear(next_iteration)
+        self._training_iteration = next_iteration
         self._apply_runup_speed_curriculum(self._runup_speed_curriculum_level())
+
+    def _compute_right_foot_offset_from_base_xy(self) -> np.ndarray:
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        base_pos = self._backend.get_base_pos()
+        if right_foot.shape[0] == 0 or base_pos.shape[0] == 0:
+            return np.zeros(2, dtype=np.float64)
+        return np.asarray(right_foot[0, :2] - base_pos[0, :2], dtype=np.float64)
+
+    def _compute_runup_reach_left_target_offset_from_ball_xy(self) -> np.ndarray:
+        """Left-foot runup target sits one stance foot-width from the ball center."""
+        left_foot = self._backend.get_sensor_data("left_foot_pos")
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        if left_foot.shape[0] == 0 or right_foot.shape[0] == 0:
+            return np.array([0.0, float(K1_PENALTY_STANCE_FOOT_WIDTH_XY_M)], dtype=np.float64)
+        offset = np.asarray(left_foot[0, :2] - right_foot[0, :2], dtype=np.float64)
+        norm = float(np.linalg.norm(offset))
+        if norm < 1e-6:
+            return np.array([0.0, float(K1_PENALTY_STANCE_FOOT_WIDTH_XY_M)], dtype=np.float64)
+        return offset
 
     def _runup_speed_curriculum_level(self) -> float:
         initial = float(getattr(self._reward_cfg, "runup_speed_curriculum_initial", 0.0))
@@ -265,6 +347,105 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
     def _runup_start_distance_curriculum_enabled(self) -> bool:
         return bool(getattr(self._reward_cfg, "runup_start_distance_curriculum_enabled", False))
 
+    def _runup_start_distance_linear_enabled(self) -> bool:
+        return bool(getattr(self._reward_cfg, "runup_start_distance_linear_enabled", False))
+
+    def _runup_start_distance_linear_start(self) -> float:
+        return float(getattr(self._reward_cfg, "runup_start_distance_linear_start", 0.10))
+
+    def _runup_start_distance_linear_end(self) -> float:
+        start = self._runup_start_distance_linear_start()
+        end = float(getattr(self._reward_cfg, "runup_start_distance_linear_end", start))
+        return max(end, start)
+
+    def _runup_start_distance_linear_step(self) -> float:
+        duration = max(
+            int(getattr(self._reward_cfg, "runup_start_distance_linear_duration_iterations", 1)),
+            1,
+        )
+        return (self._runup_start_distance_linear_end() - self._runup_start_distance_linear_start()) / duration
+
+    def _runup_start_distance_linear_gate_passed(self) -> bool:
+        if not bool(
+            getattr(self._reward_cfg, "runup_start_distance_linear_success_gate_enabled", True)
+        ):
+            return True
+        if not (
+            getattr(self, "_kick_success_rate_initialized", False)
+            or getattr(self, "_goal_success_rate_initialized", False)
+        ):
+            return True
+        threshold = float(
+            getattr(self._reward_cfg, "runup_start_distance_linear_success_threshold", 0.20)
+        )
+        recent_success = max(
+            float(getattr(self, "_kick_success_rate_ema", 0.0)),
+            float(getattr(self, "_goal_success_rate_ema", 0.0)),
+        )
+        return recent_success >= threshold
+
+    def _advance_runup_start_distance_linear(self, next_iteration: int) -> None:
+        if not self._runup_start_distance_linear_enabled():
+            return
+        last_iteration = int(
+            getattr(self, "_runup_start_distance_linear_last_iteration", self._training_iteration)
+        )
+        delta = max(int(next_iteration) - last_iteration, 0)
+        if delta > 0 and self._runup_start_distance_linear_gate_passed():
+            current = float(
+                getattr(
+                    self,
+                    "_runup_start_distance_linear_current_m",
+                    self._runup_start_distance_linear_start(),
+                )
+            )
+            current += float(delta) * self._runup_start_distance_linear_step()
+            self._runup_start_distance_linear_current_m = min(
+                current,
+                self._runup_start_distance_linear_end(),
+            )
+        self._runup_start_distance_linear_last_iteration = int(next_iteration)
+
+    def _runup_start_distance_current(self) -> float:
+        if self._runup_start_distance_linear_enabled():
+            return float(
+                getattr(
+                    self,
+                    "_runup_start_distance_linear_current_m",
+                    self._runup_start_distance_linear_start(),
+                )
+            )
+        low, high = self._runup_start_distance_range()
+        return 0.5 * (low + high)
+
+    def _runup_reset_y_jitter_limit(self) -> float:
+        if not self._runup_start_distance_linear_enabled():
+            return float(K1_PENALTY_RESET_Y_OFFSET_M)
+        current = self._runup_start_distance_current()
+        start = float(
+            getattr(self._reward_cfg, "runup_start_distance_linear_y_jitter_start_distance", 0.50)
+        )
+        end = max(
+            float(
+                getattr(
+                    self._reward_cfg,
+                    "runup_start_distance_linear_y_jitter_end_distance",
+                    start,
+                )
+            ),
+            start,
+        )
+        max_jitter = max(
+            float(getattr(self._reward_cfg, "runup_start_distance_linear_y_jitter_max", 0.0)),
+            0.0,
+        )
+        if max_jitter <= 0.0 or current <= start:
+            return 0.0
+        if current >= end:
+            return max_jitter
+        alpha = (current - start) / max(end - start, 1e-6)
+        return float(alpha * max_jitter)
+
     def _runup_start_distance_range(self) -> tuple[float, float]:
         phase_ranges = (
             getattr(self._reward_cfg, "runup_start_distance_phase1", [0.4, 0.7]),
@@ -279,6 +460,17 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         return low, high
 
     def _sample_runup_start_distance(self, num_reset: int) -> np.ndarray:
+        if self._runup_start_distance_linear_enabled():
+            target = self._runup_start_distance_current()
+            jitter = max(
+                float(getattr(self._reward_cfg, "runup_start_distance_linear_jitter", 0.0)),
+                0.0,
+            )
+            low = max(self._runup_start_distance_linear_start(), target - jitter)
+            high = min(self._runup_start_distance_linear_end(), target + jitter)
+            if high <= low:
+                return np.full((num_reset,), target, dtype=np.float64)
+            return np.random.uniform(low, high, (num_reset,)).astype(np.float64, copy=False)
         low, high = self._runup_start_distance_range()
         if high <= low:
             return np.full((num_reset,), low, dtype=np.float64)
@@ -288,6 +480,20 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         if len(done_indices) == 0:
             return
         batch_rate = float(np.mean(self._runup_reached[done_indices]))
+        if hasattr(self, "_backend"):
+            ball_pos_w, _, _, _ = self._ball_state()
+            ball_forward_progress = ball_pos_w[done_indices, 0] - float(K1_PENALTY_SPOT_XY[0])
+            kick_success_threshold = float(
+                getattr(self._reward_cfg, "kick_success_min_ball_forward_progress", 0.30)
+            )
+            kick_success = self._goal_scored[done_indices] | (
+                ball_forward_progress >= kick_success_threshold
+            )
+            kick_success_rate = float(np.mean(kick_success))
+            goal_success_rate = float(np.mean(self._goal_scored[done_indices]))
+        else:
+            kick_success_rate = 0.0
+            goal_success_rate = 0.0
         alpha = float(getattr(self._reward_cfg, "runup_success_rate_ema_alpha", 0.2))
         alpha = float(np.clip(alpha, 0.0, 1.0))
         if not self._runup_success_rate_initialized:
@@ -298,7 +504,26 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
                 (1.0 - alpha) * self._runup_success_rate_ema + alpha * batch_rate
             )
 
-        if self._runup_start_distance_curriculum_enabled():
+        if not getattr(self, "_kick_success_rate_initialized", False):
+            self._kick_success_rate_ema = kick_success_rate
+            self._kick_success_rate_initialized = True
+        else:
+            self._kick_success_rate_ema = (
+                (1.0 - alpha) * self._kick_success_rate_ema + alpha * kick_success_rate
+            )
+
+        if not getattr(self, "_goal_success_rate_initialized", False):
+            self._goal_success_rate_ema = goal_success_rate
+            self._goal_success_rate_initialized = True
+        else:
+            self._goal_success_rate_ema = (
+                (1.0 - alpha) * self._goal_success_rate_ema + alpha * goal_success_rate
+            )
+
+        if (
+            self._runup_start_distance_curriculum_enabled()
+            and not self._runup_start_distance_linear_enabled()
+        ):
             threshold = float(getattr(self._reward_cfg, "runup_start_distance_success_threshold", 0.05))
             needed = max(int(getattr(self._reward_cfg, "runup_start_distance_promotion_updates", 5)), 1)
             if self._runup_success_rate_ema >= threshold:
@@ -351,6 +576,10 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         self._prev_right_foot_ball_dist[sel] = self._right_foot_ball_distance_xy()[sel].astype(
             np.float32, copy=False
         )
+        ball_pos_w, _, _, _ = self._ball_state()
+        self._prev_ball_x[sel] = ball_pos_w[sel, 0].astype(np.float32, copy=False)
+        self._prev_ball_y[sel] = ball_pos_w[sel, 1].astype(np.float32, copy=False)
+        self._sync_prev_foot_pos(sel)
         return obs, info
 
     @property
@@ -369,7 +598,16 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
                 "ball_to_goal": self._reward_ball_to_goal,
                 "ball_goal_progress": self._reward_ball_goal_progress,
                 "ball_kick_speed": self._reward_ball_kick_speed,
+                "penalty_ball_vy": self._reward_penalty_ball_vy,
+                "penalty_ball_lateral_progress": self._reward_penalty_ball_lateral_progress,
                 "kick_stability": self._reward_kick_stability,
+                "kick_plant_foot_x": self._reward_kick_plant_foot_x,
+                "kick_plant_foot_order": self._reward_kick_plant_foot_order,
+                "penalty_kick_plant_foot_order": self._reward_penalty_kick_plant_foot_order,
+                "kick_pose": self._reward_kick_pose,
+                "kick_robot_still": self._reward_kick_robot_still,
+                "penalty_ball_pin": self._reward_penalty_ball_pin,
+                "forward_progress": self._reward_forward_progress,
                 "goal_scored": self._reward_goal_scored,
                 "kick_failed": self._reward_kick_failed,
                 "termination_bad": self._reward_termination_bad,
@@ -381,6 +619,7 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
                 "term_ball_flew_high": self._reward_term_ball_flew_high,
                 "term_ball_backward": self._reward_term_ball_backward,
                 "term_ball_out_y": self._reward_term_ball_out_y,
+                "penalty_runup_feet_still": self._reward_penalty_runup_feet_still,
                 "penalty_vel_direction": self._reward_penalty_vel_direction,
                 "tracking_lin_vel": self._reward_tracking_lin_vel,
                 "under_speed": self._reward_under_speed,
@@ -404,10 +643,65 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         delta = ball_pos_w[:, :2] - base_pos[:, :2]
         return np.linalg.norm(delta, axis=1)
 
+    def _foot_positions_w(self) -> tuple[np.ndarray, np.ndarray]:
+        left_foot = self._backend.get_sensor_data("left_foot_pos")
+        right_foot = self._backend.get_sensor_data("right_foot_pos")
+        return left_foot, right_foot
+
+    def _sync_prev_foot_pos(self, env_ids: np.ndarray) -> None:
+        left_foot, right_foot = self._foot_positions_w()
+        foot_pos = np.stack([left_foot, right_foot], axis=1)
+        sel = np.asarray(env_ids, dtype=np.intp)
+        self._prev_foot_pos[sel] = foot_pos[sel]
+
+    def _update_feet_step_travel(self, info: dict) -> None:
+        left_foot, right_foot = self._foot_positions_w()
+        foot_pos = np.stack([left_foot, right_foot], axis=1)
+        step_delta = foot_pos - self._prev_foot_pos
+        left_travel = np.linalg.norm(step_delta[:, 0, :], axis=1)
+        right_travel = np.linalg.norm(step_delta[:, 1, :], axis=1)
+        info["feet_step_travel"] = np.asarray(
+            left_travel + right_travel, dtype=get_global_dtype()
+        )
+        self._prev_foot_pos[:] = foot_pos.astype(np.float32, copy=False)
+
     def _right_foot_ball_distance_xy(self) -> np.ndarray:
         right_foot = self._backend.get_sensor_data("right_foot_pos")
         ball_pos_w, _, _, _ = self._ball_state()
         delta = ball_pos_w[:, :2] - right_foot[:, :2]
+        return np.linalg.norm(delta, axis=1)
+
+    def _ball_pin_mask(self) -> np.ndarray:
+        """Detect reward hack: right foot on / pinning a static ball without kicking."""
+        right_foot, _ = self._foot_positions_w()
+        ball_pos_w, ball_vel_w, _, _ = self._ball_state()
+        dist_xy = self._right_foot_ball_distance_xy()
+        max_xy = float(getattr(self._reward_cfg, "ball_pin_max_xy_dist", 0.15))
+        max_ball_speed = float(getattr(self._reward_cfg, "ball_pin_max_ball_speed", 0.08))
+        max_robot_speed = float(getattr(self._reward_cfg, "ball_pin_max_robot_speed", 0.08))
+        min_foot_above = float(
+            getattr(self._reward_cfg, "ball_pin_min_foot_above_ball_z", 0.02)
+        )
+        near = dist_xy <= max_xy
+        ball_static = np.linalg.norm(ball_vel_w[:, :2], axis=1) <= max_ball_speed
+        robot_static = (
+            np.linalg.norm(self._backend.get_base_lin_vel()[:, :2], axis=1) <= max_robot_speed
+        )
+        foot_on_ball = right_foot[:, 2] > ball_pos_w[:, 2] + min_foot_above
+        return near & ball_static & (foot_on_ball | robot_static)
+
+    def _runup_reach_ball_left_target_xy_w(self) -> np.ndarray:
+        ball_pos_w, _, _, _ = self._ball_state()
+        offset = np.asarray(
+            getattr(self, "_runup_reach_left_target_offset_from_ball_xy", np.zeros(2)),
+            dtype=np.float64,
+        )
+        return ball_pos_w[:, :2] + offset[None, :]
+
+    def _left_foot_runup_reach_distance_xy(self) -> np.ndarray:
+        left_foot, _ = self._foot_positions_w()
+        target_xy = self._runup_reach_ball_left_target_xy_w()
+        delta = target_xy - left_foot[:, :2]
         return np.linalg.norm(delta, axis=1)
 
     def _ball_in_goal(self, ball_pos_w: np.ndarray) -> np.ndarray:
@@ -433,24 +727,55 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         half_wid = 0.5 * float(K1_PENALTY_MARKINGS_FIELD_WIDTH_M)
         return np.abs(ball_pos_w[:, 1]) > half_wid
 
-    def _update_runup_reached(self) -> np.ndarray:
+    def _kick_phase_ready_mask(self) -> np.ndarray:
         dist = self._right_foot_ball_distance_xy()
         inside = dist <= float(self._reward_cfg.right_foot_strike_dist)
-        newly_reached = inside & ~self._runup_reached
-        self._runup_reached |= inside
+        ball_pos_w, ball_vel_w, _, _ = self._ball_state()
+        min_ball_vx = float(
+            getattr(self._reward_cfg, "kick_phase_min_ball_forward_speed", 0.0)
+        )
+        ball_moving_forward = ball_vel_w[:, 0] >= min_ball_vx
+        min_robot_vx = float(
+            getattr(self._reward_cfg, "kick_phase_min_robot_forward_speed", 0.0)
+        )
+        robot_forward = self.get_local_linvel()[:, 0] >= min_robot_vx
+        left_foot, right_foot = self._foot_positions_w()
+        max_x_err = max(
+            float(getattr(self._reward_cfg, "kick_phase_max_left_foot_ball_x_error", 0.08)),
+            1e-6,
+        )
+        plant_x_ok = np.abs(left_foot[:, 0] - ball_pos_w[:, 0]) <= max_x_err
+        if bool(getattr(self._reward_cfg, "kick_phase_require_plant_foot_lead", True)):
+            min_lead = max(float(getattr(self._reward_cfg, "kick_plant_foot_min_lead_m", 0.02)), 0.0)
+            plant_order_ok = (left_foot[:, 0] - right_foot[:, 0]) >= min_lead
+        else:
+            plant_order_ok = np.ones(self._num_envs, dtype=bool)
+        min_height = float(
+            getattr(self._reward_cfg, "kick_phase_min_base_height", self._reward_cfg.min_base_height)
+        )
+        height_ok = self._backend.get_base_pos()[:, 2] >= min_height
+        return (
+            inside
+            & ball_moving_forward
+            & robot_forward
+            & plant_x_ok
+            & plant_order_ok
+            & height_ok
+        )
+
+    def _update_runup_reached(self) -> np.ndarray:
+        reached = self._kick_phase_ready_mask()
+        newly_reached = reached & ~self._runup_reached
+        self._runup_reached |= reached
         return newly_reached
 
     def _runup_reach_raw_from_distance(self, dist: np.ndarray) -> np.ndarray:
-        sigma1 = max(float(self._reward_cfg.runup_reach_sigma), 1e-6)
-        sigma2 = max(float(self._reward_cfg.runup_reach_sigma_2), 1e-6)
-        near = 1.0 - np.tanh(dist / sigma1)
-        far = 1.0 - np.tanh(dist / sigma2)
-        return np.asarray(near + far, dtype=get_global_dtype())
+        return self._right_foot_ball_raw_from_distance(dist)
 
     def _freeze_runup_reach_reward(self, newly_reached: np.ndarray) -> None:
         if not np.any(newly_reached):
             return
-        dist = self._robot_ball_distance_xy()
+        dist = self._left_foot_runup_reach_distance_xy()
         reach = self._runup_reach_raw_from_distance(dist)
         self._runup_reach_reward_frozen[newly_reached] = reach[newly_reached].astype(
             np.float32, copy=False
@@ -601,12 +926,23 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         step_count = np.asarray(state.info.get("steps", np.zeros(self._num_envs, dtype=np.uint32)))
 
         ball_pos_w, ball_vel_w, _, _ = self._ball_state()
+        left_foot, right_foot = self._foot_positions_w()
         right_foot_ball_dist = self._right_foot_ball_distance_xy()
         right_foot_ball_progress = np.maximum(
             self._prev_right_foot_ball_dist.astype(get_global_dtype(), copy=False)
             - right_foot_ball_dist,
             0.0,
         )
+        ball_forward_progress = np.maximum(
+            ball_pos_w[:, 0].astype(get_global_dtype(), copy=False)
+            - self._prev_ball_x.astype(get_global_dtype(), copy=False),
+            0.0,
+        )
+        ball_lateral_progress = np.abs(
+            ball_pos_w[:, 1].astype(get_global_dtype(), copy=False)
+            - self._prev_ball_y.astype(get_global_dtype(), copy=False)
+        )
+        self._update_feet_step_travel(state.info)
         self._runup_success_pending[:] = False
         newly_reached = self._update_runup_reached()
         self._freeze_runup_reach_reward(newly_reached)
@@ -671,15 +1007,41 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         state.info["robot_ball_dist_xy"] = np.asarray(
             self._robot_ball_distance_xy(), dtype=get_global_dtype()
         )
+        left_foot_runup_reach_dist = self._left_foot_runup_reach_distance_xy()
+        state.info["left_foot_runup_reach_dist_xy"] = np.asarray(
+            left_foot_runup_reach_dist, dtype=get_global_dtype()
+        )
+        ball_pin = self._ball_pin_mask()
+        state.info["ball_pin"] = np.asarray(ball_pin, dtype=get_global_dtype())
         state.info["right_foot_ball_dist_xy"] = np.asarray(
             right_foot_ball_dist, dtype=get_global_dtype()
         )
         state.info["right_foot_ball_progress"] = np.asarray(
             right_foot_ball_progress, dtype=get_global_dtype()
         )
+        state.info["ball_forward_progress"] = np.asarray(
+            ball_forward_progress, dtype=get_global_dtype()
+        )
+        state.info["ball_vx_forward"] = np.asarray(
+            np.maximum(ball_vel_w[:, 0], 0.0), dtype=get_global_dtype()
+        )
+        state.info["ball_lateral_progress"] = np.asarray(
+            ball_lateral_progress, dtype=get_global_dtype()
+        )
+        state.info["ball_vy_lateral"] = np.asarray(
+            np.abs(ball_vel_w[:, 1]), dtype=get_global_dtype()
+        )
         state.info["ball_x"] = np.asarray(ball_pos_w[:, 0], dtype=get_global_dtype())
         state.info["ball_y"] = np.asarray(ball_pos_w[:, 1], dtype=get_global_dtype())
         state.info["ball_z"] = np.asarray(ball_pos_w[:, 2], dtype=get_global_dtype())
+        state.info["left_foot_x"] = np.asarray(left_foot[:, 0], dtype=get_global_dtype())
+        state.info["right_foot_x"] = np.asarray(right_foot[:, 0], dtype=get_global_dtype())
+        state.info["left_foot_ball_x_error"] = np.asarray(
+            np.abs(left_foot[:, 0] - ball_pos_w[:, 0]), dtype=get_global_dtype()
+        )
+        state.info["kick_plant_foot_lead_x"] = np.asarray(
+            left_foot[:, 0] - right_foot[:, 0], dtype=get_global_dtype()
+        )
         state.info["kick_elapsed_steps"] = np.asarray(kick_elapsed, dtype=get_global_dtype())
         state.info["term_fall"] = np.asarray(term_fall, dtype=get_global_dtype())
         state.info["term_low"] = np.asarray(term_low, dtype=get_global_dtype())
@@ -704,6 +1066,8 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         truncated = term_episode_timeout & ~terminated
         state = state.replace(obs=obs, reward=reward, terminated=terminated, truncated=truncated)
         self._prev_right_foot_ball_dist[:] = right_foot_ball_dist.astype(np.float32, copy=False)
+        self._prev_ball_x[:] = ball_pos_w[:, 0].astype(np.float32, copy=False)
+        self._prev_ball_y[:] = ball_pos_w[:, 1].astype(np.float32, copy=False)
 
         done = state.terminated | state.truncated
         if self._episode_tracker is None or self._penalty_curriculum is None or not np.any(done):
@@ -723,10 +1087,29 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         state.info["log"]["curriculum/penalty_scale"] = float(
             self._penalty_curriculum.current_scale
         )
+        state.info["log"]["curriculum/ball_pin_fraction"] = float(np.mean(ball_pin))
         state.info["log"]["curriculum/kick_phase_fraction"] = float(np.mean(self._runup_reached))
         state.info["log"]["curriculum/goal_rate"] = float(np.mean(self._goal_scored))
+        state.info["log"]["curriculum/mean_robot_ball_dist_xy"] = float(
+            np.mean(state.info["robot_ball_dist_xy"])
+        )
+        state.info["log"]["curriculum/mean_right_foot_ball_dist_xy"] = float(
+            np.mean(state.info["right_foot_ball_dist_xy"])
+        )
+        state.info["log"]["curriculum/runup_start_distance_target"] = float(
+            self._runup_start_distance_current()
+        )
+        state.info["log"]["curriculum/runup_reset_y_jitter_limit"] = float(
+            self._runup_reset_y_jitter_limit()
+        )
         state.info["log"]["curriculum/runup_success_rate_ema"] = float(
             self._runup_success_rate_ema
+        )
+        state.info["log"]["curriculum/kick_success_rate_ema"] = float(
+            self._kick_success_rate_ema
+        )
+        state.info["log"]["curriculum/goal_success_rate_ema"] = float(
+            self._goal_success_rate_ema
         )
         state.info["log"]["curriculum/runup_start_distance_phase"] = float(
             self._runup_start_distance_phase_idx + 1
@@ -764,33 +1147,63 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
                 log["reward/penalty_scale"] = float(self._penalty_curriculum.current_scale)
             log["curriculum/runup_forward_speed"] = float(self._runup_speed_curriculum_level())
             log["curriculum/kick_phase_fraction"] = float(np.mean(kick_mask))
+            log["curriculum/mean_robot_ball_dist_xy"] = float(
+                np.mean(info.get("robot_ball_dist_xy", 0.0))
+            )
+            log["curriculum/mean_right_foot_ball_dist_xy"] = float(
+                np.mean(info.get("right_foot_ball_dist_xy", 0.0))
+            )
+            log["curriculum/runup_start_distance_target"] = float(
+                self._runup_start_distance_current()
+            )
+            log["curriculum/runup_reset_y_jitter_limit"] = float(
+                self._runup_reset_y_jitter_limit()
+            )
             log["curriculum/goal_rate"] = float(np.mean(info.get("goal_scored", 0.0)))
             log["curriculum/runup_success_rate_ema"] = float(self._runup_success_rate_ema)
+            log["curriculum/kick_success_rate_ema"] = float(self._kick_success_rate_ema)
+            log["curriculum/goal_success_rate_ema"] = float(self._goal_success_rate_ema)
             log["curriculum/runup_start_distance_phase"] = float(
                 self._runup_start_distance_phase_idx + 1
             )
             info["log"] = log
         return reward * self._cfg.ctrl_dt
 
+    def _ball_pin_gate(self, ctx: RewardContext) -> np.ndarray:
+        return 1.0 - np.asarray(ctx.info.get("ball_pin", 0.0), dtype=get_global_dtype())
+
     def _reward_runup_reach(self, ctx: RewardContext) -> np.ndarray:
-        dist = ctx.info["robot_ball_dist_xy"]
+        dist = ctx.info["left_foot_runup_reach_dist_xy"]
         dist_reward = self._runup_reach_raw_from_distance(dist)
         reached = self._runup_reached
         reward = dist_reward.copy()
         if np.any(reached):
             reward[reached] = self._runup_reach_reward_frozen[reached]
         runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
-        return np.asarray(reward * runup_phase, dtype=get_global_dtype())
+        return np.asarray(reward * runup_phase * self._ball_pin_gate(ctx), dtype=get_global_dtype())
 
     def _reward_runup_speed(self, ctx: RewardContext) -> np.ndarray:
         runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
         forward_speed = np.maximum(ctx.linvel[:, 0], 0.0)
         min_speed = max(self._runup_speed_curriculum_level(), 1e-6)
         max_speed = max(self._runup_speed_curriculum_max(), min_speed)
-        # Minimum-speed floor: below min is penalized linearly; at/above min, faster is better up to max.
-        ratio = forward_speed / min_speed
-        ratio_cap = max_speed / min_speed
-        return np.asarray(np.clip(ratio, 0.0, ratio_cap) * runup_phase, dtype=get_global_dtype())
+        meet_min = np.clip(forward_speed / min_speed, 0.0, 1.0)
+        bonus_cap = max(float(getattr(self._reward_cfg, "runup_speed_bonus_cap", 1.0)), 0.0)
+        speed_bonus = np.clip(
+            (forward_speed - min_speed) / max(max_speed - min_speed, 1e-6),
+            0.0,
+            bonus_cap,
+        )
+        return np.asarray((meet_min + speed_bonus) * runup_phase, dtype=get_global_dtype())
+
+    def _reward_forward_progress(self, ctx: RewardContext) -> np.ndarray:
+        runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
+        forward_speed = np.maximum(ctx.linvel[:, 0], 0.0)
+        max_speed = max(self._runup_speed_curriculum_max(), 1e-6)
+        return np.asarray(
+            runup_phase * np.clip(forward_speed / max_speed, 0.0, 1.5),
+            dtype=get_global_dtype(),
+        )
 
     def _reward_tracking_lin_vel(self, ctx: RewardContext) -> np.ndarray:
         kick_phase = np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
@@ -819,7 +1232,7 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         dist = ctx.info["right_foot_ball_dist_xy"]
         current = self._right_foot_ball_raw_from_distance(dist)
         runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
-        reward = current * runup_phase
+        reward = current * runup_phase * self._ball_pin_gate(ctx)
         return np.asarray(reward, dtype=get_global_dtype())
 
     def _reward_right_foot_to_ball_progress(self, ctx: RewardContext) -> np.ndarray:
@@ -828,7 +1241,19 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
         # Convert per-step distance reduction to a per-second shaping signal.
         rate = np.clip(progress / max(float(self._cfg.ctrl_dt), 1e-6), 0.0, clip)
-        return np.asarray(rate * runup_phase, dtype=get_global_dtype())
+        return np.asarray(rate * runup_phase * self._ball_pin_gate(ctx), dtype=get_global_dtype())
+
+    def _reward_penalty_ball_pin(self, ctx: RewardContext) -> np.ndarray:
+        runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
+        pin = np.asarray(ctx.info.get("ball_pin", 0.0), dtype=get_global_dtype())
+        return np.asarray(pin * runup_phase, dtype=get_global_dtype())
+
+    def _reward_penalty_runup_feet_still(self, ctx: RewardContext) -> np.ndarray:
+        travel = np.asarray(ctx.info["feet_step_travel"], dtype=get_global_dtype())
+        sigma = max(float(getattr(self._reward_cfg, "runup_feet_still_sigma", 0.015)), 1e-6)
+        stillness = np.exp(-travel / sigma)
+        runup_phase = 1.0 - np.asarray(ctx.info["kick_phase"], dtype=get_global_dtype())
+        return np.asarray(stillness * runup_phase * self._ball_pin_gate(ctx), dtype=get_global_dtype())
 
     def _event_reward(self, event: np.ndarray) -> np.ndarray:
         # Event bonuses are configured as actual episode bonuses, not per-second rates.
@@ -851,25 +1276,91 @@ class K1SoccerPenaltyKickEnv(K1WalkEnv):
         active = speed > 0.05
         return np.asarray(np.where(active, toward / sigma, 0.0), dtype=get_global_dtype())
 
+    def _ball_forward_vx(self) -> np.ndarray:
+        _, ball_vel_w, _, _ = self._ball_state()
+        return np.maximum(ball_vel_w[:, 0], 0.0)
+
+    def _reward_lateral_magnitude_exp(
+        self,
+        magnitude: np.ndarray,
+        *,
+        sigma: float,
+        min_magnitude: float,
+    ) -> np.ndarray:
+        sigma = max(float(sigma), 1e-6)
+        min_magnitude = max(float(min_magnitude), 0.0)
+        shaped = 1.0 - np.exp(-magnitude / sigma)
+        return np.asarray(
+            np.where(magnitude >= min_magnitude, shaped, 0.0),
+            dtype=get_global_dtype(),
+        )
+
     def _reward_ball_goal_progress(self, ctx: RewardContext) -> np.ndarray:
-        ball_x = ctx.info["ball_x"]
-        start_x = float(K1_PENALTY_SPOT_XY[0])
-        progress = (ball_x - start_x) / max(float(K1_PENALTY_GOAL_LINE_X) - start_x, 1e-6)
-        return np.asarray(np.clip(progress, 0.0, 1.0), dtype=get_global_dtype())
+        forward_m = np.asarray(ctx.info["ball_forward_progress"], dtype=get_global_dtype())
+        sigma = max(float(getattr(self._reward_cfg, "ball_goal_progress_sigma", 0.05)), 1e-6)
+        shaped = 1.0 - np.exp(-forward_m / sigma)
+        return np.asarray(np.where(forward_m > 0.0, shaped, 0.0), dtype=get_global_dtype())
 
     def _reward_ball_kick_speed(self, ctx: RewardContext) -> np.ndarray:
-        _, ball_vel_w, _, _ = self._ball_state()
-        speed = np.linalg.norm(ball_vel_w[:, :2], axis=1)
-        target = float(self._reward_cfg.ball_kick_speed_target)
-        sigma = max(float(self._reward_cfg.ball_kick_speed_sigma), 1e-6)
-        shortfall = np.maximum(target - speed, 0.0)
-        return np.asarray(np.exp(-(shortfall * shortfall) / sigma), dtype=get_global_dtype())
+        forward_speed = self._ball_forward_vx()
+        sigma = max(float(getattr(self._reward_cfg, "ball_kick_speed_sigma", 2.0)), 1e-6)
+        min_forward = float(getattr(self._reward_cfg, "ball_kick_speed_min_forward", 0.08))
+        max_forward = max(float(getattr(self._reward_cfg, "ball_kick_speed_max_forward", 2.5)), 0.0)
+        capped_speed = np.minimum(forward_speed, max_forward)
+        shaped = np.expm1(capped_speed / sigma)
+        return np.asarray(
+            np.where(forward_speed >= min_forward, shaped, 0.0),
+            dtype=get_global_dtype(),
+        )
+
+    def _reward_kick_pose(self, ctx: RewardContext) -> np.ndarray:
+        pose_err = locomotion_rewards.weighted_pose(ctx)
+        sigma = max(float(getattr(self._reward_cfg, "kick_pose_sigma", 0.15)), 1e-6)
+        return np.asarray(np.exp(-pose_err / sigma), dtype=get_global_dtype())
+
+    def _reward_kick_robot_still(self, ctx: RewardContext) -> np.ndarray:
+        speed = np.linalg.norm(ctx.linvel[:, :3], axis=1)
+        sigma = max(float(getattr(self._reward_cfg, "kick_robot_still_sigma", 0.15)), 1e-6)
+        return np.asarray(np.exp(-speed / sigma), dtype=get_global_dtype())
+
+    def _reward_penalty_ball_vy(self, ctx: RewardContext) -> np.ndarray:
+        lateral_speed = np.asarray(ctx.info["ball_vy_lateral"], dtype=get_global_dtype())
+        sigma = float(getattr(self._reward_cfg, "ball_kick_speed_sigma", 2.0))
+        min_lateral = float(getattr(self._reward_cfg, "ball_kick_speed_min_forward", 0.08))
+        return self._reward_lateral_magnitude_exp(
+            lateral_speed,
+            sigma=sigma,
+            min_magnitude=min_lateral,
+        )
+
+    def _reward_penalty_ball_lateral_progress(self, ctx: RewardContext) -> np.ndarray:
+        lateral_m = np.asarray(ctx.info["ball_lateral_progress"], dtype=get_global_dtype())
+        sigma = max(float(getattr(self._reward_cfg, "ball_goal_progress_sigma", 0.05)), 1e-6)
+        return self._reward_lateral_magnitude_exp(
+            lateral_m,
+            sigma=sigma,
+            min_magnitude=0.0,
+        )
 
     def _reward_kick_stability(self, ctx: RewardContext) -> np.ndarray:
         assert ctx.gravity is not None
         upright_err = np.sum(np.square(ctx.gravity[:, :2]), axis=1)
         height_err = np.square(ctx.base_height - float(self._reward_cfg.base_height_target))
         return np.asarray(np.exp(-(upright_err + height_err) / 0.15), dtype=get_global_dtype())
+
+    def _reward_kick_plant_foot_x(self, ctx: RewardContext) -> np.ndarray:
+        x_error = np.asarray(ctx.info["left_foot_ball_x_error"], dtype=get_global_dtype())
+        sigma = max(float(getattr(self._reward_cfg, "kick_plant_foot_x_sigma", 0.10)), 1e-6)
+        return np.asarray(np.exp(-np.square(x_error) / (sigma * sigma)), dtype=get_global_dtype())
+
+    def _reward_kick_plant_foot_order(self, ctx: RewardContext) -> np.ndarray:
+        lead = np.asarray(ctx.info["kick_plant_foot_lead_x"], dtype=get_global_dtype())
+        min_lead = max(float(getattr(self._reward_cfg, "kick_plant_foot_min_lead_m", 0.02)), 0.0)
+        return np.asarray(np.clip(lead / max(min_lead, 1e-6), 0.0, 1.0), dtype=get_global_dtype())
+
+    def _reward_penalty_kick_plant_foot_order(self, ctx: RewardContext) -> np.ndarray:
+        lead = np.asarray(ctx.info["kick_plant_foot_lead_x"], dtype=get_global_dtype())
+        return np.asarray(lead <= 0.0, dtype=get_global_dtype())
 
     def _reward_goal_scored(self, ctx: RewardContext) -> np.ndarray:
         return self._event_reward(ctx.info.get("newly_scored", 0.0))
