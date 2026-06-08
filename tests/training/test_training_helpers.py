@@ -212,6 +212,23 @@ def test_resolve_task_checkpoint_path_accepts_integer_latest_run(tmp_path: Path)
     assert checkpoint_dir == run_dir
 
 
+def test_resolve_task_checkpoint_path_accepts_repo_relative_file(tmp_path: Path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    tracked_ckpt = tmp_path / "tracked_warm_start" / "model_13000.pt"
+    tracked_ckpt.parent.mkdir(parents=True)
+    tracked_ckpt.write_bytes(b"tracked")
+
+    checkpoint_path, checkpoint_dir = resolve_task_checkpoint_path(
+        tmp_path,
+        task_name="IgnoredTask",
+        load_run="tracked_warm_start/model_13000.pt",
+        algo_log_name="flash_sac",
+    )
+
+    assert checkpoint_path == tracked_ckpt
+    assert checkpoint_dir == tracked_ckpt.parent
+
+
 def test_backend_adapter_env_cfg_override_for_motrix_sac_g1_walk_flat():
     """Env cfg override carries reward + env preset fields. Algo is NOT touched."""
     cfg = _offpolicy_cfg(["task=sac/g1_walk_flat/motrix"])

@@ -181,9 +181,13 @@ def resolve_task_checkpoint_path(
     else:
         candidate = Path(selected_run)
         if not candidate.exists():
-            candidate = task_log_root / selected_run
+            candidate_from_root = Path(root_dir) / selected_run
+            if candidate_from_root.exists():
+                candidate = candidate_from_root
+            else:
+                candidate = task_log_root / selected_run
         if candidate.is_file():
-            return candidate, candidate.parent
+            return candidate.resolve(), candidate.parent.resolve()
         run_dir = candidate if candidate.is_dir() else None
 
     if run_dir is None:

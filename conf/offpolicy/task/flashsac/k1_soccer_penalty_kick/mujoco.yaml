@@ -23,10 +23,7 @@ algo:
     temp_target_sigma: 0.30
   warm_start:
     enabled: true
-    source_task: K1SoccerDribble
-    source_algo_log_name: flash_sac
-    source_load_run: 2026-06-07_14-29-52_mujoco
-    source_checkpoint: 13000
+    source_load_run: conf/offpolicy/task/flashsac/k1_soccer_penalty_kick/warm_start/k1_soccer_dribble_mujoco_model_13000.pt
     strict: false
 env:
   obs_frame_stack: 1
