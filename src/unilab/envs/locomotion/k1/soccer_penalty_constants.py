@@ -24,8 +24,14 @@ K1_PENALTY_SPOT_XY = (
     0.0,
 )
 
-# Run-up start: robot ~2 m behind the penalty spot, facing +X goal.
-K1_PENALTY_ROBOT_START_XY = (K1_PENALTY_SPOT_XY[0] - 2.0, 0.0)
+# Stand keyframe: right_foot site y ≈ base_y - 0.0962; shift base +Y so foot aligns with ball.
+K1_PENALTY_RIGHT_FOOT_Y_OFFSET_FROM_BASE_M = 0.0962
+
+# Run-up start: robot ~2 m behind the penalty spot, facing +X goal; base Y aligns right foot with ball.
+K1_PENALTY_ROBOT_START_XY = (
+    K1_PENALTY_SPOT_XY[0] - 2.0,
+    K1_PENALTY_RIGHT_FOOT_Y_OFFSET_FROM_BASE_M,
+)
 K1_PENALTY_BALL_RADIUS_M = 0.09167862683534622
 K1_PENALTY_BALL_SPAWN_Z = K1_PENALTY_BALL_RADIUS_M
 K1_PENALTY_TRUNK_Z = 0.5743699226900935

@@ -40,6 +40,57 @@ UniLab 是一个 **高性能、模块化、contract 驱动** 的 RL infrastructu
 - config schema: `src/unilab/structured_configs.py`
 - async runner: `src/unilab/ipc/async_runner.py`
 
+## K1SoccerPenaltyKick 场景查看与录视频
+
+### 初始布局（右脚与球同 Y 轴）
+
+stand keyframe 下，机器人 base 在 `y=0` 时右脚 site 约在 `y=-0.0962`。为让右脚与点球点（`y=0`）对齐，base Y 上移 `0.0962 m`：
+
+- 常量：`src/unilab/envs/locomotion/k1/soccer_penalty_constants.py`（`K1_PENALTY_RIGHT_FOOT_Y_OFFSET_FROM_BASE_M`、`K1_PENALTY_ROBOT_START_XY`）
+- keyframe：`src/unilab/assets/robots/k1/scene_soccer_penalty_kick.xml`（base `1.0 0.0962 ...`）
+- 训练 reset 仍可能有 Y 方向 `±0.15 m` jitter（`K1_PENALTY_RESET_Y_OFFSET_M`），eval 回放不一定每次完全对齐
+
+### 静态场景预览
+
+```bash
+# 生成 PNG（默认输出到 conf/.../figures/scene_preview.png）
+uv run scripts/view_k1_penalty_kick_scene.py --preview-only
+
+# 打开 MuJoCo 交互查看器
+uv run scripts/view_k1_penalty_kick_scene.py
+```
+
+脚本会打印 `right_foot` / `ball` 坐标及 `dy`（对齐时应 ≈ 0）。
+
+### 策略回放录视频
+
+用 `uv run eval`，`--render-mode record` 无头导出 mp4；checkpoint 可传 run 目录名或 `.pt` 绝对路径。
+
+**单 env、32 s、多次 reset 不同起点**（`ctrl_dt=0.02` → `play_steps=1600`；env 默认 autoreset，episode 结束后会重新采样 reset 位置）：
+
+```bash
+cd ~/projects/UniLab && uv run eval --algo flashsac --task k1_soccer_penalty_kick --sim mujoco \
+  --render-mode record \
+  algo.load_run=/path/to/logs/flash_sac/K1SoccerPenaltyKick/<run>/model_<iter>.pt \
+  training.export_onnx=false training.play_env_num=1 training.play_steps=1600
+```
+
+短片段（约 16 s）示例：
+
+```bash
+cd ~/projects/UniLab && uv run eval --algo flashsac --task k1_soccer_penalty_kick --sim mujoco \
+  --render-mode record \
+  algo.load_run=/path/to/logs/flash_sac/K1SoccerPenaltyKick/<run>/model_<iter>.pt \
+  training.export_onnx=false training.play_env_num=1 training.play_steps=800
+```
+
+- 默认输出：`<run_dir>/play_video.mp4`（可手动 `cp` 为 `play_video_model_<iter>_1env_32s.mp4`）
+- `training.play_env_num=1`：只看单机器人；`16` 会并排 16 个 env，起点各不相同但画面拥挤
+- `training.play_steps`：控制步数 = 视频秒数 / `ctrl_dt`（K1 点球 `ctrl_dt=0.02`，32 s → 1600）
+- 训练结束自动录制的 `play_video.mp4` 默认 `play_env_num=16`；要看 reset 多样性请用上面单 env 命令
+- `--load-run` 只接受 run 目录名；传 `.pt` 路径时用 `algo.load_run=...` override
+- owner YAML：`conf/offpolicy/task/flashsac/k1_soccer_penalty_kick/mujoco.yaml`
+
 ## GitHub CLI (gh) 速查
 
 ### Issue 查看

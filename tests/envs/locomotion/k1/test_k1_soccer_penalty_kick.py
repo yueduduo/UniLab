@@ -19,6 +19,7 @@ from unilab.envs.locomotion.k1.soccer_penalty_constants import (
     K1_PENALTY_PITCH_WIDTH_M,
     K1_PENALTY_RESET_Y_OFFSET_M,
     K1_PENALTY_RIGHT_FOOT_STRIKE_DIST_M,
+    K1_PENALTY_RIGHT_FOOT_Y_OFFSET_FROM_BASE_M,
     K1_PENALTY_ROBOT_START_XY,
     K1_PENALTY_RUNUP_BALL_DIST_M,
     K1_PENALTY_RUNUP_MAX_STEPS,
@@ -49,7 +50,8 @@ def test_penalty_layout_matches_sim_soccer():
     assert K1_PENALTY_GOAL_HEIGHT_M == pytest.approx(1.8)
     assert K1_PENALTY_SPOT_DISTANCE_M == pytest.approx(1.5)
     assert K1_PENALTY_SPOT_XY == pytest.approx((3.0, 0.0))
-    assert K1_PENALTY_ROBOT_START_XY == pytest.approx((1.0, 0.0))
+    assert K1_PENALTY_RIGHT_FOOT_Y_OFFSET_FROM_BASE_M == pytest.approx(0.0962)
+    assert K1_PENALTY_ROBOT_START_XY == pytest.approx((1.0, 0.0962))
     assert K1_PENALTY_RESET_Y_OFFSET_M == pytest.approx(0.15)
     assert K1_PENALTY_RUNUP_BALL_DIST_M == pytest.approx(0.35)
     assert K1_PENALTY_RIGHT_FOOT_STRIKE_DIST_M == pytest.approx(0.22)
@@ -246,7 +248,10 @@ def test_runup_start_distance_curriculum_samples_near_ball_first_phase():
     env = object.__new__(K1SoccerPenaltyKickEnv)
     env._reward_cfg = cfg
     env._runup_start_distance_phase_idx = 0
-    env._init_qpos = np.array([K1_PENALTY_ROBOT_START_XY[0], 0.0, 0.55], dtype=np.float64)
+    env._init_qpos = np.array(
+        [K1_PENALTY_ROBOT_START_XY[0], K1_PENALTY_ROBOT_START_XY[1], 0.55],
+        dtype=np.float64,
+    )
     provider = K1PenaltyKickDomainRandomizationProvider()
 
     offset = provider._sample_reset_xy_offset(env, 128)
@@ -598,15 +603,15 @@ def test_k1_soccer_penalty_flashsac_owner_compose(owner, backend, num_envs):
     assert cfg.reward.scales.ball_to_goal == pytest.approx(2.0)
     assert cfg.reward.scales.ball_goal_progress == pytest.approx(40.0)
     assert cfg.reward.scales.ball_kick_speed == pytest.approx(10.0)
-    assert cfg.reward.scales.runup_success == pytest.approx(100.0)
+    assert cfg.reward.scales.runup_success == pytest.approx(10.0)
     assert cfg.reward.scales.alive == pytest.approx(0.0)
     assert cfg.reward.scales.right_foot_to_ball == pytest.approx(6.67)
     assert cfg.reward.scales.right_foot_to_ball_progress == pytest.approx(5.0)
     assert cfg.reward.runup_timeout_enable_after_iteration == 1
     assert cfg.reward.scales.term_runup_timeout == pytest.approx(-30.0)
-    assert cfg.reward.scales.term_kick_timeout == pytest.approx(-10.0)
-    assert cfg.reward.scales.term_ball_missed_goal == pytest.approx(-60.0)
-    assert cfg.reward.scales.term_fall == pytest.approx(-120.0)
+    assert cfg.reward.scales.term_kick_timeout == pytest.approx(-100.0)
+    assert cfg.reward.scales.term_ball_missed_goal == pytest.approx(-600.0)
+    assert cfg.reward.scales.term_fall == pytest.approx(-1200.0)
     assert cfg.reward.scales.runup_reach == pytest.approx(6.67)
     assert cfg.reward.scales.runup_speed == pytest.approx(8.0)
     assert cfg.reward.scales.tracking_lin_vel == pytest.approx(7.5)

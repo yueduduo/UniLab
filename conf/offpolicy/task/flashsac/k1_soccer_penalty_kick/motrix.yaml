@@ -69,7 +69,7 @@ reward:
     feet_phase: 0.5
     right_foot_to_ball: 6.67
     right_foot_to_ball_progress: 5.0
-    runup_success: 100.0
+    runup_success: 10.0
     alive: 0.0
     penalty_vel_direction: -15.0
     tracking_ang_vel: 1.0
@@ -83,14 +83,14 @@ reward:
     ball_kick_speed: 10.0
     kick_stability: 2.0
     goal_scored: 200.0
-    term_fall: -120.0
+    term_fall: -1200.0
     term_low: -120.0
     term_runup_timeout: -30.0
-    term_kick_timeout: -10.0
-    term_ball_missed_goal: -60.0
-    term_ball_flew_high: -70.0
-    term_ball_backward: -60.0
-    term_ball_out_y: -60.0
+    term_kick_timeout: -100.0
+    term_ball_missed_goal: -600.0
+    term_ball_flew_high: -700.0
+    term_ball_backward: -600.0
+    term_ball_out_y: -600.0
   feet_phase_swing_height: 0.06
   feet_phase_tracking_sigma: 0.008
   base_height_target: 0.55
