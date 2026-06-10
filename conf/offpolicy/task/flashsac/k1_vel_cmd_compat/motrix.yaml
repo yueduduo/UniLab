@@ -61,27 +61,27 @@ env:
     push_robots: false
 reward:
   scales:
-    tracking_lin_vel: 4.0
-    tracking_ang_vel: 3.0
-    cmd_lin_vel_error: -8.0
-    cmd_ang_vel_error: -5.0
-    cmd_speed_shortfall: -4.0
+    tracking_lin_vel: 8.0       # 4.0→8.0 强化前向速度跟踪
+    tracking_ang_vel: 4.0       # 3.0→4.0
+    cmd_lin_vel_error: -12.0    # -8→-12 偏离cmd惩罚加重
+    cmd_ang_vel_error: -6.0     # -5→-6
+    cmd_speed_shortfall: -6.0   # -4→-6 速度不足更严厉
     alive: 10.0
     feet_phase: 5.0
-    feet_phase_contrast: 1.5
+    feet_phase_contrast: 4.0    # 1.5→4.0 强化左右脚交替
     feet_phase_contact: 1.0
-    feet_double_stance: -1.0
-    lin_vel_z: -1.0
+    feet_double_stance: -2.0    # -1→-2 移动时双脚同时着地更罚
+    lin_vel_z: -3.0             # -1→-3 抑制上下弹跳
     base_height: -120.0
-    penalty_orientation: -10.0
-    penalty_ang_vel_xy: -1.0
-    penalty_action_rate: -5.0
-    upper_body_pose: -0.15
+    penalty_orientation: -15.0  # -10→-15 身体倾斜更罚
+    penalty_ang_vel_xy: -3.0    # -1→-3 抑制侧向晃动
+    penalty_action_rate: -10.0  # -5→-10 动作更平滑 (站立×2=-20)
+    upper_body_pose: -0.5       # -0.15→-0.5 上半身更稳
     pose: -0.8
-    penalty_close_feet_xy: -0.5
-    penalty_feet_ori: -25.0
+    penalty_close_feet_xy: -1.5 # -0.5→-1.5 抑制双脚交叉
+    penalty_feet_ori: -30.0     # -25→-30 脚踝姿态更规范
     stand_still_linvel: 3.0
-    stand_still_drift: -6.0
+    stand_still_drift: -8.0     # -6→-8 站立漂移更罚
     stand_still_dof_vel: -1.0
     stand_still_action: -0.5
     stand_still: -0.5
@@ -92,7 +92,7 @@ reward:
     orientation: 0.0
     action_rate: 0.0
   tracking_sigma: 0.20
-  moving_tracking_sigma: 0.08
+  moving_tracking_sigma: 0.12   # 0.08→0.12 稍放松跟踪精度避免抖动
   gait_frequency: 1.5
   feet_phase_swing_height: 0.06
   feet_phase_tracking_sigma: 0.008
