@@ -83,6 +83,11 @@ class K1RewardConfig:
     min_base_height: float
     max_tilt_deg: float
     min_forward_speed_for_gait_reward: float = 0.05
+    min_command_speed_for_gait_reward: float = 0.0
+    stand_still_cmd_threshold: float = 0.08
+    stand_still_linvel_sigma: float = 0.02
+    stand_still_action_rate_scale: float = 3.0
+    moving_tracking_sigma: float = 0.10
     close_feet_threshold: float = 0.15
     pose_weights: list[float] = field(default_factory=lambda: list(K1_G1_ALIGNED_POSE_WEIGHTS))
 

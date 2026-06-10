@@ -125,6 +125,26 @@ def compute_forward_speed_gate(linvel: np.ndarray, min_forward_speed: float) -> 
     return np.asarray(forward_speed >= min_forward_speed, dtype=get_global_dtype())
 
 
+def compute_planar_speed_gate(linvel: np.ndarray, min_speed: float) -> np.ndarray:
+    """Bidirectional xy speed gate (backward walking included)."""
+    speed = np.linalg.norm(linvel[:, :2], axis=1)
+    return np.asarray(speed >= min_speed, dtype=get_global_dtype())
+
+
+def compute_command_locomotion_mask(commands: np.ndarray, min_speed: float) -> np.ndarray:
+    """True when any velocity command axis requests locomotion (not standing)."""
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    cmd_yaw = np.abs(commands[:, 2])
+    return np.asarray((cmd_xy >= min_speed) | (cmd_yaw >= min_speed), dtype=get_global_dtype())
+
+
+def compute_standing_command_mask(commands: np.ndarray, cmd_threshold: float) -> np.ndarray:
+    """True when velocity command requests standing still (all axes near zero)."""
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    cmd_yaw = np.abs(commands[:, 2])
+    return np.asarray((cmd_xy < cmd_threshold) & (cmd_yaw < cmd_threshold), dtype=get_global_dtype())
+
+
 def compute_forward_command_mask(commands: np.ndarray) -> np.ndarray:
     return np.asarray(np.maximum(commands[:, 0], 0.0) > 1.0e-6, dtype=get_global_dtype())
 

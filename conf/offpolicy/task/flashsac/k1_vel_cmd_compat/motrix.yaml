@@ -1,0 +1,112 @@
+# @package _global_
+# K1VelCmdCompat — Motrix backend (same obs/action contract as mujoco owner).
+defaults:
+  - /locomotion/g1_walk_flat_recipe
+  - /locomotion/g1_walk_flat_flashsac_reward
+
+training:
+  task_name: K1VelCmdCompat
+  sim_backend: motrix
+algo:
+  num_envs: 1024
+  learning_starts: 167
+  max_iterations: 20000
+  save_interval: 1000
+  updates_per_step: 1
+  batch_size: 2048
+  replay_buffer_n: 341
+  tau: 0.01
+  actor_lr: 2.0e-4
+  critic_lr: 2.0e-4
+  algo_params:
+    temp_initial_value: 0.02
+    temp_target_sigma: 0.30
+  warm_start:
+    enabled: false
+env:
+  obs_frame_stack: 1
+  control_config:
+    action_scale: 0.35
+  commands:
+    vel_limit:
+      - [-1.0, -1.0, -1.0]
+      - [1.0, 1.0, 1.0]
+    rel_standing_envs: 0.2
+  gait_phase_init_mode: offset_phase
+  reset_base_qvel_limit: 0.1
+  sim_dt: 0.002
+  curriculum:
+    enabled: true
+    initial_scale: 0.5
+    min_scale: 0.5
+    max_scale: 1.0
+    level_down_threshold: 150.0
+    level_up_threshold: 750.0
+    degree: 0.001
+  noise_config:
+    level: 0.0
+    scale_gyro: 0.0
+    scale_gravity: 0.0
+    scale_joint_vel: 0.1
+    scale_linvel: 0.0
+  domain_rand:
+    randomize_kp: false
+    randomize_kd: false
+    randomize_base_mass: false
+    randomize_body_mass: false
+    random_com: false
+    randomize_gravity: false
+    randomize_ground_friction: false
+    randomize_dof_armature: false
+    push_robots: false
+reward:
+  scales:
+    tracking_lin_vel: 4.0
+    tracking_ang_vel: 3.0
+    cmd_lin_vel_error: -8.0
+    cmd_ang_vel_error: -5.0
+    cmd_speed_shortfall: -4.0
+    alive: 10.0
+    feet_phase: 5.0
+    feet_phase_contrast: 1.5
+    feet_phase_contact: 1.0
+    feet_double_stance: -1.0
+    lin_vel_z: -1.0
+    base_height: -120.0
+    penalty_orientation: -10.0
+    penalty_ang_vel_xy: -1.0
+    penalty_action_rate: -5.0
+    upper_body_pose: -0.15
+    pose: -0.8
+    penalty_close_feet_xy: -0.5
+    penalty_feet_ori: -25.0
+    stand_still_linvel: 3.0
+    stand_still_drift: -6.0
+    stand_still_dof_vel: -1.0
+    stand_still_action: -0.5
+    stand_still: -0.5
+    stand_double_stance: 1.5
+    under_speed: 0.0
+    forward_progress: 0.0
+    ang_vel_xy: 0.0
+    orientation: 0.0
+    action_rate: 0.0
+  tracking_sigma: 0.20
+  moving_tracking_sigma: 0.08
+  gait_frequency: 1.5
+  feet_phase_swing_height: 0.06
+  feet_phase_tracking_sigma: 0.008
+  base_height_target: 0.5743699226900935
+  min_forward_speed_for_gait_reward: 0.05
+  min_command_speed_for_gait_reward: 0.1
+  stand_still_cmd_threshold: 0.1
+  stand_still_linvel_sigma: 0.02
+  stand_still_action_rate_scale: 2.0
+  min_base_height: 0.35
+  max_tilt_deg: 65.0
+  close_feet_threshold: 0.12
+  pose_weights: [
+    0.01, 2.0, 5.0, 0.01, 5.0, 5.0, 0.01, 2.0, 5.0, 0.01,
+    40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
+    40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
+  ]

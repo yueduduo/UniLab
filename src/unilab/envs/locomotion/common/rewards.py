@@ -84,6 +84,81 @@ def under_speed(ctx: RewardContext) -> np.ndarray:
     return np.asarray(gap / commanded_speed, dtype=get_global_dtype())
 
 
+def stand_still_drift(ctx: RewardContext, *, cmd_threshold: float = 0.08) -> np.ndarray:
+    """Penalty for body-frame xy / yaw drift when velocity command is near zero."""
+    commands = ctx.info["commands"]
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    standing = (cmd_xy < cmd_threshold) & (np.abs(commands[:, 2]) < cmd_threshold)
+    drift = np.sum(np.square(ctx.linvel[:, :2]), axis=1) + np.square(ctx.gyro[:, 2])
+    return np.asarray(standing * drift, dtype=get_global_dtype())
+
+
+def stand_still_linvel_exp(
+    ctx: RewardContext, *, cmd_threshold: float = 0.08, sigma: float = 0.02
+) -> np.ndarray:
+    """Positive reward for near-zero base motion when the velocity command is zero."""
+    commands = ctx.info["commands"]
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    standing = (cmd_xy < cmd_threshold) & (np.abs(commands[:, 2]) < cmd_threshold)
+    motion = np.sum(np.square(ctx.linvel[:, :2]), axis=1) + np.square(ctx.gyro[:, 2])
+    return np.asarray(standing * np.exp(-motion / sigma), dtype=get_global_dtype())
+
+
+def stand_still_dof_vel(ctx: RewardContext, *, cmd_threshold: float = 0.08) -> np.ndarray:
+    """Penalty for joint motion when the velocity command requests standing."""
+    assert ctx.dof_vel is not None
+    commands = ctx.info["commands"]
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    standing = (cmd_xy < cmd_threshold) & (np.abs(commands[:, 2]) < cmd_threshold)
+    joint_motion = np.sum(np.square(ctx.dof_vel), axis=1)
+    return np.asarray(standing * joint_motion, dtype=get_global_dtype())
+
+
+def _command_locomotion_mask(commands: np.ndarray, cmd_threshold: float) -> np.ndarray:
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    cmd_yaw = np.abs(commands[:, 2])
+    return (cmd_xy >= cmd_threshold) | (cmd_yaw >= cmd_threshold)
+
+
+def cmd_lin_vel_error(ctx: RewardContext, *, cmd_threshold: float = 0.1) -> np.ndarray:
+    """Squared xy velocity tracking error, active only when command requests locomotion."""
+    commands = ctx.info["commands"]
+    moving = _command_locomotion_mask(commands, cmd_threshold)
+    error = np.sum(np.square(commands[:, :2] - ctx.linvel[:, :2]), axis=1)
+    return np.asarray(moving * error, dtype=get_global_dtype())
+
+
+def cmd_ang_vel_error(ctx: RewardContext, *, cmd_threshold: float = 0.1) -> np.ndarray:
+    """Squared yaw-rate tracking error, active only when command requests locomotion."""
+    commands = ctx.info["commands"]
+    moving = _command_locomotion_mask(commands, cmd_threshold)
+    error = np.square(commands[:, 2] - ctx.gyro[:, 2])
+    return np.asarray(moving * error, dtype=get_global_dtype())
+
+
+def cmd_speed_shortfall(ctx: RewardContext, *, cmd_threshold: float = 0.1) -> np.ndarray:
+    """Normalized penalty when planar speed is below commanded planar speed (any direction)."""
+    commands = ctx.info["commands"]
+    moving = _command_locomotion_mask(commands, cmd_threshold)
+    cmd_speed = np.linalg.norm(commands[:, :2], axis=1)
+    actual_speed = np.linalg.norm(ctx.linvel[:, :2], axis=1)
+    gap = np.maximum(cmd_speed - actual_speed, 0.0)
+    normalized = np.where(cmd_speed > 1.0e-6, gap / cmd_speed, 0.0)
+    return np.asarray(moving * normalized, dtype=get_global_dtype())
+
+
+def stand_still_action(ctx: RewardContext, *, cmd_threshold: float = 0.08) -> np.ndarray:
+    """Penalty for non-zero policy output when the velocity command is zero."""
+    commands = ctx.info["commands"]
+    cmd_xy = np.linalg.norm(commands[:, :2], axis=1)
+    standing = (cmd_xy < cmd_threshold) & (np.abs(commands[:, 2]) < cmd_threshold)
+    current = np.asarray(ctx.info.get("current_actions", np.zeros((ctx.num_envs, 1))), dtype=get_global_dtype())
+    if current.ndim == 1:
+        current = current.reshape(ctx.num_envs, -1)
+    action_energy = np.sum(np.square(current), axis=1)
+    return np.asarray(standing * action_energy, dtype=get_global_dtype())
+
+
 # ── velocity / orientation penalties ─────────────────────────────────
 
 

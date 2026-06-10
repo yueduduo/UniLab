@@ -1,0 +1,132 @@
+# @package _global_
+# K1SoccerDribbleCompat — soccer dribble, actor obs = k1_model_46000 (78 dims exactly).
+#
+# Actor obs (78 dims) — identical to MOS-SIM k1_model_46000 deployment contract:
+#   [0:3]   base_lin_vel  × 1.0   (body frame)
+#   [3:6]   base_ang_vel  × 0.2   (body frame)
+#   [6:9]   gravity_orientation × 1.0
+#   [9:12]  cmd [vx, vy, yaw]    × 1.0   ← ball-directed by env in phase 2
+#   [12:34] joint_pos − default  × 1.0   (K1_DEPLOY_JOINT_ORDER)
+#   [34:56] joint_vel            × 0.05  (K1_DEPLOY_JOINT_ORDER)
+#   [56:78] last_action          × 1.0   (K1_DEPLOY_JOINT_ORDER)
+#
+# Critic obs (81 dims) = actor + ball [rel_x_b, rel_y_b, rel_vx_b] (privileged).
+#
+# Ball info reaches the policy only via cmd (phase-2 cmd points toward ball).
+# Reward / curriculum: identical to k1_soccer_dribble/mujoco.yaml.
+# No warm_start: joint order incompatible with K1SoccerDribble (K1_ACTUATOR order).
+defaults:
+  - /locomotion/g1_walk_flat_recipe
+  - /locomotion/g1_walk_flat_flashsac_reward
+
+training:
+  task_name: K1SoccerDribbleCompat
+  sim_backend: mujoco
+algo:
+  num_envs: 4096
+  learning_starts: 50
+  max_iterations: 20000
+  save_interval: 1000
+  updates_per_step: 8
+  batch_size: 2048
+  replay_buffer_n: 256
+  tau: 0.05
+  actor_lr: 2.0e-4
+  critic_lr: 2.0e-4
+  algo_params:
+    temp_initial_value: 0.02
+    temp_target_sigma: 0.30
+  warm_start:
+    enabled: false
+env:
+  obs_frame_stack: 1
+  control_config:
+    action_scale: 0.35
+  commands:
+    vel_limit:
+      - [0.4, 0.0, 0.0]
+      - [0.7, 0.0, 0.0]
+    rel_standing_envs: 0.0
+  gait_phase_init_mode: offset_phase
+  reset_base_qvel_limit: 0.5
+  curriculum:
+    enabled: true
+    initial_scale: 0.5
+    min_scale: 0.5
+    max_scale: 1.0
+    level_down_threshold: 150.0
+    level_up_threshold: 750.0
+    degree: 0.001
+  noise_config:
+    level: 0.0
+    scale_gyro: 0.0
+    scale_gravity: 0.0
+    scale_joint_vel: 0.1
+    scale_linvel: 0.0
+  domain_rand:
+    randomize_kp: false
+    randomize_kd: false
+    randomize_base_mass: false
+    randomize_body_mass: false
+    random_com: false
+    randomize_gravity: false
+    randomize_ground_friction: false
+    randomize_dof_armature: false
+    push_robots: false
+reward:
+  scales:
+    phase1_reach: 10.0
+    phase1_complete: 10.0
+    alive: 1.0
+    penalty_vel_direction: -40.0
+    tracking_ang_vel: 2.0
+    penalty_orientation: -20.0
+    penalty_ang_vel_xy: -1.5
+    upper_body_pose: -0.15
+    pose: -0.8
+    # Phase 2 only (masked until phase-1 waypoint reached)
+    ball_progress: 1.7
+    ball_keep: 3.0
+    ball_front: 2.0
+    ball_speed_match: 0.6
+    ball_approach: 2.4
+    ball_moving: 0.6
+    ball_still: -0.2
+    ball_lost: -1.6
+    ball_over_speed: -1.0
+    ball_orbit: -0.4
+    feet_inward_yaw: -1.4
+    feet_step_travel: 30.0
+    termination_bad: -20.0
+  feet_phase_swing_height: 0.06
+  feet_phase_tracking_sigma: 0.008
+  base_height_target: 0.55
+  min_forward_speed_for_gait_reward: 0.05
+  min_base_height: 0.35
+  max_tilt_deg: 65.0
+  close_feet_threshold: 0.12
+  # pose_weights in K1_ACTUATOR_JOINT_ORDER (used by reward, independent of obs order)
+  pose_weights: [
+    0.01, 2.0, 5.0, 0.01, 5.0, 5.0, 0.01, 2.0, 5.0, 0.01,
+    40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
+    40.0, 200.0, 80.0, 25.0, 40.0, 120.0,
+  ]
+  ball_keep_distance: 0.25
+  ball_keep_sigma: 0.08
+  ball_front_lateral_sigma: 0.16
+  ball_speed_sigma: 0.12
+  ball_lost_distance: 1.35
+  ball_lost_distance_hard: 2.8
+  ball_speed_cap: 0.35
+  ball_move_speed_target: 0.20
+  ball_move_speed_sigma: 0.15
+  ball_approach_speed_cap: 1.0
+  ball_still_speed_threshold: 0.06
+  ball_cmd_deadzone: 0.12
+  ball_cmd_kp: 0.9
+  fixed_cmd_lin_speed: 0.3
+  feet_step_travel_cap: 0.10
+  phase1_reach_sigma: 0.1
+  phase1_reach_sigma_2: 0.3
+  vel_direction_min_speed: 0.05
+  phase1_max_steps: 200

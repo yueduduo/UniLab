@@ -1,10 +1,35 @@
-# 看mujoco带球
+# K1VelCmdCompat 键盘摇杆（UniLab 内测）
+cd ~/projects/UniLab && uv run scripts/play_interactive.py \
+  --config-path /home/m/projects/UniLab/conf/offpolicy \
+  --config-name config \
+  algo=flashsac task=flashsac/k1_vel_cmd_compat/mujoco \
+  algo.load_run=2026-06-10_12-12-35_mujoco \
+  +interactive.action_mode=policy +interactive.keyboard=true
+
+# 导出 MOS-SIM 部署用 TorchScript（FlashSAC ckpt → 78→22 .pt）
+cd ~/projects/UniLab && uv run scripts/export_k1_dribble_compat_deploy.py \
+  --checkpoint logs/flash_sac/K1VelCmdCompat/2026-06-10_12-12-35_mujoco/model_20000.pt \
+  --output MOS-SIM-perf-pipelined-capture/simulation/motrixsim/assets/policies/k1_vel_cmd_model_20000.pt
+
+# MOS-SIM 比赛场景部署（策略名含 vel_cmd 时自动放开 yaw、cmd 范围 [-1,1]）
+conda activate motrixsim0508
+cd ~/projects/UniLab/MOS-SIM-perf-pipelined-capture/simulation/motrixsim
+python sim2sim_runner.py --robot-type k1 --team-size 1 --no-k1-legged-gym \
+  --policy assets/policies/k1_vel_cmd_model_20000.pt --real-time
+
+# headless 快速验
+python tools/test_k1_unilab_headless.py --policy assets/policies/k1_vel_cmd_model_20000.pt \
+  --vx 0 --vy 0 --yaw 0 --seconds 16
+python tools/test_k1_unilab_headless.py --policy assets/policies/k1_vel_cmd_model_20000.pt \
+  --vx 0.5 --vy 0 --yaw 0 --seconds 16
+
+# 看mujoco带球（旧）
 
 cd ~/projects/UniLab && uv run scripts/play_interactive.py \
   --config-path /home/m/projects/UniLab/conf/offpolicy \
   --config-name config \
-  algo=flashsac task=flashsac/k1_soccer_dribble/mujoco \
-  algo.load_run=2026-06-07_14-29-52_mujoco \
+  algo=flashsac task=flashsac/k1_vel_cmd_compat/mujoco \
+  algo.load_run=2026-06-10_12-12-35_mujoco \
   +interactive.action_mode=policy +interactive.keyboard=true \
   +interactive.soccer_dribble_debug=true
 

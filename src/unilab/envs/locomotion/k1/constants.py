@@ -157,3 +157,69 @@ K1_SOCCER_PHASE2_REWARD_KEYS: frozenset[str] = frozenset(
         "termination_bad",
     }
 )
+
+# ---------------------------------------------------------------------------
+# Deploy-compatible joint order — matches MOS-SIM K1_JOINTS_POLICY_ORDER and
+# the k1_model_46000.pt deployment contract.  The order differs from
+# K1_ACTUATOR_JOINT_ORDER (MJCF actuator order used for backend I/O).
+# ---------------------------------------------------------------------------
+K1_DEPLOY_JOINT_ORDER: tuple[str, ...] = (
+    "AAHead_yaw",           # 0
+    "ALeft_Shoulder_Pitch", # 1
+    "ARight_Shoulder_Pitch",# 2
+    "Left_Hip_Pitch",       # 3
+    "Right_Hip_Pitch",      # 4
+    "Head_pitch",           # 5
+    "Left_Shoulder_Roll",   # 6
+    "Right_Shoulder_Roll",  # 7
+    "Left_Hip_Roll",        # 8
+    "Right_Hip_Roll",       # 9
+    "Left_Elbow_Pitch",     # 10
+    "Right_Elbow_Pitch",    # 11
+    "Left_Hip_Yaw",         # 12
+    "Right_Hip_Yaw",        # 13
+    "Left_Elbow_Yaw",       # 14
+    "Right_Elbow_Yaw",      # 15
+    "Left_Knee_Pitch",      # 16
+    "Right_Knee_Pitch",     # 17
+    "Left_Ankle_Pitch",     # 18
+    "Right_Ankle_Pitch",    # 19
+    "Left_Ankle_Roll",      # 20
+    "Right_Ankle_Roll",     # 21
+)
+
+# Permutation: K1_ACTUATOR_JOINT_ORDER → K1_DEPLOY_JOINT_ORDER (for obs/last_action).
+# Usage: deploy_vec = actuator_vec[:, K1_ACTUATOR_TO_DEPLOY_PERM]
+K1_ACTUATOR_TO_DEPLOY_PERM: tuple[int, ...] = (
+    0, 2, 6, 10, 16, 1, 3, 7, 11, 17, 4, 8, 12, 18, 5, 9, 13, 19, 14, 20, 15, 21
+)
+
+# Inverse permutation: K1_DEPLOY_JOINT_ORDER → K1_ACTUATOR_JOINT_ORDER (for action control).
+# Usage: actuator_actions = deploy_actions[:, K1_DEPLOY_TO_ACTUATOR_PERM]
+K1_DEPLOY_TO_ACTUATOR_PERM: tuple[int, ...] = (
+    0, 5, 1, 6, 10, 14, 2, 7, 11, 15, 3, 8, 12, 16, 18, 20, 4, 9, 13, 17, 19, 21
+)
+
+
+def k1_soccer_dribble_compat_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    """46000-compat layout: linvel(3)+angvel(3)+gravity(3)+cmd(3)+joints(3n).
+
+    Exactly 78 dims — identical to k1_model_46000 deployment contract.
+    No ball obs in actor; ball direction is encoded via cmd only.
+    """
+    return 12 + 3 * num_action
+
+
+def k1_soccer_dribble_compat_critic_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    """Critic = actor(78) + ball_rel_state(3) privileged for SAC value estimation."""
+    return k1_soccer_dribble_compat_actor_obs_dim(num_action) + 3
+
+
+def k1_vel_cmd_compat_actor_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    """Same 78-dim actor layout as K1SoccerDribbleCompat / k1_model_46000 deploy contract."""
+    return k1_soccer_dribble_compat_actor_obs_dim(num_action)
+
+
+def k1_vel_cmd_compat_critic_obs_dim(num_action: int = K1_NUM_ACTION) -> int:
+    """Critic = actor(78) + privileged base_lin_vel(3) for SAC value estimation."""
+    return k1_vel_cmd_compat_actor_obs_dim(num_action) + 3
